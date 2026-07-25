@@ -1,0 +1,17 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# Data (sqlite db lives here from Phase 2 onward)
+data/*
+!data/.gitkeep
+
+# Editors / OS
+.DS_Store
+.vscode/
+.idea/
