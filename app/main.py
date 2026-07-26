@@ -18,13 +18,14 @@ from app.integrations.lol.opgg_client import call_lol_tool, list_lol_tools
 from app.kernel.command_router import CommandRouter
 from app.kernel.prompt_assembler import PromptAssembler
 from app.kernel.skill_registry import SkillRegistry
+from app.kernel.time_tools import build_time_tools
 from app.llm.llm_assistant import LLMAssistant, ToolHandler
 from app.paths import PROMPTS_DIR, SKILLS_DIR
 from app.storage.memory import MemoryStore
 from app.storage.tools import build_memory_tools
 from app.telegram.client import TelegramClient
 from app.telegram.schemas import TelegramUpdate
-from app.timeutil import format_now_for_prompt, session_date_str
+from app.timeutil import format_madrid_clock, session_date_str
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
@@ -52,6 +53,7 @@ async def lifespan(app: FastAPI):
     memory_store = MemoryStore(settings.storage_db_path)
     await memory_store.init()
     memory_tool_schemas, memory_handlers = build_memory_tools(memory_store)
+    time_tool_schemas, time_handlers = build_time_tools()
 
     skill_registry = SkillRegistry(SKILLS_DIR)
     skill_registry.load()
@@ -76,9 +78,10 @@ async def lifespan(app: FastAPI):
         for tool in lol_tool_schemas
     }
 
-    all_tools = memory_tool_schemas + clickup_tool_schemas + lol_tool_schemas
+    all_tools = memory_tool_schemas + time_tool_schemas + clickup_tool_schemas + lol_tool_schemas
     all_handlers: dict[str, ToolHandler] = {
         **memory_handlers,
+        **time_handlers,
         **clickup_handlers,
         **lol_handlers,
     }
@@ -144,11 +147,9 @@ async def handle_text_message(
             await telegram.send_message(chat_id, f"Diario {day}:\n" + "\n".join(lines))
         return
 
-    # Fast path for /hora — no LLM needed
+    # Fast path for /hora — authoritative clock, no LLM
     if match is not None and match.skill and match.skill.name == "time-madrid":
-        await telegram.send_message(
-            chat_id, f"Ahora en Madrid: {format_now_for_prompt()}"
-        )
+        await telegram.send_message(chat_id, format_madrid_clock())
         return
 
     user_text = text

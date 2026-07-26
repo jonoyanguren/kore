@@ -12,6 +12,7 @@ Si el trabajo toca producto, arquitectura, fases, alcance o prioridades:
 1. Lee `docs/PLAN.md` al empezar.
 2. Usa `docs/companion-plan.md` solo para detalle de diseño (no es el tracker operativo).
 3. Tareas sueltas / no olvidar → `docs/TODO.md` (márcalas o añádelas ahí).
+4. Skills: ver regla `skills-system-prompt` — crear/cambiar/borrar skill ⇒ actualizar catálogo en `prompts/system.md`.
 
 ## Mantener el plan actualizado
 

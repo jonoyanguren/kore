@@ -1,0 +1,23 @@
+---
+description: Al crear, cambiar o borrar skills, actualizar el catálogo en prompts/system.md
+alwaysApply: true
+---
+
+# Skills ↔ system prompt
+
+Las skills viven en `skills/*.md` (frontmatter + body).
+El **system prompt** (`prompts/system.md`) debe listar **todas y cada una** en la sección `## Skills (complete catalog)`, con nombre y descripción (y comando/tools si aplica).
+
+## Obligatorio en el mismo cambio
+
+Si **creas**, **editas** (sobre todo `name` / `description` / `commands` / `tools`) o **borras** un archivo en `skills/`:
+
+1. Actualiza la sección `## Skills (complete catalog)` en `prompts/system.md` para que coincida 1:1 con los `.md` de `skills/`.
+2. No dejes skills huérfanas en el system prompt ni skills sin entrada ahí.
+3. La descripción en `system.md` debe reflejar el `description` del frontmatter (puedes ampliar comando/tools en la misma línea).
+
+## No hacer
+
+- No añadir una skill solo en código o solo en `skills/` sin tocar `system.md`.
+- No inventar skills en el system prompt que no existan como archivo.
+- El `/skills` de Telegram sale del `SkillRegistry` (archivos); el modelo se guía también por el catálogo del system prompt — ambos deben estar alineados.

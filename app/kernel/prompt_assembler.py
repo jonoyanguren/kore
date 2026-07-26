@@ -51,8 +51,7 @@ class PromptAssembler:
         if investing:
             parts.append("## Investing\n" + investing)
 
-        catalog = self._skills.catalog_text()
-        parts.append("## Skills catalog\n" + catalog)
+        # Skills catalog lives in prompts/system.md (keep in sync when skills change).
 
         parts.append(f"## Time context\nNow (Europe/Madrid): {format_now_for_prompt()}")
 

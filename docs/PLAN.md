@@ -124,3 +124,4 @@ Pendiente Phase 0:
 | 2026-07-26 | Fotos Telegram → MIMO cableadas (`download_file` + multimodal content) |
 | 2026-07-26 | Prompts/skills reescritos (system, personality, capture/brainstorm/plan/execute/time) |
 | 2026-07-26 | Personality de Jon + stub `prompts/kimay.md` ensamblado en el system prompt |
+| 2026-07-26 | Tool `get_madrid_time` + skill time-madrid (reloj autoritativo Europe/Madrid) |
