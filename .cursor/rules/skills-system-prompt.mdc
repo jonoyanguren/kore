@@ -27,8 +27,9 @@ Al crear/editar/borrar en `skills/companion/`:
 Al crear/editar en `skills/dev/`:
 
 1. No cablear al bot a menos que Jon pida `scope: both` o `LOAD_DEV_SKILLS`.
-2. Si Jon pide "cerrar sesión" / "dónde lo dejamos" en **desarrollo** → seguir `skills/dev/close.md`.
-3. No mezclar playbooks de vida personal (Telegram) con cierre de código.
+2. Si Jon pide **arrancar** / "qué toca" / open en **desarrollo** → `skills/dev/open.md`.
+3. Si Jon pide **cerrar** / "dónde lo dejamos" → `skills/dev/close.md` (+ `docs/closes/`).
+4. No mezclar playbooks de vida personal (Telegram) con open/close de código.
 
 ## No hacer
 

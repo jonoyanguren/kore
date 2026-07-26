@@ -10,4 +10,6 @@ Dos árboles:
 Mismo formato markdown + frontmatter. Frontmatter opcional: `scope: companion | dev | both`.
 
 - Companion → playbooks + comandos `/…` en Telegram.
-- Dev → playbooks para el agente en Cursor (p. ej. `dev/close.md`).
+- Dev → playbooks para el agente en Cursor:
+  - `dev/open.md` — arrancar (lee último close + PLAN)
+  - `dev/close.md` — cerrar (escribe `docs/closes/YYYY-MM-DD.md`)

@@ -117,7 +117,7 @@ Pendiente Phase 1:
 ## Next steps
 
 1. Dogfood companion: `/dream`, tareas/agenda; verificar briefing ~09:00 (CRON_SECRET en GitHub si falta)
-2. En Cursor: cierre → `skills/dev/close.md` + archivo en `docs/closes/` (leer al arrancar)
+2. En Cursor: `open` (arrancar) / `close` (aparcado en `docs/closes/`)
 3. Phase 2 (Gmail) o pulir tasks (estados, UI…) según `docs/TODO.md`
 
 ## Changelog del plan
@@ -145,3 +145,5 @@ Pendiente Phase 1:
 | 2026-07-26 | Dream a tope 09:00 Madrid: chat del día + tools + prep |
 | 2026-07-26 | Skills split: companion/ (bot) vs dev/ (Cursor); close = dev |
 | 2026-07-26 | Closes de desarrollo persistidos en `docs/closes/YYYY-MM-DD.md` |
+| 2026-07-26 | Skill `dev/open` para arrancar sesión (último close + PLAN) |
+| 2026-07-26 | Regla `dev-session`: auto-open en chat nuevo o frío |

@@ -1,0 +1,31 @@
+---
+description: Auto open/close de sesión de desarrollo Kore en Cursor
+alwaysApply: true
+---
+
+# Sesión de desarrollo (open / close)
+
+Playbooks: `skills/dev/open.md` y `skills/dev/close.md`.
+Artefactos: `docs/closes/YYYY-MM-DD.md`.
+
+## Auto-OPEN (obligatorio)
+
+Ejecuta el playbook **open** (lee skill + último close + PLAN) **antes de implementar**, cuando:
+
+1. **Chat nuevo** — primera respuesta del agente en este hilo, o el usuario abre conversación sin hilo previo de trabajo.
+2. **Chat frío / de hace tiempo** — el hilo parece de otra sesión o día (pausa larga, “buenas”, “sigamos”, “dónde estábamos”, volver tras dormir, o el último close es de un día anterior al de hoy Europe/Madrid).
+3. El usuario dice explícitamente open / arrancamos / qué toca.
+
+En esos casos: **primera respuesta = output del open** (estructura de `skills/dev/open.md`). No empieces a codear ni a shippear en ese mismo turno salvo que Jon diga “dale” / “implementa X” con foco ya claro **después** del open.
+
+### No auto-open
+
+- Ya corriste open en este hilo hace poco y seguís iterando el mismo foco.
+- Pregunta puntual (“cambia este string”, “explica esta función”) en medio de sesión caliente.
+- Solo pide commit/push/deploy de algo ya hecho en el hilo.
+
+Si dudas entre frío y caliente → **haz open** (barato; un resumen de más no duele).
+
+## Auto-CLOSE (cuando lo pida)
+
+Si Jon dice close / cierro / aparcamos / dónde lo dejamos → `skills/dev/close.md` y **escribe** `docs/closes/YYYY-MM-DD.md`. No dejes el close solo en el chat.
