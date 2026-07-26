@@ -1,15 +1,19 @@
-# jornvis — Asistente personal (Fase 1)
+# jornvis — Asistente personal
 
 Bot de Telegram que reenvía tus mensajes a un modelo LLM (vía OpenRouter) y te
-devuelve la respuesta. Fase 1 = esqueleto conversacional puro: sin memoria de
-conversación, sin ClickUp, sin resúmenes de commits, sin RAG, sin ejecución
-de comandos. Esas son fases futuras — ver `app/integrations/` y
-`app/storage/`, que están vacíos a propósito.
+devuelve la respuesta. El modelo puede usar herramientas para consultar datos
+reales en vez de inventar: estadísticas de League of Legends (OP.GG) y
+gestión de tareas de ClickUp. Sin memoria de conversación entre mensajes
+todavía, sin ejecución de comandos/código — esas siguen siendo fases futuras,
+ver `app/storage/` (vacío a propósito) y la nota de seguridad más abajo.
 
 ## Arquitectura
 
 ```
-Telegram --webhook (HTTPS)--> Caddy (TLS automático) --> FastAPI (app) --> OpenRouter --> modelo elegido
+Telegram --webhook (HTTPS)--> Fly.io (TLS automático) --> FastAPI (app) --> OpenRouter --> modelo
+                                                                                 │
+                                                                                 ├─ tools LoL --> MCP de OP.GG (mcp-api.op.gg)
+                                                                                 └─ tools ClickUp --> API REST de ClickUp
 ```
 
 - **Canal**: Telegram Bot API vía webhook.
@@ -17,11 +21,31 @@ Telegram --webhook (HTTPS)--> Caddy (TLS automático) --> FastAPI (app) --> Open
 - **Modelo**: configurable vía `OPENROUTER_MODEL` (por defecto
   `anthropic/claude-sonnet-5`), sin streaming — las respuestas son mensajes
   de chat cortos, no documentos largos.
-- **Despliegue**: Docker Compose (`app` + `caddy`), Caddy es el único servicio
-  expuesto a internet (80/443); `app` vive solo en la red interna de Docker.
+- **Tool use**: `LLMAssistant` corre un loop de llamada→tool_calls→resultado
+  hasta que el modelo da una respuesta final (máx. 6 iteraciones, para no
+  quedar en bucle). Las tools de LoL son un *proxy transparente* hacia el
+  servidor MCP oficial de OP.GG (se descargan sus schemas al arrancar, sin
+  necesidad de mantenerlos a mano); las de ClickUp están definidas a mano
+  sobre su API REST.
+- **LoL**: servidor MCP público de OP.GG (`mcp-api.op.gg`) — sin API key, sin
+  scraping, sin caducidad. Solo se exponen las tools con prefijo `lol_`
+  (el servidor también tiene TFT y Valorant, que no se pidieron).
+- **ClickUp**: API REST v2 con token personal (no caduca). Acceso completo —
+  listar workspaces/spaces/lists, listar/crear/actualizar/cerrar tareas.
+- **Despliegue**: Fly.io (app `jornvis`, región `fra`, 1 máquina
+  `shared-cpu-1x`/256MB siempre encendida — `min_machines_running = 1` para
+  evitar cold start en el webhook). TLS y certificado son automáticos, sin
+  Caddy ni dominio propio: la app vive en `jornvis.fly.dev`.
 - **Seguridad del webhook**: verificación del header
   `X-Telegram-Bot-Api-Secret-Token` (el gate real) + segmento aleatorio en la
   URL (defensa en profundidad) + whitelist de un único `chat_id`.
+
+**Nota de seguridad**: dar acceso de código/git/deploy al bot (leer y
+modificar tus repos, desplegar) queda deliberadamente fuera de esta fase —
+es la pieza de mayor riesgo del roadmap (comandos disparados desde un chat de
+móvil, sin la UI de confirmación que tienes en Claude Code) y se diseña
+aparte, con lista blanca de repos/comandos y confirmación obligatoria antes
+de cualquier acción irreversible.
 
 ## Requisitos previos
 
@@ -32,16 +56,18 @@ Telegram --webhook (HTTPS)--> Caddy (TLS automático) --> FastAPI (app) --> Open
    verás tu `chat.id`.
 3. **API key de OpenRouter**: desde [openrouter.ai](https://openrouter.ai) →
    *Keys*. Funciona con saldo prepago.
-4. **Dominio o subdominio** apuntando (registro A) a la IP pública del
-   servidor Hetzner — necesario para que Caddy pueda emitir el certificado
-   TLS. Tiene que resolver *antes* de levantar el stack.
+4. **Cuenta de Fly.io** con `flyctl` instalado y autenticado
+   (`flyctl auth login`, requiere terminal interactiva).
+5. **Token personal de ClickUp**: Ajustes → Apps → API Token → Generate. No
+   caduca.
 
 ## Setup local (antes de desplegar)
 
 ```bash
 uv sync
 cp .env.example .env
-# completa TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_CHAT_ID, OPENROUTER_API_KEY
+# completa TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_CHAT_ID, OPENROUTER_API_KEY,
+# CLICKUP_API_TOKEN
 # genera los dos secretos con:
 openssl rand -hex 32   # -> TELEGRAM_WEBHOOK_SECRET
 openssl rand -hex 32   # -> TELEGRAM_WEBHOOK_PATH_SECRET
@@ -92,13 +118,23 @@ respuesta del modelo llegando a tu Telegram real. Otros casos a probar:
 - Texto largo (fuerza una respuesta de +4096 caracteres) → llega partido en
   varios mensajes, en orden.
 
-## Despliegue en el Hetzner
+## Despliegue en Fly.io
+
+La app ya está creada (`fly launch`, región `fra`). Para desplegar:
 
 ```bash
-# en el servidor, con el repo copiado y .env completo (con DOMAIN y ACME_EMAIL)
-docker compose up -d --build
-docker compose logs -f caddy   # confirmar que emite el certificado sin errores
-./scripts/set_webhook.sh       # registra el webhook y muestra getWebhookInfo
+# cargar los secrets (una vez, o cuando cambien)
+fly secrets set \
+  TELEGRAM_BOT_TOKEN=... \
+  TELEGRAM_WEBHOOK_SECRET=... \
+  TELEGRAM_WEBHOOK_PATH_SECRET=... \
+  TELEGRAM_ALLOWED_CHAT_ID=... \
+  OPENROUTER_API_KEY=... \
+  CLICKUP_API_TOKEN=...
+
+fly deploy
+fly logs                  # confirmar que arrancó sin errores
+./scripts/set_webhook.sh  # registra el webhook y muestra getWebhookInfo
 ```
 
 Verifica el registro manualmente si quieres:
@@ -109,28 +145,32 @@ curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/getWebhookInfo"
 
 Confirma `url` correcta, `pending_update_count: 0` y sin `last_error_message`.
 
-Después, mándale un mensaje real al bot desde Telegram y mira
-`docker compose logs -f app`.
+Después, mándale un mensaje real al bot desde Telegram y mira `fly logs`.
 
 ## Estructura
 
 ```
 app/
-├── main.py               # FastAPI, endpoint webhook, healthz
-├── config.py              # variables de entorno (pydantic-settings)
+├── main.py                      # FastAPI, endpoint webhook, healthz, wiring de tools
+├── config.py                     # variables de entorno (pydantic-settings)
 ├── telegram/
-│   ├── schemas.py         # modelos mínimos de Update/Message de Telegram
-│   └── client.py           # sendMessage (con split de mensajes largos), setWebhook
+│   ├── schemas.py                # modelos mínimos de Update/Message de Telegram
+│   └── client.py                  # sendMessage (con split de mensajes largos), setWebhook
 ├── llm/
-│   └── llm_assistant.py    # llamada a OpenRouter + manejo de errores
-├── integrations/            # vacío — Fase 2+: ClickUp, resúmenes de commits
-└── storage/                  # vacío — Fase 2+: memoria de conversación, RAG (SQLite)
+│   └── llm_assistant.py           # loop de tool use + manejo de errores
+├── integrations/
+│   ├── lol/
+│   │   └── opgg_client.py         # cliente MCP hacia mcp-api.op.gg (proxy transparente)
+│   └── clickup/
+│       ├── clickup_client.py      # wrapper REST puro sobre la API de ClickUp
+│       └── tools.py                # schemas + handlers de tool-calling para ClickUp
+└── storage/                        # vacío — memoria de conversación, RAG (SQLite)
 ```
 
-## Fuera de alcance en esta fase
+## Fuera de alcance por ahora
 
-Cola de mensajes, logging estructurado, deduplicación persistente de
-`update_id`, registro automático del webhook al arrancar, Docker multi-stage,
-escapado de Markdown para Telegram (el bot responde en texto plano a
-propósito). Ver el historial de la sesión de diseño si quieres el
-razonamiento completo detrás de cada decisión.
+Memoria de conversación entre mensajes, ejecución de comandos/código/git
+(riesgo alto, se diseña aparte), cola de mensajes, logging estructurado,
+deduplicación persistente de `update_id`, registro automático del webhook al
+arrancar, Docker multi-stage, escapado de Markdown para Telegram (el bot
+responde en texto plano a propósito).

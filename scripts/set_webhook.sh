@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # One-time (or rare) registration of the Telegram webhook.
-# Run this after `docker compose up -d` and after confirming Caddy has
-# issued a valid certificate for $DOMAIN — not automatically at app startup.
+# Run this after `fly deploy` — not automatically at app startup.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

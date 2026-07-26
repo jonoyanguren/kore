@@ -1,8 +1,8 @@
-"""FastAPI app: Telegram webhook -> LLM (via OpenRouter) -> Telegram reply.
+"""FastAPI app: Telegram webhook -> LLM (via OpenRouter, with tools) -> Telegram reply.
 
-Phase 1 — stateless. No conversation history, no commands beyond /start,
-no tools. See app/integrations/ and app/storage/ for where later phases
-will land.
+Stateless — no conversation history across messages yet, that's a separate
+phase. Tools give the model real data: League of Legends stats (via OP.GG's
+MCP server) and ClickUp task management (via its REST API).
 """
 
 from __future__ import annotations
@@ -16,7 +16,12 @@ import openai
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 
 from app.config import settings
-from app.llm.llm_assistant import LLMAssistant
+from app.integrations.clickup.clickup_client import ClickUpClient
+from app.integrations.clickup.tools import build_clickup_tools
+from app.integrations.lol.opgg_client import call_lol_tool, list_lol_tools
+from app.llm.llm_assistant import LLMAssistant, ToolHandler
+from app.storage.memory import MemoryStore
+from app.storage.tools import build_memory_tools
 from app.telegram.client import TelegramClient
 from app.telegram.schemas import TelegramUpdate
 
@@ -45,8 +50,35 @@ async def lifespan(app: FastAPI):
         default_headers={"X-Title": "jornvis"},
     )
 
+    memory_store = MemoryStore(settings.storage_db_path)
+    await memory_store.init()
+    memory_tool_schemas, memory_handlers = build_memory_tools(memory_store)
+
+    clickup_client = ClickUpClient(settings.clickup_api_token, http_client)
+    clickup_tool_schemas, clickup_handlers = build_clickup_tools(clickup_client)
+
+    try:
+        lol_tool_schemas = await list_lol_tools()
+    except Exception:
+        logger.exception("Could not load LoL tools from OP.GG at startup — continuing without them")
+        lol_tool_schemas = []
+
+    lol_handlers: dict[str, ToolHandler] = {
+        tool["function"]["name"]: (
+            lambda args, _name=tool["function"]["name"]: call_lol_tool(_name, args)
+        )
+        for tool in lol_tool_schemas
+    }
+
+    all_tools = memory_tool_schemas + clickup_tool_schemas + lol_tool_schemas
+    all_handlers: dict[str, ToolHandler] = {
+        **memory_handlers,
+        **clickup_handlers,
+        **lol_handlers,
+    }
+
     app.state.telegram = TelegramClient(settings.telegram_bot_token, http_client)
-    app.state.llm = LLMAssistant(llm_client)
+    app.state.llm = LLMAssistant(llm_client, all_tools, all_handlers, memory_store)
 
     yield
 
