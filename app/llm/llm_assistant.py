@@ -7,6 +7,7 @@ PromptAssembler; same-day session history is loaded from MemoryStore.
 
 from __future__ import annotations
 
+import base64
 import json
 import logging
 from typing import Any, Awaitable, Callable
@@ -29,6 +30,23 @@ SESSION_HISTORY_LIMIT = 20
 # tool-calling support. Used as a one-time fallback when the configured
 # (paid) model returns 402 Insufficient Credits.
 FALLBACK_MODEL = "openrouter/free"
+
+
+def _user_content(
+    user_text: str,
+    *,
+    image_bytes: bytes | None = None,
+    image_mime: str = "image/jpeg",
+) -> str | list[dict[str, Any]]:
+    """Build OpenAI-compatible user content (text or multimodal parts)."""
+    if not image_bytes:
+        return user_text
+    b64 = base64.b64encode(image_bytes).decode("ascii")
+    data_url = f"data:{image_mime};base64,{b64}"
+    return [
+        {"type": "text", "text": user_text},
+        {"type": "image_url", "image_url": {"url": data_url}},
+    ]
 
 
 class LLMAssistant:
@@ -54,8 +72,10 @@ class LLMAssistant:
         *,
         active_skill: Skill | None = None,
         persist: bool = True,
+        image_bytes: bytes | None = None,
+        image_mime: str = "image/jpeg",
     ) -> str:
-        """Return a reply for `user_text`. Never raises — always returns a string."""
+        """Return a reply for `user_text` (optional image). Never raises."""
         system_prompt = await self._prompt_assembler.assemble(active_skill=active_skill)
         messages: list[dict[str, Any]] = [{"role": "system", "content": system_prompt}]
 
@@ -63,7 +83,14 @@ class LLMAssistant:
             if role in ("user", "assistant") and content.strip():
                 messages.append({"role": role, "content": content})
 
-        messages.append({"role": "user", "content": user_text})
+        messages.append(
+            {
+                "role": "user",
+                "content": _user_content(
+                    user_text, image_bytes=image_bytes, image_mime=image_mime
+                ),
+            }
+        )
 
         model = settings.openrouter_model
         used_fallback = False
@@ -144,7 +171,10 @@ class LLMAssistant:
 
         if persist:
             try:
-                await self._memory.add_message("user", user_text)
+                history_user = user_text
+                if image_bytes is not None:
+                    history_user = f"[imagen] {user_text}".strip()
+                await self._memory.add_message("user", history_user)
                 await self._memory.add_message("assistant", final_text)
             except Exception:
                 logger.exception("Failed to persist session messages")

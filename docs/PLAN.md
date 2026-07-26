@@ -8,7 +8,7 @@
 | Repo | `jonoyanguren/kore` |
 | Producto | **Kore** (deploy/código) · hablado **Jone** (`ASSISTANT_NAME`) |
 | Arquitectura | Companion kernel (Approach B) |
-| Fase actual | **Phase 0 — Kernel + captura** (núcleo aterrizado; falta foto MIMO + polish) |
+| Fase actual | **Phase 0 — Kernel + captura** (kernel + fotos + prompts/skills mejorados; falta validar en deploy) |
 | Canal | Telegram (UI web después) |
 | Deploy | Fly.io · volumen `/data` |
 | Modelo default | `xiaomi/mimo-v2-omni` |
@@ -22,7 +22,7 @@
 - [x] Phase 0 (parcial): prompts, skills, PromptAssembler, SkillRegistry, CommandRouter
 - [x] Phase 0 (parcial): `memory_items` + `diary_entries` + `messages` + migración `notes`
 - [x] Phase 0 (parcial): tools `save_memory` / `add_diary_entry` + comandos `/skills` `/hora` `/diario`
-- [ ] Phase 0 restante: imágenes Telegram → MIMO (download + content multimodal)
+- [x] Phase 0: imágenes Telegram → MIMO (download + content multimodal)
 - [ ] Phase 1: vault + dream 3am + tasks locales
 - [ ] Phase 2: Gmail OAuth + digest 9am
 - [ ] Phase 3: misiones background
@@ -61,8 +61,9 @@ Hecho:
 - Default model MIMO
 
 Pendiente Phase 0:
-- Foto/caption Telegram → descargar → pasar a MIMO
+- Validar captura + fotos + comandos en uso real (deploy)
 - (opcional) tests unitarios del registry/store
+- (opcional) afinar personality.md con voz personal
 
 ### Phase 1 — Diario / agenda / sueño
 
@@ -95,7 +96,7 @@ Pendiente Phase 0:
 - [ ] Chat → hechos guardados por categoría sin pedirlo siempre *(tools listos; falta validar en uso real)*
 - [x] `/diario` usable (lectura del día)
 - [ ] Agenda / tasks locales usables
-- [ ] Imagen Telegram vía MIMO
+- [x] Imagen Telegram vía MIMO
 - [ ] Dream 3am consolida memoria
 - [ ] Gmail OAuth + digest 9am
 - [ ] Una misión background completada
@@ -109,9 +110,9 @@ Pendiente Phase 0:
 
 ## Next steps
 
-1. Deploy / probar en Telegram: `/skills`, `/hora`, `/diario`, captura por chat
-2. Cablear imágenes Telegram → MIMO
-3. Luego Phase 1 (vault + dream) o polish de captura
+1. Deploy / probar: `/skills`, `/hora`, `/diario`, captura, foto con caption
+2. Afinar personality.md si quieres más "tú"
+3. Phase 1 (vault + dream) cuando Phase 0 se sienta usable
 
 ## Changelog del plan
 
@@ -120,3 +121,6 @@ Pendiente Phase 0:
 | 2026-07-26 | Plan vivo creado desde `companion-plan.md`; fase actual = Phase 0 |
 | 2026-07-26 | Phase 0 kernel aterrizado (prompts/skills/assembler/memory/diary/session); pendiente fotos MIMO |
 | 2026-07-26 | Añadido `docs/TODO.md` para backlog (primera tarea: mejorar prompts/skills) |
+| 2026-07-26 | Fotos Telegram → MIMO cableadas (`download_file` + multimodal content) |
+| 2026-07-26 | Prompts/skills reescritos (system, personality, capture/brainstorm/plan/execute/time) |
+| 2026-07-26 | Personality de Jon + stub `prompts/kimay.md` ensamblado en el system prompt |

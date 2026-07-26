@@ -39,6 +39,18 @@ class PromptAssembler:
         if personality:
             parts.append("## Personality\n" + personality)
 
+        kimay = self._read_prompt("kimay.md")
+        if kimay:
+            parts.append("## Kimay\n" + kimay)
+
+        slow = self._read_prompt("slow-project.md")
+        if slow:
+            parts.append("## Slow Project SL\n" + slow)
+
+        investing = self._read_prompt("investing.md")
+        if investing:
+            parts.append("## Investing\n" + investing)
+
         catalog = self._skills.catalog_text()
         parts.append("## Skills catalog\n" + catalog)
 

@@ -183,11 +183,37 @@ async def handle_start(telegram: TelegramClient, chat_id: int) -> None:
     )
 
 
+async def handle_photo_message(
+    telegram: TelegramClient,
+    llm: LLMAssistant,
+    chat_id: int,
+    file_id: str,
+    caption: str | None,
+) -> None:
+    typing_task = asyncio.create_task(_keep_typing(telegram, chat_id))
+    try:
+        image_bytes, mime = await telegram.download_file(file_id)
+        user_text = (caption or "").strip() or (
+            "El usuario ha enviado esta imagen. Descríbela y, si hay hechos "
+            "relevantes, guárdalos con save_memory o add_diary_entry."
+        )
+        reply = await llm.ask(
+            user_text, image_bytes=image_bytes, image_mime=mime
+        )
+        await telegram.send_message(chat_id, reply)
+    except Exception:
+        logger.exception("Unhandled error processing photo for chat_id=%s", chat_id)
+        await telegram.send_message(
+            chat_id, "No pude leer esa imagen. Prueba otra vez o mándala más pequeña."
+        )
+    finally:
+        typing_task.cancel()
+
+
 async def handle_non_text(telegram: TelegramClient, chat_id: int) -> None:
     await telegram.send_message(
         chat_id,
-        "Por ahora solo leo texto. Las imágenes llegan en cuanto MIMO multimodal "
-        "esté cableado del todo.",
+        "Por ahora entiendo texto e imágenes. Ese tipo de mensaje aún no.",
     )
 
 
@@ -222,9 +248,21 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks) 
     commands: CommandRouter = request.app.state.commands
     memory: MemoryStore = request.app.state.memory
     skills: SkillRegistry = request.app.state.skills
-    text = update.message.text
+    message = update.message
+    text = message.text
 
-    if text is None:
+    if message.photo:
+        # Telegram sends several sizes; last is the largest.
+        largest = message.photo[-1]
+        background_tasks.add_task(
+            handle_photo_message,
+            telegram,
+            llm,
+            chat_id,
+            largest.file_id,
+            message.caption,
+        )
+    elif text is None:
         background_tasks.add_task(handle_non_text, telegram, chat_id)
     else:
         background_tasks.add_task(

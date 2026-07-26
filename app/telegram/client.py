@@ -1,13 +1,15 @@
-"""Thin wrapper over the Telegram Bot API — only what Phase 1 needs.
+"""Thin wrapper over the Telegram Bot API.
 
-No conversation state, no polling, no command routing. Just:
 - send a (possibly long) text reply, split to respect the 4096-char limit
-- send a "typing..." chat action while we wait on Claude
+- send a "typing..." chat action
+- download files (photos) via getFile
 """
 
 from __future__ import annotations
 
 import logging
+import mimetypes
+from pathlib import PurePosixPath
 
 import httpx
 
@@ -40,6 +42,7 @@ def split_message(text: str, limit: int = SAFE_CHUNK_LEN) -> list[str]:
 
 class TelegramClient:
     def __init__(self, bot_token: str, http_client: httpx.AsyncClient) -> None:
+        self._bot_token = bot_token
         self._base_url = f"{TELEGRAM_API_BASE}/bot{bot_token}"
         self._http = http_client
 
@@ -68,6 +71,22 @@ class TelegramClient:
         response = await self._http.get(f"{self._base_url}/getWebhookInfo")
         response.raise_for_status()
         return response.json()
+
+    async def download_file(self, file_id: str) -> tuple[bytes, str]:
+        """Download a Telegram file by file_id. Returns (bytes, mime_type)."""
+        meta = await self._http.get(
+            f"{self._base_url}/getFile", params={"file_id": file_id}
+        )
+        meta.raise_for_status()
+        payload = meta.json()
+        if not payload.get("ok"):
+            raise RuntimeError(f"Telegram getFile failed: {payload}")
+        file_path = payload["result"]["file_path"]
+        url = f"{TELEGRAM_API_BASE}/file/bot{self._bot_token}/{file_path}"
+        file_resp = await self._http.get(url)
+        file_resp.raise_for_status()
+        mime, _ = mimetypes.guess_type(PurePosixPath(file_path).name)
+        return file_resp.content, mime or "image/jpeg"
 
     async def _post(self, method: str, data: dict) -> None:
         try:

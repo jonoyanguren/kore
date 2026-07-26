@@ -1,12 +1,4 @@
-"""Minimal Telegram Bot API models for Phase 1.
-
-Only the fields we actually read are declared. `extra="ignore"` on every
-model means Telegram can add fields, send update types we don't model
-(edited_message, callback_query, my_chat_member, ...), or include extra
-message fields (photo, sticker, etc.) without ever causing a validation
-error — those cases are simply invisible to us and handled as "no text"
-in app/main.py.
-"""
+"""Minimal Telegram Bot API models for the companion webhook."""
 
 from __future__ import annotations
 
@@ -27,6 +19,16 @@ class TelegramUser(BaseModel):
     first_name: str | None = None
 
 
+class TelegramPhotoSize(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    file_id: str
+    file_unique_id: str | None = None
+    width: int | None = None
+    height: int | None = None
+    file_size: int | None = None
+
+
 class TelegramMessage(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
@@ -34,6 +36,8 @@ class TelegramMessage(BaseModel):
     chat: TelegramChat
     from_user: TelegramUser | None = Field(default=None, alias="from")
     text: str | None = None
+    caption: str | None = None
+    photo: list[TelegramPhotoSize] | None = None
 
 
 class TelegramUpdate(BaseModel):

@@ -6,12 +6,21 @@ Convención: `- [ ]` pendiente · `- [x]` hecho. Añade fecha o contexto breve s
 
 ## Prompting & skills
 
-- [ ] Mejorar los prompts y skills — ahora están muy flojos (`prompts/`, `skills/`)
+- [x] Mejorar los prompts y skills — baseline sólido en `prompts/` + `skills/` (2026-07-26)
+- [x] Personalizar `prompts/personality.md` con voz de Jon (tuteo, directo, humor chorra, plan-first)
+- [x] Rellenar `prompts/kimay.md` — baseline (software, full stack, emprendedor/inversor, datafineai; farma = no inventar)
+- [x] Ampliar Datafine desde web pública (hiperpersonalización ecommerce)
+- [x] Prompt `slow-project.md` — Citrus Designer + YaY Experiences + HomePrive (Slow Project SL)
+- [x] Prompt `investing.md` — faceta inversor (azValor: ~60k + 18k aportados → ~107k actual)
+- [ ] Ampliar investing más adelante si quiere (horizonte, otras gestoras, recordatorios)
+- [ ] Confirmar rol de Jon en Slow Project / relación con Andrea
+- [ ] Confirmar/corregir Datafine + About si hace falta
+- [ ] Decidir agresividad de captura (proactiva vs solo con “recuerda/captura”)
 
 ## Kernel / producto
 
-- [ ] Cablear imágenes Telegram → MIMO (pendiente Phase 0)
+- [x] Cablear imágenes Telegram → MIMO (Phase 0)
 
 ## Notas
 
-_(ideas rápidas sin clasificar)_
+- Kimay merece su propio prompt (ya cableado en PromptAssembler). No meter todo en personality.
