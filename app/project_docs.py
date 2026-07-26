@@ -15,6 +15,8 @@ STATIC_DOCS: dict[str, str] = {
     "docs/agent-rules.md": "Reglas de comportamiento del agente (estilo Cursor rules)",
 }
 
+# docs/closes/*.md discovered recursively with skills (via docs/ rglob below if needed)
+
 # Always folded into the system prompt each turn (Cursor-like alwaysApply).
 ALWAYS_INJECT = (
     "docs/agent-rules.md",
@@ -40,11 +42,12 @@ def _discovered_md(subdir: str, label: str, *, recursive: bool = False) -> dict[
 
 
 def allowed_docs() -> dict[str, str]:
-    """Whitelist: static docs + prompts/*.md + skills/**/*.md."""
+    """Whitelist: static docs + prompts + skills + session closes."""
     return {
         **STATIC_DOCS,
         **_discovered_md("prompts", "Prompt"),
         **_discovered_md("skills", "Skill", recursive=True),
+        **_discovered_md("docs/closes", "Close", recursive=False),
     }
 
 

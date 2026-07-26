@@ -30,7 +30,7 @@ Convención: `- [ ]` pendiente · `- [x]` hecho. Añade fecha o contexto breve s
 - [x] Phase 1 MVP: vault + tasks/agenda + dream 3am/`/dream`
 - [x] Sueño vía **cron externo** (no polling): `POST /internal/cron/dream` + GitHub Actions ~**09:00 Madrid**
 - [x] Dream a tope: transcript del día + tools (huecos) + resumen Telegram + prep día siguiente
-- [x] Separar `skills/companion/` (Telegram) vs `skills/dev/` (Cursor); `dev/close` para cierre de sesión de desarrollo
+- [x] Separar `skills/companion/` (Telegram) vs `skills/dev/` (Cursor); `dev/close` → `docs/closes/YYYY-MM-DD.md`
 - [x] `CRON_SECRET` en Fly (GitHub repo secret: confirmar si ya lo metiste)
 - [ ] Verificar una vez el briefing de las 09:00 en Telegram
 - [ ] Dogfood dream/tasks en Telegram unos días
