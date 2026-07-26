@@ -104,7 +104,11 @@ resp="$(post_update "{
 }")"
 if echo "$resp" | grep -q '"ok":true'; then ok "/agenda → ok (mira Telegram)"; else bad "/agenda → $resp"; fi
 
-# A2.8 photo + caption — MANUAL (needs real Telegram file_id)
+# A2.8 cron dream without auth → 403
+code="$(curl -sS -o /dev/null -w '%{http_code}' -X POST "${BASE}/internal/cron/dream")"
+if [ "$code" = "403" ]; then ok "cron dream sin secret → 403"; else bad "cron dream sin secret → $code"; fi
+
+# A2.9 photo + caption — MANUAL (needs real Telegram file_id)
 ok "foto+caption: MANUAL (B3) — Telegram getFile no se puede fakear sin file_id real"
 ok "/dream: MANUAL (cuesta LLM; probar a mano tras ship)"
 

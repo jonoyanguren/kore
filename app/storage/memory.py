@@ -249,6 +249,24 @@ class MemoryStore:
             rows = await cursor.fetchall()
             return [(row[0], row[1]) for row in reversed(rows)]
 
+    async def list_messages_for_day(
+        self, day: str | None = None, limit: int = 500
+    ) -> list[tuple[str, str]]:
+        """All session messages for a Madrid day, oldest→newest (capped)."""
+        day = day or session_date_str()
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                """
+                SELECT role, content FROM messages
+                WHERE session_date = ?
+                ORDER BY id ASC
+                LIMIT ?
+                """,
+                (day, limit),
+            )
+            rows = await cursor.fetchall()
+            return [(row[0], row[1]) for row in rows]
+
     # --- Legacy notes API (kept for migration / forget_note compat) ---------
 
     async def add_note(self, text: str) -> int:

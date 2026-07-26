@@ -45,6 +45,11 @@ async def _run():
         vault.write_dream("2026-07-25", "# dream\n\nhola")
         assert (vault.root / "dreams" / "2026-07-25.md").is_file()
 
+        await store.add_message("user", "hola dream", session_date="2026-07-25")
+        await store.add_message("assistant", "hey", session_date="2026-07-25")
+        msgs = await store.list_messages_for_day("2026-07-25")
+        assert msgs == [("user", "hola dream"), ("assistant", "hey")]
+
 
 def test_phase1_store_and_vault():
     import asyncio

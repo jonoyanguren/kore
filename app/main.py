@@ -22,7 +22,7 @@ from app.kernel.command_router import CommandRouter
 from app.kernel.dream import run_dream
 from app.kernel.project_tools import build_project_tools
 from app.kernel.prompt_assembler import PromptAssembler
-from app.kernel.scheduler import scheduler_loop
+from app.kernel.scheduler import run_scheduled_dream
 from app.kernel.skill_registry import SkillRegistry
 from app.kernel.time_tools import build_time_tools
 from app.llm.llm_assistant import LLMAssistant, ToolHandler
@@ -142,17 +142,8 @@ async def lifespan(app: FastAPI):
         llm_client, all_tools, all_handlers, memory_store, prompt_assembler
     )
 
-    sched_task = asyncio.create_task(
-        scheduler_loop(memory_store, vault, llm_client, telegram)
-    )
-
     yield
 
-    sched_task.cancel()
-    try:
-        await sched_task
-    except asyncio.CancelledError:
-        pass
     await http_client.aclose()
     await llm_client.close()
 
@@ -372,6 +363,23 @@ async def handle_non_text(telegram: TelegramClient, chat_id: int) -> None:
 @app.get("/healthz")
 async def healthz() -> dict:
     return {"status": "ok"}
+
+
+@app.post("/internal/cron/dream")
+async def cron_dream(request: Request) -> dict:
+    """External cron (GitHub Actions ~03:00 Madrid). No in-process polling."""
+    auth = request.headers.get("authorization", "")
+    expected = f"Bearer {settings.cron_secret}" if settings.cron_secret else ""
+    if not expected or not secrets.compare_digest(auth, expected):
+        raise HTTPException(status_code=403, detail="forbidden")
+
+    result = await run_scheduled_dream(
+        request.app.state.memory,
+        request.app.state.vault,
+        request.app.state.llm_client,
+        request.app.state.telegram,
+    )
+    return {"ok": True, **result}
 
 
 @app.post(WEBHOOK_PATH)

@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     # (data/vault or /data/vault on Fly).
     vault_root: str = ""
 
+    # Bearer token for POST /internal/cron/* (GitHub Actions / external cron).
+    # Empty = cron endpoints always 403.
+    cron_secret: str = ""
+
     log_level: str = "INFO"
 
     def resolved_vault_root(self) -> str:

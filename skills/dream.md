@@ -1,15 +1,21 @@
 ---
 name: dream
-description: Consolida el día (diario + memoria) en un informe de sueño y lo guarda en el vault.
+description: Revisa el chat del día, rellena huecos (memoria/diario/tareas) y manda briefing + prep del día siguiente.
 commands: [/dream, /sueno]
-tools: [list_tasks, list_agenda, save_memory, add_diary_entry, add_task, add_agenda_item]
+tools: [save_memory, add_diary_entry, add_task, complete_task, list_tasks, add_agenda_item, list_agenda]
 ---
 
-# Dream
+# Dream (briefing matutino)
 
-Jon pide consolidar el día (manual). El cron de las 03:00 Europe/Madrid hace lo mismo solo.
+Cron externo ~**09:00 Europe/Madrid** → `POST /internal/cron/dream` (consolida el **día anterior**).
+Manual `/dream` → por defecto **hoy** (o `YYYY-MM-DD` en args).
 
-## How
-1. Si el mensaje ya trae un informe del runner del sistema, resume en 2–4 líneas y ofrece aplicar propuestas (tareas/agenda) solo si pide.
-2. Si te activan la skill sin runner, di que use /dream (el comando dispara el consolidado real).
-3. No inventes hechos. No upsell.
+## Qué hace el runner (no improvisar a mano)
+1. Carga el transcript completo de `messages` de ese día + diario/memoria/tareas/agenda.
+2. Con tools, anota lo que se le pasó en el chat.
+3. Escribe `vault/dreams/YYYY-MM-DD.md`.
+4. Envía a Jon: resumen + huecos anotados + prep del día siguiente.
+
+## How (si te activan la skill en chat)
+Si el comando `/dream` ya corrió el runner, no rehagas el trabajo: el mensaje ya es el informe.
+Si te piden sueño en prosa sin comando, dile que use `/dream`.

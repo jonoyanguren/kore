@@ -25,7 +25,7 @@
 - [x] Phase 0 (parcial): `memory_items` + `diary_entries` + `messages` + migración `notes`
 - [x] Phase 0 (parcial): tools `save_memory` / `add_diary_entry` + comandos `/skills` `/hora` `/diario`
 - [x] Phase 0: imágenes Telegram → MIMO (download + content multimodal)
-- [x] Phase 1 (MVP): vault + dream 3am/`/dream` + tasks/agenda locales
+- [x] Phase 1 (MVP): vault + dream 9am/`/dream` + tasks/agenda locales
 - [ ] Phase 2: Gmail OAuth + digest 9am
 - [ ] Phase 3: misiones background
 - [ ] Phase 4: git/código (este repo → multi-repo)
@@ -69,13 +69,13 @@ Hecho:
 - Vault bajo `VAULT_ROOT` / sibling de DB: `memory/`, `diary/`, `agenda/`, `dreams/` (write-through + rewrite en dream)
 - Tablas `tasks`, `agenda_items`, `jobs`
 - Tools: `add_task`, `list_tasks`, `complete_task`, `add_agenda_item`, `list_agenda`
-- Skills `/tareas` `/agenda` `/dream` (+ cron 03:00 Europe/Madrid)
+- Skills `/tareas` `/agenda` `/dream` (+ cron externo ~**09:00 Madrid** → `/internal/cron/dream`)
+- Dream lee `messages` del día, rellena huecos con tools, vault + briefing Telegram (resumen + prep)
 - Prompt: open tasks + agenda upcoming
 
 Pendiente Phase 1:
-- Briefing matutino opcional
 - Dogfood dream/tasks unos días
-- (opcional) fusionar duplicados de memoria de forma más agresiva en dream
+- (opcional) fusionar duplicados de memoria más agresivo; briefing aún más rico
 
 ### Phase 2 — Gmail
 
@@ -103,7 +103,7 @@ Pendiente Phase 1:
 - [x] `/diario` usable (lectura del día)
 - [x] Agenda / tasks locales usables (MVP)
 - [x] Imagen Telegram vía MIMO
-- [x] Dream 3am consolida memoria (MVP + `/dream`)
+- [x] Dream 9am consolida chat + memoria (tools + briefing)
 - [ ] Gmail OAuth + digest 9am
 - [ ] Una misión background completada
 - [ ] Git en este repo con confirmación
@@ -116,8 +116,8 @@ Pendiente Phase 1:
 
 ## Next steps
 
-1. Dogfood Phase 1: `/tareas` `/agenda` `/dream` unos días
-2. Briefing matutino opcional o pasar a **Phase 2** (Gmail) según prioridad
+1. Ship dream 9am + secrets CRON; dogfood `/dream` y briefing matutino
+2. Pasar a **Phase 2** (Gmail) o pulir dream según feedback
 3. **Ship siempre:** uvicorn local + pytest + `qa_local.sh` → commit → push → deploy
 
 ## Changelog del plan
@@ -141,3 +141,5 @@ Pendiente Phase 1:
 | 2026-07-26 | Convención ship: commit → push → deploy (living-plan) |
 | 2026-07-26 | Phase 1 MVP: vault + tasks/agenda + dream cron/`/dream` |
 | 2026-07-26 | Gate ship: QA local (uvicorn + pytest + qa_local) antes de commit/push/deploy |
+| 2026-07-26 | Dream: quitar polling 60s; cron HTTP + GitHub Actions |
+| 2026-07-26 | Dream a tope 09:00 Madrid: chat del día + tools + prep |

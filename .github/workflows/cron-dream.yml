@@ -1,0 +1,34 @@
+# Briefing / sueño de Kore ~09:00 Europe/Madrid.
+# CET (invierno)  = 09:00 Madrid → 08:00 UTC
+# CEST (verano)   = 09:00 Madrid → 07:00 UTC
+# Ambos slots: el endpoint es idempotente (skip si ya ok ese día).
+name: cron-dream
+
+on:
+  schedule:
+    - cron: "0 7 * * *" # 07:00 UTC ≈ 09:00 CEST
+    - cron: "0 8 * * *" # 08:00 UTC ≈ 09:00 CET
+  workflow_dispatch: # manual desde GitHub Actions
+
+jobs:
+  dream:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /internal/cron/dream
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          KORE_CRON_URL: ${{ vars.KORE_CRON_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "Missing repo secret CRON_SECRET" >&2
+            exit 1
+          fi
+          URL="${KORE_CRON_URL:-https://kore.fly.dev/internal/cron/dream}"
+          code="$(curl -sS -o /tmp/dream.json -w '%{http_code}' -X POST "$URL" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json")"
+          echo "HTTP $code"
+          cat /tmp/dream.json
+          echo
+          test "$code" = "200"

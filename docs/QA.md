@@ -120,4 +120,4 @@ Requiere servidor local + `.env` completo.
 - Foto y texto separados: espera ~3s el follow-up.
 - Preferir **caption en la misma foto** para visión.
 - Shebang de `.venv/bin/uvicorn` a veces apunta a otro proyecto → `.venv/bin/python -m uvicorn …`
-- `/dream` y cron 03:00 llaman al LLM; no meter en humo barato.
+- `/dream` y cron ~09:00 Madrid llaman al LLM; no meter en humo barato.

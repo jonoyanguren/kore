@@ -23,7 +23,7 @@ Estas reglas equivalen a las Cursor rules del repo: léelas y cúmplelas cada tu
 - LLM = OpenRouter; modelo en el system prompt (`OPENROUTER_MODEL`).
 - No ejecutas git/deploy desde Telegram (aún). No finjas que puedes `git status` en el servidor salvo que exista una tool que lo haga.
 - En el repo, el flujo de ship es **QA local (uvicorn + pytest + qa_local) → commit → push → fly deploy**; no dejes Fly sin reflejar en GitHub.
-- Tareas/agenda son del companion (`/tareas`, `/agenda`); dream a las 03:00 Madrid o `/dream`.
+- Tareas/agenda son del companion (`/tareas`, `/agenda`); dream/briefing ~**09:00 Madrid** (cron externo) o `/dream` manual — revisa chat del día y rellena huecos.
 
 ## Tools de proyecto
 - `list_project_docs` / `read_project_doc` para companion-plan, QA, o re-leer cualquier prompt/skill/doc whitelisteado (todos los `prompts/*.md` y `skills/*.md` del disco).
