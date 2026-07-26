@@ -1,11 +1,11 @@
-# jornvis — Asistente personal
+# Kore — compañero personal (habla como Jone)
+
+Proyecto: **Kore**. Nombre en el chat: **Jone** (editable con `ASSISTANT_NAME`).
 
 Bot de Telegram que reenvía tus mensajes a un modelo LLM (vía OpenRouter) y te
 devuelve la respuesta. El modelo puede usar herramientas para consultar datos
 reales en vez de inventar: estadísticas de League of Legends (OP.GG) y
-gestión de tareas de ClickUp. Sin memoria de conversación entre mensajes
-todavía, sin ejecución de comandos/código — esas siguen siendo fases futuras,
-ver `app/storage/` (vacío a propósito) y la nota de seguridad más abajo.
+gestión de tareas de ClickUp. Roadmap del companion: ver `docs/companion-plan.md`.
 
 ## Arquitectura
 
@@ -32,10 +32,10 @@ Telegram --webhook (HTTPS)--> Fly.io (TLS automático) --> FastAPI (app) --> Ope
   (el servidor también tiene TFT y Valorant, que no se pidieron).
 - **ClickUp**: API REST v2 con token personal (no caduca). Acceso completo —
   listar workspaces/spaces/lists, listar/crear/actualizar/cerrar tareas.
-- **Despliegue**: Fly.io (app `jornvis`, región `fra`, 1 máquina
+- **Despliegue**: Fly.io (app `kore`, región `fra`, 1 máquina
   `shared-cpu-1x`/256MB siempre encendida — `min_machines_running = 1` para
   evitar cold start en el webhook). TLS y certificado son automáticos, sin
-  Caddy ni dominio propio: la app vive en `jornvis.fly.dev`.
+  Caddy ni dominio propio: la app vive en `kore.fly.dev`.
 - **Seguridad del webhook**: verificación del header
   `X-Telegram-Bot-Api-Secret-Token` (el gate real) + segmento aleatorio en la
   URL (defensa en profundidad) + whitelist de un único `chat_id`.

@@ -22,9 +22,14 @@ class Settings(BaseSettings):
     # ClickUp (personal API token, never expires)
     clickup_api_token: str
 
+    # How the companion refers to itself in chat. Editable anytime via env
+    # (or later via prompts/personality.md) — no redeploy of logic needed
+    # beyond restart / fly secrets.
+    assistant_name: str = "Jone"
+
     # Storage — local path by default; overridden to the mounted Fly volume
-    # path (/data/jornvis.db) in production so it survives redeploys.
-    storage_db_path: str = "data/jornvis.db"
+    # path (/data/kore.db) in production so it survives redeploys.
+    storage_db_path: str = "data/kore.db"
 
     log_level: str = "INFO"
 

@@ -33,18 +33,21 @@ MAX_TOOL_ITERATIONS = 6
 # "works, but might be dumber and worse at tools" instead of going silent.
 FALLBACK_MODEL = "openrouter/free"
 
-BASE_SYSTEM_PROMPT = (
-    "You are a helpful personal assistant chatting with your one owner over "
-    "Telegram. Keep replies concise and conversational, and reply in the "
-    "same language the user writes in. Reply in plain text only — do not "
-    "use Markdown formatting (no **bold**, _italics_, backticks, or "
-    "headers), since Telegram will show it as literal characters instead "
-    "of rendering it. You have tools for League of Legends stats, ClickUp "
-    "task management, and saving/removing durable notes about the user — "
-    "use them whenever the request needs real data instead of guessing, "
-    "and save a note whenever the user tells you something worth "
-    "remembering for future conversations."
-)
+def _base_system_prompt(assistant_name: str) -> str:
+    return (
+        f"You are {assistant_name}, a helpful personal companion chatting with "
+        "your one owner over Telegram. Your project/system name is Kore; "
+        f"when referring to yourself in conversation, use {assistant_name}. "
+        "Keep replies concise and conversational, and reply in the same "
+        "language the user writes in. Reply in plain text only — do not use "
+        "Markdown formatting (no **bold**, _italics_, backticks, or headers), "
+        "since Telegram will show it as literal characters instead of "
+        "rendering it. You have tools for League of Legends stats, ClickUp "
+        "task management, and saving/removing durable notes about the user — "
+        "use them whenever the request needs real data instead of guessing, "
+        "and save a note whenever the user tells you something worth "
+        "remembering for future conversations."
+    )
 
 
 class LLMAssistant:
@@ -63,11 +66,12 @@ class LLMAssistant:
         self._memory = memory
 
     async def _build_system_prompt(self) -> str:
+        base = _base_system_prompt(settings.assistant_name)
         notes = await self._memory.list_notes()
         if not notes:
-            return BASE_SYSTEM_PROMPT
+            return base
         notes_block = "\n".join(f"- (id {note_id}) {text}" for note_id, text in notes)
-        return f"{BASE_SYSTEM_PROMPT}\n\nThings you already know about the user:\n{notes_block}"
+        return f"{base}\n\nThings you already know about the user:\n{notes_block}"
 
     async def ask(self, user_text: str) -> str:
         """Return a reply for `user_text`. Never raises — always returns a string."""

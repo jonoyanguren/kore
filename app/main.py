@@ -48,7 +48,7 @@ async def lifespan(app: FastAPI):
         base_url=OPENROUTER_BASE_URL,
         # Recommended by OpenRouter to identify the app in their dashboard —
         # not required, no secret involved.
-        default_headers={"X-Title": "jornvis"},
+        default_headers={"X-Title": "kore"},
     )
 
     memory_store = MemoryStore(settings.storage_db_path)
@@ -128,7 +128,10 @@ async def handle_text_message(
 
 
 async def handle_start(telegram: TelegramClient, chat_id: int) -> None:
-    await telegram.send_message(chat_id, "¡Hola! Ya estoy en línea. Escríbeme lo que necesites.")
+    name = settings.assistant_name
+    await telegram.send_message(
+        chat_id, f"¡Hola! Soy {name}. Ya estoy en línea — escríbeme lo que necesites."
+    )
 
 
 async def handle_non_text(telegram: TelegramClient, chat_id: int) -> None:

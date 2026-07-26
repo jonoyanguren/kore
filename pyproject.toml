@@ -1,7 +1,7 @@
 [project]
-name = "jornvis"
+name = "kore"
 version = "0.1.0"
-description = "Personal AI assistant bot (Telegram + OpenRouter) — Phase 1: conversational skeleton"
+description = "Kore — personal companion (Telegram + OpenRouter). Speaks as Jone."
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",

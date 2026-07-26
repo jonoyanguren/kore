@@ -1,18 +1,19 @@
-# fly.toml app configuration file generated for jornvis on 2026-07-26T00:47:49+02:00
+# fly.toml — Kore (companion speaks as Jone)
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'jornvis'
+app = 'kore'
 primary_region = 'fra'
 
 [env]
-  STORAGE_DB_PATH = "/data/jornvis.db"
+  STORAGE_DB_PATH = "/data/kore.db"
+  ASSISTANT_NAME = "Jone"
 
 [build]
 
 [mounts]
-  source = "jornvis_data"
+  source = "kore_data"
   destination = "/data"
 
 [http_service]
