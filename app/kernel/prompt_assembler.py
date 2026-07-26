@@ -26,7 +26,11 @@ class PromptAssembler:
         if not path.is_file():
             return ""
         text = path.read_text(encoding="utf-8")
-        return text.replace("{{ASSISTANT_NAME}}", settings.assistant_name).strip()
+        return (
+            text.replace("{{ASSISTANT_NAME}}", settings.assistant_name)
+            .replace("{{OPENROUTER_MODEL}}", settings.openrouter_model)
+            .strip()
+        )
 
     async def assemble(self, active_skill: Skill | None = None) -> str:
         parts: list[str] = []

@@ -5,7 +5,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import secrets
+import time
+import uuid
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 
 import httpx
 import openai
@@ -28,6 +31,28 @@ from app.telegram.schemas import TelegramUpdate
 from app.timeutil import format_madrid_clock, session_date_str
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+
+# If Jon sends a photo and then a separate text ("qué es esto?"), attach the
+# photo to that text. Wait this long before answering a caption-less photo alone.
+PHOTO_FOLLOWUP_WAIT_SECONDS = 3.0
+PENDING_PHOTO_TTL_SECONDS = 90.0
+
+PHOTO_DESCRIBE_PROMPT = (
+    "El usuario ha enviado esta imagen sin texto. "
+    "Di qué es / qué se ve, breve y útil. "
+    "Responde solo a la imagen. No te presentes. "
+    "No saques temas de memoria no relacionados (ITV, etc.). "
+    "No guardes en memoria ni diario. No ofrezcas planes ni 'si quieres…'."
+)
+
+
+@dataclass
+class PendingPhoto:
+    image_bytes: bytes
+    mime: str
+    created_at: float
+    token: str
+
 
 logging.basicConfig(
     level=settings.log_level,
@@ -90,6 +115,7 @@ async def lifespan(app: FastAPI):
     app.state.memory = memory_store
     app.state.skills = skill_registry
     app.state.commands = command_router
+    app.state.pending_photos = {}  # chat_id -> PendingPhoto
     app.state.llm = LLMAssistant(
         llm_client, all_tools, all_handlers, memory_store, prompt_assembler
     )
@@ -115,12 +141,24 @@ async def _keep_typing(telegram: TelegramClient, chat_id: int) -> None:
         pass
 
 
+def _claim_pending_photo(
+    pending_photos: dict[int, PendingPhoto], chat_id: int
+) -> PendingPhoto | None:
+    pending = pending_photos.pop(chat_id, None)
+    if pending is None:
+        return None
+    if time.time() - pending.created_at > PENDING_PHOTO_TTL_SECONDS:
+        return None
+    return pending
+
+
 async def handle_text_message(
     telegram: TelegramClient,
     llm: LLMAssistant,
     commands: CommandRouter,
     memory: MemoryStore,
     skills: SkillRegistry,
+    pending_photos: dict[int, PendingPhoto],
     chat_id: int,
     text: str,
 ) -> None:
@@ -164,9 +202,18 @@ async def handle_text_message(
                 f"(comando {match.command})."
             )
 
+    claimed = _claim_pending_photo(pending_photos, chat_id)
+    image_bytes = claimed.image_bytes if claimed else None
+    image_mime = claimed.mime if claimed else "image/jpeg"
+
     typing_task = asyncio.create_task(_keep_typing(telegram, chat_id))
     try:
-        reply = await llm.ask(user_text, active_skill=active_skill)
+        reply = await llm.ask(
+            user_text,
+            active_skill=active_skill,
+            image_bytes=image_bytes,
+            image_mime=image_mime,
+        )
         await telegram.send_message(chat_id, reply)
     except Exception:
         logger.exception("Unhandled error processing message for chat_id=%s", chat_id)
@@ -187,6 +234,7 @@ async def handle_start(telegram: TelegramClient, chat_id: int) -> None:
 async def handle_photo_message(
     telegram: TelegramClient,
     llm: LLMAssistant,
+    pending_photos: dict[int, PendingPhoto],
     chat_id: int,
     file_id: str,
     caption: str | None,
@@ -194,12 +242,32 @@ async def handle_photo_message(
     typing_task = asyncio.create_task(_keep_typing(telegram, chat_id))
     try:
         image_bytes, mime = await telegram.download_file(file_id)
-        user_text = (caption or "").strip() or (
-            "El usuario ha enviado esta imagen. Descríbela y, si hay hechos "
-            "relevantes, guárdalos con save_memory o add_diary_entry."
+        caption_text = (caption or "").strip()
+
+        if caption_text:
+            reply = await llm.ask(
+                caption_text, image_bytes=image_bytes, image_mime=mime
+            )
+            await telegram.send_message(chat_id, reply)
+            return
+
+        # No caption: wait briefly so a follow-up "qué es esto?" can claim the photo.
+        token = uuid.uuid4().hex
+        pending_photos[chat_id] = PendingPhoto(
+            image_bytes=image_bytes,
+            mime=mime,
+            created_at=time.time(),
+            token=token,
         )
+        await asyncio.sleep(PHOTO_FOLLOWUP_WAIT_SECONDS)
+        pending = pending_photos.get(chat_id)
+        if pending is None or pending.token != token:
+            # Follow-up text claimed this photo — do not answer twice.
+            return
+
+        pending_photos.pop(chat_id, None)
         reply = await llm.ask(
-            user_text, image_bytes=image_bytes, image_mime=mime
+            PHOTO_DESCRIBE_PROMPT, image_bytes=image_bytes, image_mime=mime
         )
         await telegram.send_message(chat_id, reply)
     except Exception:
@@ -249,6 +317,7 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks) 
     commands: CommandRouter = request.app.state.commands
     memory: MemoryStore = request.app.state.memory
     skills: SkillRegistry = request.app.state.skills
+    pending_photos: dict[int, PendingPhoto] = request.app.state.pending_photos
     message = update.message
     text = message.text
 
@@ -259,6 +328,7 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks) 
             handle_photo_message,
             telegram,
             llm,
+            pending_photos,
             chat_id,
             largest.file_id,
             message.caption,
@@ -273,6 +343,7 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks) 
             commands,
             memory,
             skills,
+            pending_photos,
             chat_id,
             text,
         )

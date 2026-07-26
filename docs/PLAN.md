@@ -15,6 +15,7 @@
 | Modelo default | `xiaomi/mimo-v2.5` |
 | Diseño detallado | `docs/companion-plan.md` |
 | Backlog tareas | `docs/TODO.md` |
+| QA / pruebas | `docs/QA.md` |
 
 ## Estado
 
@@ -130,3 +131,4 @@ Pendiente Phase 0:
 | 2026-07-26 | Modelo activo `xiaomi/mimo-v2.5` (omni deprecado); secret Fly actualizado |
 | 2026-07-26 | Fechas: /hora ES legible; resolve_madrid_date; hablar natural vs guardar ISO |
 | 2026-07-26 | Anti-upsell en capture/personality; sesión pausada en dogfood Phase 0 |
+| 2026-07-26 | QA repetible: `docs/QA.md`, `tests/`, `scripts/qa_local.sh` |
