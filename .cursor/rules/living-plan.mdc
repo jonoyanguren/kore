@@ -14,6 +14,17 @@ Si el trabajo toca producto, arquitectura, fases, alcance o prioridades:
 3. Tareas sueltas / no olvidar → `docs/TODO.md` (márcalas o añádelas ahí).
 4. Skills: ver regla `skills-system-prompt` — crear/cambiar/borrar skill ⇒ actualizar catálogo en `prompts/system.md`.
 5. LLM: siempre **OpenRouter** (regla `openrouter-llm`).
+6. El bot Telegram (Jone) también lee `docs/PLAN.md`, `docs/TODO.md`, `docs/agent-rules.md`, prompts y skills cada turno — al cambiarlos, **deploy** para que producción los vea (`COPY docs/` en Docker).
+
+## Ship a Fly (orden fijo)
+
+Antes de `fly deploy`:
+
+1. **commit** de los cambios
+2. **push** a `origin` (`main` u otra rama)
+3. luego **deploy**
+
+No dejes producción adelantada al remoto: el deploy sale del working tree local, pero el historial en GitHub debe reflejar lo mismo.
 
 ## Mantener el plan actualizado
 

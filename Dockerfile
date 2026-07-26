@@ -11,6 +11,7 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY app/ ./app/
 COPY prompts/ ./prompts/
 COPY skills/ ./skills/
+COPY docs/ ./docs/
 RUN uv sync --frozen --no-dev
 
 RUN useradd --create-home appuser && chown -R appuser:appuser /app

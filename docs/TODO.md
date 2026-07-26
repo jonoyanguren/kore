@@ -16,6 +16,7 @@ Convención: `- [ ]` pendiente · `- [x]` hecho. Añade fecha o contexto breve s
 - [ ] Confirmar rol de Jon en Slow Project / relación con Andrea
 - [ ] Confirmar/corregir Datafine + About si hace falta
 - [ ] Decidir agresividad de captura (proactiva vs solo con “recuerda/captura”)
+- [ ] Meter varios modelos, uno para imagenes, otro para code...
 
 ## Kernel / producto
 
@@ -23,6 +24,9 @@ Convención: `- [ ]` pendiente · `- [x]` hecho. Añade fecha o contexto breve s
 - [x] Skill/tool hora Madrid bien (`get_madrid_time` + skill time-madrid)
 - [x] Fechas: /hora legible ES; guardar ISO; hablar natural (`resolve_madrid_date`)
 - [x] Plan de pruebas repetible: `docs/QA.md` + `pytest` + `scripts/qa_local.sh`
+- [x] Jone lee contexto de proyecto (PLAN/TODO/agent-rules inyectados + `read_project_doc`)
+- [x] Skills/prompts completos cada turno + whitelist dinámica
+- [x] Convención documentada: commit → push → deploy
 
 ## Notas
 

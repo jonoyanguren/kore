@@ -8,7 +8,7 @@
 | Repo | `jonoyanguren/kore` |
 | Producto | **Kore** (deploy/código) · hablado **Jone** (`ASSISTANT_NAME`) |
 | Arquitectura | Companion kernel (Approach B) |
-| Fase actual | **Phase 0 — Kernel + captura** (en dogfood Telegram; prompts/fecha/anti-upsell iterando) |
+| Fase actual | **Phase 0 cerrando → Phase 1** (dogfood OK; bot lee PLAN/TODO cada turno) |
 | Canal | Telegram (UI web después) |
 | Deploy | Fly.io · volumen `/data` |
 | LLM | **OpenRouter** (`OPENROUTER_API_KEY` + `OPENROUTER_MODEL`) |
@@ -62,10 +62,9 @@ Hecho:
 - Dockerfile copia `prompts/` + `skills/`
 - Default model MIMO
 
-Pendiente Phase 0:
+Pendiente Phase 0 (cierre):
 - Seguir dogfood en Telegram (captura, fotos, tono)
-- Commit/push de cambios locales post-a5efe0c (MIMO v2.5, fechas, anti-upsell, rules) si aún no están en git
-- (opcional) tests unitarios del registry/store
+- Commit/push del trabajo local cuando Jon lo pida (no es “la siguiente tarea de producto”)
 
 ### Phase 1 — Diario / agenda / sueño
 
@@ -112,9 +111,9 @@ Pendiente Phase 0:
 
 ## Next steps
 
-1. Commit + push de lo desplegado que aún esté dirty en git
-2. Seguir probando en Telegram (captura corta, fechas naturales, foto)
-3. Cuando Phase 0 se sienta bien → Phase 1 (vault + dream 3am + tasks)
+1. Empezar **Phase 1**: vault (`memory/` `diary/` `agenda/`) + dream 3am + tasks locales
+2. Mantener PLAN.md/TODO.md al día cuando cambie el alcance (Cursor + Jone los leen)
+3. **Ship:** siempre `commit` → `push` → `fly deploy` (no deploy sin remoto al día; ver regla living-plan)
 
 ## Changelog del plan
 
@@ -132,3 +131,6 @@ Pendiente Phase 0:
 | 2026-07-26 | Fechas: /hora ES legible; resolve_madrid_date; hablar natural vs guardar ISO |
 | 2026-07-26 | Anti-upsell en capture/personality; sesión pausada en dogfood Phase 0 |
 | 2026-07-26 | QA repetible: `docs/QA.md`, `tests/`, `scripts/qa_local.sh` |
+| 2026-07-26 | Bot lee docs como Cursor: inject PLAN/TODO/agent-rules + tools read_project_doc; COPY docs/ en Docker |
+| 2026-07-26 | Skills playbooks completos cada turno + whitelist dinámica prompts/*.md y skills/*.md |
+| 2026-07-26 | Convención ship: commit → push → deploy (living-plan) |

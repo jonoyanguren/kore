@@ -23,6 +23,7 @@ def test_skills_load_and_catalog():
         "capture",
         "execute",
         "plan",
+        "project-status",
         "time-madrid",
     }
     assert "get_madrid_time" in (registry.get("time-madrid").tools or [])
@@ -53,6 +54,44 @@ def test_resolve_relative_dates():
     assert resolve_relative_date("el siguiente lunes", ref=ref) == date(2026, 7, 27)
     assert resolve_relative_date("este viernes", ref=ref) == date(2026, 7, 24)
     assert resolve_relative_date("hoy", ref=ref) == ref
+
+
+def test_project_docs_whitelist_and_always_inject():
+    from app.project_docs import allowed_docs, load_always_inject, read_doc, resolve_allowed
+
+    assert resolve_allowed("docs/PLAN.md") is not None
+    assert "Next steps" in read_doc("docs/PLAN.md")
+    assert resolve_allowed("/etc/passwd") is None
+    docs = allowed_docs()
+    assert "prompts/system.md" in docs
+    assert "prompts/personality.md" in docs
+    assert "skills/capture.md" in docs
+    assert "skills/project-status.md" in docs
+    injected = dict(load_always_inject())
+    assert "docs/PLAN.md" in injected
+    assert "docs/TODO.md" in injected
+    assert "docs/agent-rules.md" in injected
+
+
+def test_assembler_includes_all_skill_playbooks():
+    import asyncio
+    from unittest.mock import AsyncMock
+
+    from app.kernel.prompt_assembler import PromptAssembler
+    from app.paths import PROMPTS_DIR
+
+    registry = SkillRegistry(SKILLS_DIR)
+    registry.load()
+    memory = AsyncMock()
+    memory.memory_digests = AsyncMock(return_value={})
+    memory.list_diary_for_day = AsyncMock(return_value=[])
+    assembler = PromptAssembler(PROMPTS_DIR, registry, memory)
+    text = asyncio.run(assembler.assemble())
+    assert "## Skills playbooks (full)" in text
+    for name in ("capture", "project-status", "time-madrid", "brainstorm", "plan", "execute"):
+        assert f"### {name}" in text
+    assert "## Personality" in text
+    assert "## Kimay" in text
 
 
 def test_spoken_dates_and_clock_format():

@@ -6,8 +6,9 @@ from pathlib import Path
 
 from app.config import settings
 from app.kernel.skill_registry import Skill, SkillRegistry
-from app.timeutil import format_now_for_prompt
+from app.project_docs import load_always_inject
 from app.storage.memory import MemoryStore
+from app.timeutil import format_now_for_prompt
 
 
 class PromptAssembler:
@@ -55,7 +56,24 @@ class PromptAssembler:
         if investing:
             parts.append("## Investing\n" + investing)
 
-        # Skills catalog lives in prompts/system.md (keep in sync when skills change).
+        # Cursor-like alwaysApply: agent rules + living plan + TODO every turn.
+        for rel, content in load_always_inject():
+            parts.append(f"## Project file: {rel}\n{content}")
+
+        # Full skill playbooks every turn (not only when /command activates one).
+        skill_blocks: list[str] = []
+        for skill in self._skills.list_skills():
+            cmds = ", ".join(skill.commands) if skill.commands else "—"
+            tools = ", ".join(skill.tools) if skill.tools else "—"
+            skill_blocks.append(
+                f"### {skill.name}\n"
+                f"description: {skill.description}\n"
+                f"commands: {cmds}\n"
+                f"tools: {tools}\n\n"
+                f"{skill.body}"
+            )
+        if skill_blocks:
+            parts.append("## Skills playbooks (full)\n" + "\n\n".join(skill_blocks))
 
         parts.append(f"## Time context\nNow (Europe/Madrid): {format_now_for_prompt()}")
 
@@ -75,7 +93,7 @@ class PromptAssembler:
 
         if active_skill is not None:
             parts.append(
-                f"## Active skill: {active_skill.name}\n"
+                f"## Active skill (follow this playbook now): {active_skill.name}\n"
                 f"{active_skill.description}\n\n{active_skill.body}"
             )
 

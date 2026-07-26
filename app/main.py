@@ -21,6 +21,7 @@ from app.integrations.lol.opgg_client import call_lol_tool, list_lol_tools
 from app.kernel.command_router import CommandRouter
 from app.kernel.prompt_assembler import PromptAssembler
 from app.kernel.skill_registry import SkillRegistry
+from app.kernel.project_tools import build_project_tools
 from app.kernel.time_tools import build_time_tools
 from app.llm.llm_assistant import LLMAssistant, ToolHandler
 from app.paths import PROMPTS_DIR, SKILLS_DIR
@@ -79,6 +80,7 @@ async def lifespan(app: FastAPI):
     await memory_store.init()
     memory_tool_schemas, memory_handlers = build_memory_tools(memory_store)
     time_tool_schemas, time_handlers = build_time_tools()
+    project_tool_schemas, project_handlers = build_project_tools()
 
     skill_registry = SkillRegistry(SKILLS_DIR)
     skill_registry.load()
@@ -103,10 +105,17 @@ async def lifespan(app: FastAPI):
         for tool in lol_tool_schemas
     }
 
-    all_tools = memory_tool_schemas + time_tool_schemas + clickup_tool_schemas + lol_tool_schemas
+    all_tools = (
+        memory_tool_schemas
+        + time_tool_schemas
+        + project_tool_schemas
+        + clickup_tool_schemas
+        + lol_tool_schemas
+    )
     all_handlers: dict[str, ToolHandler] = {
         **memory_handlers,
         **time_handlers,
+        **project_handlers,
         **clickup_handlers,
         **lol_handlers,
     }
