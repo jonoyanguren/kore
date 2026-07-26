@@ -1,0 +1,20 @@
+---
+description: Los LLM de Kore van siempre por OpenRouter
+alwaysApply: true
+---
+
+# LLM = OpenRouter
+
+Kore **no** llama a Anthropic/OpenAI/etc. directo.
+
+- Provider de inferencia: **OpenRouter** (`https://openrouter.ai/api/v1`)
+- Cliente: OpenAI-compatible (`openai.AsyncOpenAI` + `base_url` OpenRouter)
+- Auth: `OPENROUTER_API_KEY`
+- Modelo: `OPENROUTER_MODEL` (slug OpenRouter, ej. `xiaomi/mimo-v2.5`)
+- Fallback créditos: `openrouter/free` en `app/llm/llm_assistant.py`
+
+## Al tocar modelos / LLM
+
+- Cambiar modelo = cambiar el slug de OpenRouter (env / `fly secrets` / default en `app/config.py`), no añadir otro SDK de proveedor salvo decisión explícita en `docs/PLAN.md`.
+- Multimodal (fotos) asume un modelo OpenRouter que acepte `image_url` en el content.
+- Documenta el modelo activo en `docs/PLAN.md` (campo Modelo default / D8).

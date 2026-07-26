@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     # LLM (OpenRouter — OpenAI-compatible endpoint proxying many providers)
     openrouter_api_key: str
     # Default: Xiaomi MiMo multimodal (images later). Override via OPENROUTER_MODEL.
-    openrouter_model: str = "xiaomi/mimo-v2-omni"
+    openrouter_model: str = "xiaomi/mimo-v2.5"
     llm_max_tokens: int = 2048
     timezone: str = "Europe/Madrid"
 

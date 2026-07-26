@@ -8,10 +8,11 @@
 | Repo | `jonoyanguren/kore` |
 | Producto | **Kore** (deploy/código) · hablado **Jone** (`ASSISTANT_NAME`) |
 | Arquitectura | Companion kernel (Approach B) |
-| Fase actual | **Phase 0 — Kernel + captura** (kernel + fotos + prompts/skills mejorados; falta validar en deploy) |
+| Fase actual | **Phase 0 — Kernel + captura** (en dogfood Telegram; prompts/fecha/anti-upsell iterando) |
 | Canal | Telegram (UI web después) |
 | Deploy | Fly.io · volumen `/data` |
-| Modelo default | `xiaomi/mimo-v2-omni` |
+| LLM | **OpenRouter** (`OPENROUTER_API_KEY` + `OPENROUTER_MODEL`) |
+| Modelo default | `xiaomi/mimo-v2.5` |
 | Diseño detallado | `docs/companion-plan.md` |
 | Backlog tareas | `docs/TODO.md` |
 
@@ -40,7 +41,7 @@
 | D5 | Personalidad | Stub ahora; se escribe después |
 | D6 | Tareas | Sistema propio (SQLite/vault); ClickUp aparcado |
 | D7 | Skills | Markdown en git + frontmatter; comandos = disparo |
-| D8 | Modelo | MIMO multimodal vía OpenRouter (`xiaomi/mimo-v2-omni`) |
+| D8 | LLM | **OpenRouter**; modelo MIMO multimodal (`xiaomi/mimo-v2.5`) |
 | D9 | Memoria | Captura por **categoría**, no log cronológico plano |
 | D10 | Confirmación destructiva | Inline keyboard Telegram |
 | D11 | Orden | Kernel por fases; rename no bloquea |
@@ -61,9 +62,9 @@ Hecho:
 - Default model MIMO
 
 Pendiente Phase 0:
-- Validar captura + fotos + comandos en uso real (deploy)
+- Seguir dogfood en Telegram (captura, fotos, tono)
+- Commit/push de cambios locales post-a5efe0c (MIMO v2.5, fechas, anti-upsell, rules) si aún no están en git
 - (opcional) tests unitarios del registry/store
-- (opcional) afinar personality.md con voz personal
 
 ### Phase 1 — Diario / agenda / sueño
 
@@ -110,9 +111,9 @@ Pendiente Phase 0:
 
 ## Next steps
 
-1. Deploy / probar: `/skills`, `/hora`, `/diario`, captura, foto con caption
-2. Afinar personality.md si quieres más "tú"
-3. Phase 1 (vault + dream) cuando Phase 0 se sienta usable
+1. Commit + push de lo desplegado que aún esté dirty en git
+2. Seguir probando en Telegram (captura corta, fechas naturales, foto)
+3. Cuando Phase 0 se sienta bien → Phase 1 (vault + dream 3am + tasks)
 
 ## Changelog del plan
 
@@ -125,3 +126,7 @@ Pendiente Phase 0:
 | 2026-07-26 | Prompts/skills reescritos (system, personality, capture/brainstorm/plan/execute/time) |
 | 2026-07-26 | Personality de Jon + stub `prompts/kimay.md` ensamblado en el system prompt |
 | 2026-07-26 | Tool `get_madrid_time` + skill time-madrid (reloj autoritativo Europe/Madrid) |
+| 2026-07-26 | Fijado LLM = OpenRouter (rule + PLAN) |
+| 2026-07-26 | Modelo activo `xiaomi/mimo-v2.5` (omni deprecado); secret Fly actualizado |
+| 2026-07-26 | Fechas: /hora ES legible; resolve_madrid_date; hablar natural vs guardar ISO |
+| 2026-07-26 | Anti-upsell en capture/personality; sesión pausada en dogfood Phase 0 |

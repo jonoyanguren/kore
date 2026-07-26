@@ -21,6 +21,7 @@ Convención: `- [ ]` pendiente · `- [x]` hecho. Añade fecha o contexto breve s
 
 - [x] Cablear imágenes Telegram → MIMO (Phase 0)
 - [x] Skill/tool hora Madrid bien (`get_madrid_time` + skill time-madrid)
+- [x] Fechas: /hora legible ES; guardar ISO; hablar natural (`resolve_madrid_date`)
 
 ## Notas
 

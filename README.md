@@ -18,8 +18,8 @@ Telegram --webhook (HTTPS)--> Fly.io (TLS automático) --> FastAPI (app) --> Ope
 
 - **Canal**: Telegram Bot API vía webhook.
 - **Backend**: FastAPI + Python 3.12, gestionado con `uv`.
-- **Modelo**: configurable vía `OPENROUTER_MODEL` (por defecto
-  `anthropic/claude-sonnet-5`), sin streaming — las respuestas son mensajes
+- **Modelo**: vía **OpenRouter** (`OPENROUTER_MODEL`, por defecto
+  `xiaomi/mimo-v2.5` multimodal), sin streaming — las respuestas son mensajes
   de chat cortos, no documentos largos.
 - **Tool use**: `LLMAssistant` corre un loop de llamada→tool_calls→resultado
   hasta que el modelo da una respuesta final (máx. 6 iteraciones, para no
