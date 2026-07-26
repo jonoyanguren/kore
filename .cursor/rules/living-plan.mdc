@@ -18,11 +18,14 @@ Si el trabajo toca producto, arquitectura, fases, alcance o prioridades:
 
 ## Ship a Fly (orden fijo)
 
-Antes de `fly deploy`:
+No subas ni deploys sin QA local verde:
 
-1. **commit** de los cambios
-2. **push** a `origin` (`main` u otra rama)
-3. luego **deploy**
+1. **Servidor local** arriba (`docs/QA.md`):  
+   `.venv/bin/python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000`
+2. **QA:** `uv run pytest -q` + `./scripts/qa_local.sh` (ambos OK)
+3. **commit**
+4. **push** a `origin`
+5. **fly deploy**
 
 No dejes producción adelantada al remoto: el deploy sale del working tree local, pero el historial en GitHub debe reflejar lo mismo.
 

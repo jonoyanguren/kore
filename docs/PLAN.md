@@ -116,9 +116,9 @@ Pendiente Phase 1:
 
 ## Next steps
 
-1. Ship Phase 1 MVP: `commit` → `push` → `fly deploy`; dogfood `/tareas` `/agenda` `/dream`
+1. Dogfood Phase 1: `/tareas` `/agenda` `/dream` unos días
 2. Briefing matutino opcional o pasar a **Phase 2** (Gmail) según prioridad
-3. Mantener PLAN.md/TODO.md al día
+3. **Ship siempre:** uvicorn local + pytest + `qa_local.sh` → commit → push → deploy
 
 ## Changelog del plan
 
@@ -140,3 +140,4 @@ Pendiente Phase 1:
 | 2026-07-26 | Skills playbooks completos cada turno + whitelist dinámica prompts/*.md y skills/*.md |
 | 2026-07-26 | Convención ship: commit → push → deploy (living-plan) |
 | 2026-07-26 | Phase 1 MVP: vault + tasks/agenda + dream cron/`/dream` |
+| 2026-07-26 | Gate ship: QA local (uvicorn + pytest + qa_local) antes de commit/push/deploy |

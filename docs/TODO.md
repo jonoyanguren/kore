@@ -30,6 +30,7 @@ Convención: `- [ ]` pendiente · `- [x]` hecho. Añade fecha o contexto breve s
 - [x] Phase 1 MVP: vault + tasks/agenda + dream 3am/`/dream`
 - [ ] Briefing matutino opcional (Phase 1 leftover)
 - [ ] Dogfood dream/tasks en Telegram unos días
+- [x] Gate ship: QA local (uvicorn + pytest + qa_local) antes de commit/push/deploy
 
 ## Notas
 

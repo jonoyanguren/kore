@@ -1,13 +1,15 @@
 # Kore — Plan de pruebas (QA)
 
-Documento repetible para validar Phase 0. Marca `- [ ]` → `- [x]` en cada corrida.
+Documento repetible. Marca `- [ ]` → `- [x]` en cada corrida.
+
+**Gate de ship:** servidor local + pytest + `qa_local.sh` verdes **antes** de commit → push → deploy (ver `.cursor/rules/living-plan.mdc`).
 
 | Campo | Valor |
 |-------|--------|
 | App local | `http://127.0.0.1:8000` |
 | App Fly | `https://kore.fly.dev` |
 | Modelo | OpenRouter `xiaomi/mimo-v2.5` |
-| Última corrida automatizada | 2026-07-26 — pytest 4 passed; qa_local 6 OK |
+| Última corrida automatizada | 2026-07-26 — pytest 7 passed; qa_local 9 OK |
 
 ## Cómo arrancar local
 
@@ -35,10 +37,13 @@ uv run pytest -q
 
 ### A1. Unit tests (`uv run pytest -q`)
 
-- [ ] Skills: cargan 5 skills; `/hora` → time-madrid; catálogo no vacío
+- [ ] Skills cargan (incl. dream, tasks, project-status)
 - [ ] Fechas: `mañana`, `el lunes que viene`, `el siguiente lunes` resuelven ISO
 - [ ] Fechas habladas: hoy/mañana/`el lunes que viene` (sin “Madrid” en clock humano)
 - [ ] Command router: `/skills`, `/diario`, `/hora`, chat libre
+- [ ] Project docs whitelist + always inject
+- [ ] Assembler incluye playbooks de skills
+- [ ] Phase 1: vault + tasks + agenda store
 
 ### A2. Humo HTTP local (`./scripts/qa_local.sh`)
 
@@ -47,59 +52,60 @@ Requiere servidor local + `.env` completo.
 - [ ] `GET /healthz` → 200 `{"status":"ok"}`
 - [ ] Webhook sin secret → 403
 - [ ] Webhook path malo → 404
-- [ ] Mensaje texto → `{"ok":true}` + respuesta en Telegram en pocos segundos
-- [ ] Simular `/hora` vía update → mensaje con fecha ES (día mes año, HH:MM), sin “Europe/Madrid”
-- [ ] Foto + caption “qué es esto?” en el mismo update → respuesta sobre la imagen (no ITV random)
+- [ ] Mensaje texto → `{"ok":true}` + respuesta en Telegram
+- [ ] `/hora` → fecha ES en Telegram
+- [ ] `/tareas` → lista o “no hay tareas”
+- [ ] `/agenda` → lista o “vacía”
+- [ ] Foto+caption / `/dream` → MANUAL
 
 ---
 
 ## B. Manual en Telegram (Fly o túnel→local)
 
-Hazlo en chat limpio o con contexto reciente conocido. Anota OK / FAIL.
-
 ### B1. Comandos
 
 | # | Acción | Esperado | OK? |
 |---|--------|----------|-----|
-| B1.1 | `/start` | Saludo corto + comandos | |
-| B1.2 | `/hora` | Fecha ES legible + hora, sin “Madrid/CEST” | |
-| B1.3 | `/skills` | Lista skills | |
+| B1.1 | `/start` | Saludo + comandos (incl. tareas/agenda/dream) | |
+| B1.2 | `/hora` | Fecha ES legible + hora | |
+| B1.3 | `/skills` | Lista skills (8+) | |
 | B1.4 | `/diario` | Diario del día o “vacío” | |
+| B1.5 | `/tareas` | Lista o vacío | |
+| B1.6 | `/agenda` | Lista o vacío | |
+| B1.7 | `/dream` | Informe de consolidación (cuesta LLM) | |
 
-### B2. Captura y tono
+### B2. Captura / tasks / tono
 
 | # | Acción | Esperado | OK? |
 |---|--------|----------|-----|
-| B2.1 | `recuerda que tengo reunión el siguiente lunes a las 11` | Una línea tipo “Apuntado… el lunes que viene a las 11”. Sin “si quieres te armo un plan”. Sin ISO en el chat | |
-| B2.2 | `/diario` o preguntar qué tiene apuntado | Aparece el recuerdo (ISO puede estar en DB; en chat habla natural) | |
-| B2.3 | Charla “quién eres” | Respuesta corta, no elevator pitch eterno | |
-| B2.4 | `qué modelo llm usas?` | Menciona OpenRouter + `xiaomi/mimo-v2.5` | |
+| B2.1 | Captura con fecha relativa | Confirma corto, sin upsell | |
+| B2.2 | `añade tarea QA local para mañana` | Crea tarea; `/tareas` la muestra | |
+| B2.3 | `qué modelo llm usas?` | OpenRouter + `xiaomi/mimo-v2.5` | |
+| B2.4 | `qué tarea es la siguiente?` (proyecto) | Cita PLAN Phase 1 leftovers / Phase 2, no inventa | |
 
 ### B3. Imágenes
 
 | # | Acción | Esperado | OK? |
 |---|--------|----------|-----|
-| B3.1 | Foto con **caption** `qué es esto?` (misma burbuja) | Describe/identifica el contenido de la foto | |
-| B3.2 | Foto sola y en &lt;3s texto `qué es esto?` | Misma idea: responde a la imagen, no a memoria random | |
-| B3.3 | Screenshot de un doc (ej. PLAN) + `qué es esto?` | Resume el doc; **no** guarda next steps en memoria; **no** saca ITV | |
-| B3.4 | Foto irrelevante sin pedir guardar | Describe breve; no “Listo, guardado…” | |
+| B3.1 | Foto + caption `qué es esto?` | Describe la foto | |
+| B3.2 | Foto sola + texto &lt;3s | Responde a la imagen | |
 
-### B4. Negativos / seguridad
+### B4. Negativos
 
 | # | Acción | Esperado | OK? |
 |---|--------|----------|-----|
-| B4.1 | Mensaje desde otro chat_id | Ignorado (sin respuesta) | |
-| B4.2 | Sticker/audio | “Por ahora entiendo texto e imágenes…” | |
+| B4.1 | Otro chat_id | Ignorado | |
+| B4.2 | Sticker/audio | Mensaje de “solo texto e imágenes” | |
 
 ---
 
 ## C. Checklist de regresión rápida (5 min)
 
 1. [ ] `/hora`
-2. [ ] Captura con fecha relativa (1 línea, sin upsell)
-3. [ ] Foto+caption `qué es esto?`
-4. [ ] `qué modelo usas?`
-5. [ ] `uv run pytest -q` verde
+2. [ ] `/tareas`
+3. [ ] Captura corta sin upsell
+4. [ ] Foto+caption `qué es esto?`
+5. [ ] `uv run pytest -q` + `./scripts/qa_local.sh` verdes
 
 ---
 
@@ -107,10 +113,11 @@ Hazlo en chat limpio o con contexto reciente conocido. Anota OK / FAIL.
 
 | Fecha | Entorno | pytest | qa_local | Manual B | Notas |
 |-------|---------|--------|----------|----------|-------|
-| 2026-07-26 | local | 4 passed | 6 OK | pendiente B1–B3 en Telegram | Foto visión = manual (file_id real) |
+| 2026-07-26 | local | 7 passed | 9 OK | Phase 1 en Telegram (revisar msgs) | Gate: QA antes de push/deploy |
 
 ## Fallos conocidos / a vigilar
 
-- Foto y texto en mensajes separados: el servidor espera ~3s el follow-up; si tarda más, la foto se describe sola y el texto puede ir sin imagen.
+- Foto y texto separados: espera ~3s el follow-up.
 - Preferir **caption en la misma foto** para visión.
-- Shebang de `.venv/bin/uvicorn` a veces apunta a otro proyecto → usar `.venv/bin/python -m uvicorn …` o `uv sync --reinstall-package uvicorn`.
+- Shebang de `.venv/bin/uvicorn` a veces apunta a otro proyecto → `.venv/bin/python -m uvicorn …`
+- `/dream` y cron 03:00 llaman al LLM; no meter en humo barato.

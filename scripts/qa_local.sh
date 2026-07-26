@@ -80,12 +80,33 @@ resp="$(post_update "{
 }")"
 if echo "$resp" | grep -q '"ok":true'; then ok "/hora → ok (mira Telegram: fecha ES)"; else bad "/hora → $resp"; fi
 
-# A2.6 photo + caption in same update (1x1 jpeg)
-# Minimal valid JPEG
-B64="/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAGcP//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAQUCf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Bf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Bf//Z"
-# Telegram needs a real file_id for download — we cannot fake getFile locally without mocking.
-# So photo vision is MANUAL (section B3). Here we only document skip.
+# A2.6 /tareas (fast path Phase 1)
+resp="$(post_update "{
+  \"update_id\": $((UID_BASE + 2)),
+  \"message\": {
+    \"message_id\": $((UID_BASE + 2)),
+    \"chat\": {\"id\": ${TELEGRAM_ALLOWED_CHAT_ID}},
+    \"from\": {\"id\": ${TELEGRAM_ALLOWED_CHAT_ID}, \"is_bot\": false, \"first_name\": \"Jon\"},
+    \"text\": \"/tareas\"
+  }
+}")"
+if echo "$resp" | grep -q '"ok":true'; then ok "/tareas → ok (mira Telegram)"; else bad "/tareas → $resp"; fi
+
+# A2.7 /agenda (fast path Phase 1)
+resp="$(post_update "{
+  \"update_id\": $((UID_BASE + 3)),
+  \"message\": {
+    \"message_id\": $((UID_BASE + 3)),
+    \"chat\": {\"id\": ${TELEGRAM_ALLOWED_CHAT_ID}},
+    \"from\": {\"id\": ${TELEGRAM_ALLOWED_CHAT_ID}, \"is_bot\": false, \"first_name\": \"Jon\"},
+    \"text\": \"/agenda\"
+  }
+}")"
+if echo "$resp" | grep -q '"ok":true'; then ok "/agenda → ok (mira Telegram)"; else bad "/agenda → $resp"; fi
+
+# A2.8 photo + caption — MANUAL (needs real Telegram file_id)
 ok "foto+caption: MANUAL (B3) — Telegram getFile no se puede fakear sin file_id real"
+ok "/dream: MANUAL (cuesta LLM; probar a mano tras ship)"
 
 echo
 echo "Resultado: ${PASS} OK, ${FAIL} FAIL"
