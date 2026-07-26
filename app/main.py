@@ -7,6 +7,7 @@ MCP server) and ClickUp task management (via its REST API).
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import secrets
 from contextlib import asynccontextmanager
@@ -94,11 +95,26 @@ app = FastAPI(lifespan=lifespan)
 # slow Claude call never risks Telegram retrying (and duplicating) delivery.
 
 
+TYPING_REFRESH_SECONDS = 4  # Telegram's "typing..." indicator expires after ~5s
+
+
+async def _keep_typing(telegram: TelegramClient, chat_id: int) -> None:
+    """Re-send the 'typing...' action periodically for the duration of a
+    tool-calling loop, which can easily run well past Telegram's ~5s
+    single-shot indicator timeout."""
+    try:
+        while True:
+            await telegram.send_typing(chat_id)
+            await asyncio.sleep(TYPING_REFRESH_SECONDS)
+    except asyncio.CancelledError:
+        pass
+
+
 async def handle_text_message(
     telegram: TelegramClient, llm: LLMAssistant, chat_id: int, text: str
 ) -> None:
+    typing_task = asyncio.create_task(_keep_typing(telegram, chat_id))
     try:
-        await telegram.send_typing(chat_id)
         reply = await llm.ask(text)
         await telegram.send_message(chat_id, reply)
     except Exception:
@@ -107,6 +123,8 @@ async def handle_text_message(
         # truly unexpected error still gets a reply instead of silence.
         logger.exception("Unhandled error processing message for chat_id=%s", chat_id)
         await telegram.send_message(chat_id, "Algo salió mal procesando tu mensaje.")
+    finally:
+        typing_task.cancel()
 
 
 async def handle_start(telegram: TelegramClient, chat_id: int) -> None:
