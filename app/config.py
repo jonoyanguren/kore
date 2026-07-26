@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     # Empty = cron endpoints always 403.
     cron_secret: str = ""
 
+    # Also load skills/dev/*.md into the Telegram bot (default: Cursor-only).
+    load_dev_skills: bool = False
+
     log_level: str = "INFO"
 
     def resolved_vault_root(self) -> str:

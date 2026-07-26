@@ -2,25 +2,22 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from datetime import date, timedelta
-from typing import Any
 
 import openai
 
-from app.config import settings
+from app.kernel.review_common import (
+    build_capture_tools,
+    run_tool_loop,
+    transcript_block,
+)
 from app.storage.memory import MemoryStore
-from app.storage.task_tools import build_task_tools
-from app.storage.tools import build_memory_tools
 from app.storage.vault import Vault
 from app.telegram.client import TelegramClient
 from app.timeutil import format_date_spoken, today_madrid
 
 logger = logging.getLogger(__name__)
-
-MAX_DREAM_TOOL_ITERS = 10
-MAX_TRANSCRIPT_CHARS = 40_000
 
 DREAM_SYSTEM = """Eres el proceso de sueño/briefing de Jone (companion Kore de Jon).
 Trabajas en silencio: revisas el día y autogestionas la memoria.
@@ -41,113 +38,6 @@ D) Una frase de cierre corta (tono directo, sin presentarte).
 
 Reglas: no digas que eres un modelo; no upsell; no pidas permiso; fechas naturales en el chat.
 ISO solo dentro de las tools."""
-
-
-def _build_dream_tools(
-    store: MemoryStore, vault: Vault
-) -> tuple[list[dict], dict[str, Any]]:
-    mem_schemas, mem_handlers = build_memory_tools(store, vault)
-    task_schemas, task_handlers = build_task_tools(store, vault)
-    # Only capture / planning tools — no ClickUp/LoL/project docs noise
-    allow = {
-        "save_memory",
-        "add_diary_entry",
-        "add_task",
-        "complete_task",
-        "list_tasks",
-        "add_agenda_item",
-        "list_agenda",
-        "forget_memory",
-    }
-    schemas = [
-        s for s in mem_schemas + task_schemas if s["function"]["name"] in allow
-    ]
-    handlers = {n: h for n, h in {**mem_handlers, **task_handlers}.items() if n in allow}
-    return schemas, handlers
-
-
-def _transcript_block(messages: list[tuple[str, str]]) -> str:
-    if not messages:
-        return "(sin mensajes de chat ese día)"
-    lines = []
-    for role, content in messages:
-        label = "Jon" if role == "user" else "Jone"
-        text = (content or "").strip()
-        if not text:
-            continue
-        lines.append(f"{label}: {text}")
-    blob = "\n".join(lines)
-    if len(blob) > MAX_TRANSCRIPT_CHARS:
-        blob = "…[transcript truncado]\n" + blob[-MAX_TRANSCRIPT_CHARS:]
-    return blob
-
-
-async def _execute_tool(
-    handlers: dict[str, Any], tool_call: Any
-) -> str:
-    name = tool_call.function.name
-    handler = handlers.get(name)
-    if handler is None:
-        return f"Herramienta desconocida: {name}"
-    try:
-        arguments = json.loads(tool_call.function.arguments or "{}")
-    except json.JSONDecodeError:
-        return f"No pude interpretar los argumentos para {name}."
-    try:
-        return await handler(arguments)
-    except Exception:
-        logger.exception("Dream tool %s failed", name)
-        return f"La herramienta {name} falló."
-
-
-async def _dream_llm_loop(
-    client: openai.AsyncOpenAI,
-    *,
-    tools: list[dict],
-    handlers: dict[str, Any],
-    user_payload: str,
-) -> str:
-    messages: list[dict[str, Any]] = [
-        {"role": "system", "content": DREAM_SYSTEM},
-        {"role": "user", "content": user_payload},
-    ]
-    final_text: str | None = None
-
-    for _ in range(MAX_DREAM_TOOL_ITERS):
-        response = await client.chat.completions.create(
-            model=settings.openrouter_model,
-            max_tokens=min(settings.llm_max_tokens, 2500),
-            messages=messages,
-            tools=tools or None,
-        )
-        message = response.choices[0].message
-        tool_calls = message.tool_calls
-        if not tool_calls:
-            final_text = (message.content or "").strip() or "(sueño vacío)"
-            break
-
-        messages.append(
-            {
-                "role": "assistant",
-                "content": message.content,
-                "tool_calls": [tc.model_dump() for tc in tool_calls],
-            }
-        )
-        for tool_call in tool_calls:
-            result = await _execute_tool(handlers, tool_call)
-            messages.append(
-                {
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "content": result,
-                }
-            )
-
-    if final_text is None:
-        final_text = (
-            "El sueño se enredó con demasiadas tools. Prueba /dream otra vez."
-        )
-    return final_text
 
 
 async def run_dream(
@@ -205,7 +95,7 @@ async def run_dream(
     payload = (
         f"Día a consolidar (chat completo): {target} ({spoken_target})\n"
         f"Prep para el día siguiente: {next_day} ({spoken_next})\n\n"
-        f"=== CHAT DEL DÍA ===\n{_transcript_block(chat)}\n\n"
+        f"=== CHAT DEL DÍA ===\n{transcript_block(chat)}\n\n"
         f"=== DIARIO YA GUARDADO ===\n{diary_block}\n\n"
         f"=== MEMORIA (digests) ===\n{mem_block}\n\n"
         f"=== TAREAS ABIERTAS ===\n{tasks_block}\n\n"
@@ -214,18 +104,21 @@ async def run_dream(
         "Luego escribe el mensaje final A–D."
     )
 
-    tools, handlers = _build_dream_tools(store, vault)
+    tools, handlers = build_capture_tools(store, vault)
 
     try:
-        report = await _dream_llm_loop(
-            llm_client, tools=tools, handlers=handlers, user_payload=payload
+        report = await run_tool_loop(
+            llm_client,
+            system=DREAM_SYSTEM,
+            user_payload=payload,
+            tools=tools,
+            handlers=handlers,
         )
         dream_path = vault.write_dream(
             target,
             f"# dream / {target}\n\n{report}\n",
         )
         await store.mark_job("dream", status="ok", ran_at=target, error=None)
-        # User-facing: the report itself (no vault path noise)
         summary = report
         logger.info(
             "Dream ok for day=%s msgs=%d path=%s",

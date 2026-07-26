@@ -25,23 +25,26 @@ ALWAYS_INJECT = (
 MAX_CHARS = 60_000
 
 
-def _discovered_md(subdir: str, label: str) -> dict[str, str]:
+def _discovered_md(subdir: str, label: str, *, recursive: bool = False) -> dict[str, str]:
     folder = ROOT_DIR / subdir
     out: dict[str, str] = {}
     if not folder.is_dir():
         return out
-    for path in sorted(folder.glob("*.md")):
-        rel = f"{subdir}/{path.name}"
+    paths = folder.rglob("*.md") if recursive else folder.glob("*.md")
+    for path in sorted(paths):
+        if path.name.lower() == "readme.md":
+            continue
+        rel = str(path.relative_to(ROOT_DIR))
         out[rel] = f"{label}: {path.stem}"
     return out
 
 
 def allowed_docs() -> dict[str, str]:
-    """Whitelist: static docs + every prompts/*.md + skills/*.md on disk."""
+    """Whitelist: static docs + prompts/*.md + skills/**/*.md."""
     return {
         **STATIC_DOCS,
         **_discovered_md("prompts", "Prompt"),
-        **_discovered_md("skills", "Skill"),
+        **_discovered_md("skills", "Skill", recursive=True),
     }
 
 

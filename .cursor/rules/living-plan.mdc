@@ -12,7 +12,7 @@ Si el trabajo toca producto, arquitectura, fases, alcance o prioridades:
 1. Lee `docs/PLAN.md` al empezar.
 2. Usa `docs/companion-plan.md` solo para detalle de diseño (no es el tracker operativo).
 3. Tareas sueltas / no olvidar → `docs/TODO.md` (márcalas o añádelas ahí).
-4. Skills: ver regla `skills-system-prompt` — crear/cambiar/borrar skill ⇒ actualizar catálogo en `prompts/system.md`.
+4. Skills: `skills/companion/` = Telegram; `skills/dev/` = Cursor (regla `skills-system-prompt`). Cierre de sesión de código → `skills/dev/close.md`.
 5. LLM: siempre **OpenRouter** (regla `openrouter-llm`).
 6. El bot Telegram (Jone) también lee `docs/PLAN.md`, `docs/TODO.md`, `docs/agent-rules.md`, prompts y skills cada turno — al cambiarlos, **deploy** para que producción los vea (`COPY docs/` en Docker).
 

@@ -116,9 +116,9 @@ Pendiente Phase 1:
 
 ## Next steps
 
-1. Ship dream 9am + secrets CRON; dogfood `/dream` y briefing matutino
-2. Pasar a **Phase 2** (Gmail) o pulir dream según feedback
-3. **Ship siempre:** uvicorn local + pytest + `qa_local.sh` → commit → push → deploy
+1. Dogfood companion: `/dream`, tareas/agenda; verificar briefing ~09:00 (CRON_SECRET en GitHub si falta)
+2. En Cursor: cierre de sesión con skill `skills/dev/close.md`
+3. Phase 2 (Gmail) o pulir tasks (estados, UI…) según `docs/TODO.md`
 
 ## Changelog del plan
 
@@ -143,3 +143,4 @@ Pendiente Phase 1:
 | 2026-07-26 | Gate ship: QA local (uvicorn + pytest + qa_local) antes de commit/push/deploy |
 | 2026-07-26 | Dream: quitar polling 60s; cron HTTP + GitHub Actions |
 | 2026-07-26 | Dream a tope 09:00 Madrid: chat del día + tools + prep |
+| 2026-07-26 | Skills split: companion/ (bot) vs dev/ (Cursor); close = dev |

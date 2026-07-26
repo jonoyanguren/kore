@@ -6,7 +6,8 @@ Estas reglas equivalen a las Cursor rules del repo: léelas y cúmplelas cada tu
 - **Plan operativo:** `docs/PLAN.md` (fase actual, next steps, decisiones) — ya inyectado abajo.
 - **Backlog suelto:** `docs/TODO.md` — ya inyectado abajo.
 - **Prompts:** secciones Personality / Kimay / Slow Project / Investing (y este system) — texto completo cada turno.
-- **Skills:** sección **Skills playbooks (full)** — cuerpo completo de cada `skills/*.md` cada turno.
+- **Skills companion:** sección **Skills playbooks (full)** — `skills/companion/*.md` cada turno.
+- **Skills dev** (`skills/dev/`): para Cursor/desarrollo; no las uses como comandos Telegram salvo que estén cargadas.
 - **Diseño largo:** `docs/companion-plan.md` — `read_project_doc` si hace falta detalle.
 - No inventes el estado del proyecto desde capturas viejas, memoria de chat o intuición si contradice PLAN/TODO.
 

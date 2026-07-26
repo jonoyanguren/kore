@@ -65,26 +65,46 @@ def parse_skill_markdown(text: str, path: str = "") -> Skill | None:
 
 
 class SkillRegistry:
-    def __init__(self, skills_dir: str | Path) -> None:
-        self._skills_dir = Path(skills_dir)
+    def __init__(self, *skills_dirs: str | Path) -> None:
+        self._skills_dirs = [Path(d) for d in skills_dirs]
         self._by_name: dict[str, Skill] = {}
         self._by_command: dict[str, Skill] = {}
 
     def load(self) -> None:
         self._by_name.clear()
         self._by_command.clear()
-        if not self._skills_dir.is_dir():
-            logger.warning("Skills directory missing: %s", self._skills_dir)
-            return
-        for path in sorted(self._skills_dir.glob("*.md")):
-            skill = parse_skill_markdown(path.read_text(encoding="utf-8"), str(path))
-            if skill is None:
+        loaded_from: list[str] = []
+        for skills_dir in self._skills_dirs:
+            if not skills_dir.is_dir():
+                logger.warning("Skills directory missing: %s", skills_dir)
                 continue
-            self._by_name[skill.name] = skill
-            for command in skill.commands:
-                cmd = command if command.startswith("/") else f"/{command}"
-                self._by_command[cmd.lower()] = skill
-        logger.info("Loaded %d skills from %s", len(self._by_name), self._skills_dir)
+            count_before = len(self._by_name)
+            for path in sorted(skills_dir.glob("*.md")):
+                if path.name.lower() == "readme.md":
+                    continue
+                skill = parse_skill_markdown(
+                    path.read_text(encoding="utf-8"), str(path)
+                )
+                if skill is None:
+                    continue
+                if skill.name in self._by_name:
+                    logger.warning(
+                        "Duplicate skill name %s from %s (keeping first)",
+                        skill.name,
+                        path,
+                    )
+                    continue
+                self._by_name[skill.name] = skill
+                for command in skill.commands:
+                    cmd = command if command.startswith("/") else f"/{command}"
+                    self._by_command[cmd.lower()] = skill
+            added = len(self._by_name) - count_before
+            loaded_from.append(f"{skills_dir}(+{added})")
+        logger.info(
+            "Loaded %d skills from %s",
+            len(self._by_name),
+            ", ".join(loaded_from) or "(none)",
+        )
 
     def list_skills(self) -> list[Skill]:
         return sorted(self._by_name.values(), key=lambda s: s.name)

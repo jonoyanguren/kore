@@ -26,7 +26,7 @@ from app.kernel.scheduler import run_scheduled_dream
 from app.kernel.skill_registry import SkillRegistry
 from app.kernel.time_tools import build_time_tools
 from app.llm.llm_assistant import LLMAssistant, ToolHandler
-from app.paths import PROMPTS_DIR, SKILLS_DIR
+from app.paths import DEV_SKILLS_DIR, PROMPTS_DIR, SKILLS_DIR
 from app.storage.memory import MemoryStore
 from app.storage.task_tools import build_task_tools
 from app.storage.tools import build_memory_tools
@@ -90,7 +90,10 @@ async def lifespan(app: FastAPI):
     time_tool_schemas, time_handlers = build_time_tools()
     project_tool_schemas, project_handlers = build_project_tools()
 
-    skill_registry = SkillRegistry(SKILLS_DIR)
+    if settings.load_dev_skills:
+        skill_registry = SkillRegistry(SKILLS_DIR, DEV_SKILLS_DIR)
+    else:
+        skill_registry = SkillRegistry(SKILLS_DIR)
     skill_registry.load()
     prompt_assembler = PromptAssembler(PROMPTS_DIR, skill_registry, memory_store)
     command_router = CommandRouter(skill_registry)

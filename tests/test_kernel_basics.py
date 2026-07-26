@@ -67,8 +67,9 @@ def test_project_docs_whitelist_and_always_inject():
     docs = allowed_docs()
     assert "prompts/system.md" in docs
     assert "prompts/personality.md" in docs
-    assert "skills/capture.md" in docs
-    assert "skills/project-status.md" in docs
+    assert "skills/companion/capture.md" in docs
+    assert "skills/companion/project-status.md" in docs
+    assert "skills/dev/close.md" in docs
     injected = dict(load_always_inject())
     assert "docs/PLAN.md" in injected
     assert "docs/TODO.md" in injected
