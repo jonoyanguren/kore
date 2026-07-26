@@ -1,0 +1,122 @@
+# Kore — Plan vivo
+
+> Cursor: lee este archivo al empezar trabajo de producto/arquitectura.
+> Si cambia una decisión, fase, alcance o se completa un ítem → actualiza este documento en el mismo cambio.
+
+| Campo | Valor |
+|-------|--------|
+| Repo | `jonoyanguren/kore` |
+| Producto | **Kore** (deploy/código) · hablado **Jone** (`ASSISTANT_NAME`) |
+| Arquitectura | Companion kernel (Approach B) |
+| Fase actual | **Phase 0 — Kernel + captura** (núcleo aterrizado; falta foto MIMO + polish) |
+| Canal | Telegram (UI web después) |
+| Deploy | Fly.io · volumen `/data` |
+| Modelo default | `xiaomi/mimo-v2-omni` |
+| Diseño detallado | `docs/companion-plan.md` |
+| Backlog tareas | `docs/TODO.md` |
+
+## Estado
+
+- [x] Repo GitHub `kore` + remote apuntando ahí
+- [x] Nombre proyecto Kore + nombre hablado Jone (editable)
+- [x] Phase 0 (parcial): prompts, skills, PromptAssembler, SkillRegistry, CommandRouter
+- [x] Phase 0 (parcial): `memory_items` + `diary_entries` + `messages` + migración `notes`
+- [x] Phase 0 (parcial): tools `save_memory` / `add_diary_entry` + comandos `/skills` `/hora` `/diario`
+- [ ] Phase 0 restante: imágenes Telegram → MIMO (download + content multimodal)
+- [ ] Phase 1: vault + dream 3am + tasks locales
+- [ ] Phase 2: Gmail OAuth + digest 9am
+- [ ] Phase 3: misiones background
+- [ ] Phase 4: git/código (este repo → multi-repo)
+- [ ] Phase 5+: calendar, voz, UI, PDF
+
+## Decisiones (cerradas)
+
+| # | Decisión | Valor |
+|---|----------|--------|
+| D1 | Arquitectura | Companion kernel |
+| D2 | Gmail | OAuth, refresh en `/data` |
+| D3 | Git | Primero este repo; luego `/data/repos/` |
+| D4 | Nombre | Kore (código) · Jone (hablado, editable) |
+| D5 | Personalidad | Stub ahora; se escribe después |
+| D6 | Tareas | Sistema propio (SQLite/vault); ClickUp aparcado |
+| D7 | Skills | Markdown en git + frontmatter; comandos = disparo |
+| D8 | Modelo | MIMO multimodal vía OpenRouter (`xiaomi/mimo-v2-omni`) |
+| D9 | Memoria | Captura por **categoría**, no log cronológico plano |
+| D10 | Confirmación destructiva | Inline keyboard Telegram |
+| D11 | Orden | Kernel por fases; rename no bloquea |
+
+## Roadmap
+
+### Phase 0 — Kernel + captura *(en curso)*
+
+Hecho:
+- `prompts/system.md`, `prompts/personality.md` (stub)
+- Skills: `time-madrid`, `capture`, `brainstorm`, `plan`, `execute`
+- `app/kernel/`: PromptAssembler + SkillRegistry + CommandRouter
+- Comandos: `/skills`, `/hora`, `/diario` (+ skills con `/captura`, `/brainstorm`, …)
+- Historial sesión del día (Europe/Madrid) en `messages`
+- Tools: `save_memory`, `add_diary_entry`, `forget_memory` (+ aliases legacy)
+- Migración `notes` → `memory_items` category=`general`
+- Dockerfile copia `prompts/` + `skills/`
+- Default model MIMO
+
+Pendiente Phase 0:
+- Foto/caption Telegram → descargar → pasar a MIMO
+- (opcional) tests unitarios del registry/store
+
+### Phase 1 — Diario / agenda / sueño
+
+- Vault `memory/`, `diary/`, `agenda/`
+- Cron 03:00 `dream` + `/dream` manual
+- Tasks locales + briefing matutino opcional
+
+### Phase 2 — Gmail
+
+- OAuth + triage + digest 09:00 + `/inbox`
+- Hechos del mail → memoria / agenda
+
+### Phase 3 — Misiones
+
+- Cola asyncio, concurrency=1, checkpoints SQLite
+- Pipeline brainstorm → plan → execute
+
+### Phase 4 — Código / git
+
+- Este repo primero; confirmación en acciones peligrosas
+- Luego multi-repo + skill `self-update`
+
+### Phase 5+
+
+- Calendar externo, voz, UI web, PDF
+
+## Success criteria
+
+- [x] System + skills + `/hora` + personalidad stub
+- [ ] Chat → hechos guardados por categoría sin pedirlo siempre *(tools listos; falta validar en uso real)*
+- [x] `/diario` usable (lectura del día)
+- [ ] Agenda / tasks locales usables
+- [ ] Imagen Telegram vía MIMO
+- [ ] Dream 3am consolida memoria
+- [ ] Gmail OAuth + digest 9am
+- [ ] Una misión background completada
+- [ ] Git en este repo con confirmación
+- [x] Nombre Kore + Jone editable
+- [x] Repo/Fly renombrados a kore
+
+## Open questions
+
+1. Tras Phase 0–1: ¿prioridad Gmail o Misiones? — *aplazado*
+
+## Next steps
+
+1. Deploy / probar en Telegram: `/skills`, `/hora`, `/diario`, captura por chat
+2. Cablear imágenes Telegram → MIMO
+3. Luego Phase 1 (vault + dream) o polish de captura
+
+## Changelog del plan
+
+| Fecha | Cambio |
+|-------|--------|
+| 2026-07-26 | Plan vivo creado desde `companion-plan.md`; fase actual = Phase 0 |
+| 2026-07-26 | Phase 0 kernel aterrizado (prompts/skills/assembler/memory/diary/session); pendiente fotos MIMO |
+| 2026-07-26 | Añadido `docs/TODO.md` para backlog (primera tarea: mejorar prompts/skills) |

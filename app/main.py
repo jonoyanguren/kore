@@ -1,9 +1,4 @@
-"""FastAPI app: Telegram webhook -> LLM (via OpenRouter, with tools) -> Telegram reply.
-
-Stateless — no conversation history across messages yet, that's a separate
-phase. Tools give the model real data: League of Legends stats (via OP.GG's
-MCP server) and ClickUp task management (via its REST API).
-"""
+"""FastAPI app: Telegram webhook -> companion kernel -> LLM tools -> reply."""
 
 from __future__ import annotations
 
@@ -20,11 +15,16 @@ from app.config import settings
 from app.integrations.clickup.clickup_client import ClickUpClient
 from app.integrations.clickup.tools import build_clickup_tools
 from app.integrations.lol.opgg_client import call_lol_tool, list_lol_tools
+from app.kernel.command_router import CommandRouter
+from app.kernel.prompt_assembler import PromptAssembler
+from app.kernel.skill_registry import SkillRegistry
 from app.llm.llm_assistant import LLMAssistant, ToolHandler
+from app.paths import PROMPTS_DIR, SKILLS_DIR
 from app.storage.memory import MemoryStore
 from app.storage.tools import build_memory_tools
 from app.telegram.client import TelegramClient
 from app.telegram.schemas import TelegramUpdate
+from app.timeutil import format_now_for_prompt, session_date_str
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
@@ -46,8 +46,6 @@ async def lifespan(app: FastAPI):
     llm_client = openai.AsyncOpenAI(
         api_key=settings.openrouter_api_key,
         base_url=OPENROUTER_BASE_URL,
-        # Recommended by OpenRouter to identify the app in their dashboard —
-        # not required, no secret involved.
         default_headers={"X-Title": "kore"},
     )
 
@@ -55,13 +53,20 @@ async def lifespan(app: FastAPI):
     await memory_store.init()
     memory_tool_schemas, memory_handlers = build_memory_tools(memory_store)
 
+    skill_registry = SkillRegistry(SKILLS_DIR)
+    skill_registry.load()
+    prompt_assembler = PromptAssembler(PROMPTS_DIR, skill_registry, memory_store)
+    command_router = CommandRouter(skill_registry)
+
     clickup_client = ClickUpClient(settings.clickup_api_token, http_client)
     clickup_tool_schemas, clickup_handlers = build_clickup_tools(clickup_client)
 
     try:
         lol_tool_schemas = await list_lol_tools()
     except Exception:
-        logger.exception("Could not load LoL tools from OP.GG at startup — continuing without them")
+        logger.exception(
+            "Could not load LoL tools from OP.GG at startup — continuing without them"
+        )
         lol_tool_schemas = []
 
     lol_handlers: dict[str, ToolHandler] = {
@@ -79,7 +84,12 @@ async def lifespan(app: FastAPI):
     }
 
     app.state.telegram = TelegramClient(settings.telegram_bot_token, http_client)
-    app.state.llm = LLMAssistant(llm_client, all_tools, all_handlers, memory_store)
+    app.state.memory = memory_store
+    app.state.skills = skill_registry
+    app.state.commands = command_router
+    app.state.llm = LLMAssistant(
+        llm_client, all_tools, all_handlers, memory_store, prompt_assembler
+    )
 
     yield
 
@@ -90,18 +100,10 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
-# --- Background handlers -----------------------------------------------
-# These run *after* the webhook has already returned 200 to Telegram, so a
-# slow Claude call never risks Telegram retrying (and duplicating) delivery.
-
-
 TYPING_REFRESH_SECONDS = 4  # Telegram's "typing..." indicator expires after ~5s
 
 
 async def _keep_typing(telegram: TelegramClient, chat_id: int) -> None:
-    """Re-send the 'typing...' action periodically for the duration of a
-    tool-calling loop, which can easily run well past Telegram's ~5s
-    single-shot indicator timeout."""
     try:
         while True:
             await telegram.send_typing(chat_id)
@@ -111,16 +113,61 @@ async def _keep_typing(telegram: TelegramClient, chat_id: int) -> None:
 
 
 async def handle_text_message(
-    telegram: TelegramClient, llm: LLMAssistant, chat_id: int, text: str
+    telegram: TelegramClient,
+    llm: LLMAssistant,
+    commands: CommandRouter,
+    memory: MemoryStore,
+    skills: SkillRegistry,
+    chat_id: int,
+    text: str,
 ) -> None:
+    match = commands.match(text)
+
+    if match is not None and match.builtin == "start":
+        await handle_start(telegram, chat_id)
+        return
+
+    if match is not None and match.builtin == "skills":
+        catalog = skills.catalog_text()
+        await telegram.send_message(
+            chat_id, f"Skills disponibles:\n{catalog}\n\nTambién: /hora /diario /captura"
+        )
+        return
+
+    if match is not None and match.builtin == "diario":
+        day = session_date_str()
+        entries = await memory.list_diary_for_day(day)
+        if not entries:
+            await telegram.send_message(chat_id, f"Diario vacío para {day}.")
+        else:
+            lines = [f"- {entry}" for _id, entry in entries]
+            await telegram.send_message(chat_id, f"Diario {day}:\n" + "\n".join(lines))
+        return
+
+    # Fast path for /hora — no LLM needed
+    if match is not None and match.skill and match.skill.name == "time-madrid":
+        await telegram.send_message(
+            chat_id, f"Ahora en Madrid: {format_now_for_prompt()}"
+        )
+        return
+
+    user_text = text
+    active_skill = None
+    if match is not None and match.skill is not None:
+        active_skill = match.skill
+        if match.args:
+            user_text = match.args
+        else:
+            user_text = (
+                f"Ejecuta la skill {match.skill.name} "
+                f"(comando {match.command})."
+            )
+
     typing_task = asyncio.create_task(_keep_typing(telegram, chat_id))
     try:
-        reply = await llm.ask(text)
+        reply = await llm.ask(user_text, active_skill=active_skill)
         await telegram.send_message(chat_id, reply)
     except Exception:
-        # LLMAssistant.ask() and TelegramClient never raise on their own
-        # expected failure modes — this is a last-resort safety net so a
-        # truly unexpected error still gets a reply instead of silence.
         logger.exception("Unhandled error processing message for chat_id=%s", chat_id)
         await telegram.send_message(chat_id, "Algo salió mal procesando tu mensaje.")
     finally:
@@ -130,15 +177,18 @@ async def handle_text_message(
 async def handle_start(telegram: TelegramClient, chat_id: int) -> None:
     name = settings.assistant_name
     await telegram.send_message(
-        chat_id, f"¡Hola! Soy {name}. Ya estoy en línea — escríbeme lo que necesites."
+        chat_id,
+        f"¡Hola! Soy {name}. Ya estoy en línea — escríbeme lo que necesites. "
+        f"Comandos: /skills /hora /diario",
     )
 
 
 async def handle_non_text(telegram: TelegramClient, chat_id: int) -> None:
-    await telegram.send_message(chat_id, "Por ahora solo puedo leer mensajes de texto.")
-
-
-# --- Routes ---------------------------------------------------------------
+    await telegram.send_message(
+        chat_id,
+        "Por ahora solo leo texto. Las imágenes llegan en cuanto MIMO multimodal "
+        "esté cableado del todo.",
+    )
 
 
 @app.get("/healthz")
@@ -160,8 +210,6 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks) 
         raise HTTPException(status_code=400, detail="bad request")
 
     if update.message is None:
-        # edited_message, channel_post, callback_query, etc. — nothing to
-        # do with these in Phase 1.
         return {"ok": True}
 
     chat_id = update.message.chat.id
@@ -171,13 +219,23 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks) 
 
     telegram: TelegramClient = request.app.state.telegram
     llm: LLMAssistant = request.app.state.llm
+    commands: CommandRouter = request.app.state.commands
+    memory: MemoryStore = request.app.state.memory
+    skills: SkillRegistry = request.app.state.skills
     text = update.message.text
 
     if text is None:
         background_tasks.add_task(handle_non_text, telegram, chat_id)
-    elif text.strip() == "/start":
-        background_tasks.add_task(handle_start, telegram, chat_id)
     else:
-        background_tasks.add_task(handle_text_message, telegram, llm, chat_id, text)
+        background_tasks.add_task(
+            handle_text_message,
+            telegram,
+            llm,
+            commands,
+            memory,
+            skills,
+            chat_id,
+            text,
+        )
 
     return {"ok": True}

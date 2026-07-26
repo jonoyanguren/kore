@@ -1,13 +1,8 @@
 """Chat completion loop with tool use, via OpenRouter.
 
-Claude decides which tools to call (LoL stats, ClickUp tasks, notes, ...)
-based on the conversation. This module owns the loop: call the model,
-execute any requested tool calls, feed results back, repeat until the
-model produces a final text answer or MAX_TOOL_ITERATIONS is hit.
-
-Still no conversation history across messages — that's separate, bigger
-future work. Durable notes (app/storage/memory.py) are the one thing that
-persists: they're re-read and folded into the system prompt on every turn.
+Owns the tool loop: call the model, execute tool calls, feed results back,
+until a final text answer or MAX_TOOL_ITERATIONS. System prompt comes from
+PromptAssembler; same-day session history is loaded from MemoryStore.
 """
 
 from __future__ import annotations
@@ -19,6 +14,8 @@ from typing import Any, Awaitable, Callable
 import openai
 
 from app.config import settings
+from app.kernel.prompt_assembler import PromptAssembler
+from app.kernel.skill_registry import Skill
 from app.storage.memory import MemoryStore
 
 logger = logging.getLogger(__name__)
@@ -26,28 +23,12 @@ logger = logging.getLogger(__name__)
 ToolHandler = Callable[[dict[str, Any]], Awaitable[str]]
 
 MAX_TOOL_ITERATIONS = 6
+SESSION_HISTORY_LIMIT = 20
 
 # OpenRouter's free-model router — picks among free models, filtering for
 # tool-calling support. Used as a one-time fallback when the configured
-# (paid) model returns 402 Insufficient Credits, so the bot degrades to
-# "works, but might be dumber and worse at tools" instead of going silent.
+# (paid) model returns 402 Insufficient Credits.
 FALLBACK_MODEL = "openrouter/free"
-
-def _base_system_prompt(assistant_name: str) -> str:
-    return (
-        f"You are {assistant_name}, a helpful personal companion chatting with "
-        "your one owner over Telegram. Your project/system name is Kore; "
-        f"when referring to yourself in conversation, use {assistant_name}. "
-        "Keep replies concise and conversational, and reply in the same "
-        "language the user writes in. Reply in plain text only — do not use "
-        "Markdown formatting (no **bold**, _italics_, backticks, or headers), "
-        "since Telegram will show it as literal characters instead of "
-        "rendering it. You have tools for League of Legends stats, ClickUp "
-        "task management, and saving/removing durable notes about the user — "
-        "use them whenever the request needs real data instead of guessing, "
-        "and save a note whenever the user tells you something worth "
-        "remembering for future conversations."
-    )
 
 
 class LLMAssistant:
@@ -59,29 +40,34 @@ class LLMAssistant:
         tools: list[dict[str, Any]],
         handlers: dict[str, ToolHandler],
         memory: MemoryStore,
+        prompt_assembler: PromptAssembler,
     ) -> None:
         self._client = client
         self._tools = tools
         self._handlers = handlers
         self._memory = memory
+        self._prompt_assembler = prompt_assembler
 
-    async def _build_system_prompt(self) -> str:
-        base = _base_system_prompt(settings.assistant_name)
-        notes = await self._memory.list_notes()
-        if not notes:
-            return base
-        notes_block = "\n".join(f"- (id {note_id}) {text}" for note_id, text in notes)
-        return f"{base}\n\nThings you already know about the user:\n{notes_block}"
-
-    async def ask(self, user_text: str) -> str:
+    async def ask(
+        self,
+        user_text: str,
+        *,
+        active_skill: Skill | None = None,
+        persist: bool = True,
+    ) -> str:
         """Return a reply for `user_text`. Never raises — always returns a string."""
-        system_prompt = await self._build_system_prompt()
-        messages: list[dict[str, Any]] = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_text},
-        ]
+        system_prompt = await self._prompt_assembler.assemble(active_skill=active_skill)
+        messages: list[dict[str, Any]] = [{"role": "system", "content": system_prompt}]
+
+        for role, content in await self._memory.recent_messages(SESSION_HISTORY_LIMIT):
+            if role in ("user", "assistant") and content.strip():
+                messages.append({"role": role, "content": content})
+
+        messages.append({"role": "user", "content": user_text})
+
         model = settings.openrouter_model
         used_fallback = False
+        final_text: str | None = None
 
         for _ in range(MAX_TOOL_ITERATIONS):
             try:
@@ -99,7 +85,9 @@ class LLMAssistant:
                 return "No logro conectar con el modelo ahora mismo. Prueba en un rato."
             except openai.APIStatusError as e:
                 if e.status_code == 402 and not used_fallback:
-                    logger.warning("Out of OpenRouter credits — falling back to %s", FALLBACK_MODEL)
+                    logger.warning(
+                        "Out of OpenRouter credits — falling back to %s", FALLBACK_MODEL
+                    )
                     model = FALLBACK_MODEL
                     used_fallback = True
                     continue
@@ -128,11 +116,9 @@ class LLMAssistant:
                         "modelo gratis, peor calidad y puede fallar con "
                         "ClickUp/LoL. Recarga saldo cuando puedas.]\n\n" + text
                     )
-                return text
+                final_text = text
+                break
 
-            # Echo the assistant's tool-call turn back, then append one
-            # tool result per call — the API rejects a follow-up request if
-            # any tool_call lacks a matching result.
             messages.append(
                 {
                     "role": "assistant",
@@ -150,8 +136,20 @@ class LLMAssistant:
                     }
                 )
 
-        logger.warning("Hit MAX_TOOL_ITERATIONS without a final answer")
-        return "Me enredé encadenando herramientas — prueba a reformular la pregunta."
+        if final_text is None:
+            logger.warning("Hit MAX_TOOL_ITERATIONS without a final answer")
+            final_text = (
+                "Me enredé encadenando herramientas — prueba a reformular la pregunta."
+            )
+
+        if persist:
+            try:
+                await self._memory.add_message("user", user_text)
+                await self._memory.add_message("assistant", final_text)
+            except Exception:
+                logger.exception("Failed to persist session messages")
+
+        return final_text
 
     async def _execute_tool(self, tool_call: Any) -> str:
         name = tool_call.function.name

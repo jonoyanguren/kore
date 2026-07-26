@@ -1,0 +1,32 @@
+---
+description: Leer y mantener docs/PLAN.md como fuente de verdad del plan
+alwaysApply: true
+---
+
+# Plan vivo (Kore)
+
+## Antes de trabajar
+
+Si el trabajo toca producto, arquitectura, fases, alcance o prioridades:
+
+1. Lee `docs/PLAN.md` al empezar.
+2. Usa `docs/companion-plan.md` solo para detalle de diseño (no es el tracker operativo).
+3. Tareas sueltas / no olvidar → `docs/TODO.md` (márcalas o añádelas ahí).
+
+## Mantener el plan actualizado
+
+En el **mismo cambio** (mismo PR / misma sesión de edits), actualiza `docs/PLAN.md` cuando:
+
+- Se cierra o cambia una decisión
+- Cambia la fase actual o el alcance de una fase
+- Se completa un ítem de estado / success criteria
+- Aparece o se resuelve una open question
+- Cambian los next steps reales
+
+Añade una fila breve en **Changelog del plan**.
+
+## No hacer
+
+- No duplicar el plan en README u otros docs (enlaza a `docs/PLAN.md`)
+- No dejar el plan desfasado tras implementar algo del roadmap
+- No reescribir todo el documento por un cambio pequeño: edita solo lo que cambió

@@ -16,8 +16,10 @@ class Settings(BaseSettings):
 
     # LLM (OpenRouter — OpenAI-compatible endpoint proxying many providers)
     openrouter_api_key: str
-    openrouter_model: str = "anthropic/claude-sonnet-5"
+    # Default: Xiaomi MiMo multimodal (images later). Override via OPENROUTER_MODEL.
+    openrouter_model: str = "xiaomi/mimo-v2-omni"
     llm_max_tokens: int = 2048
+    timezone: str = "Europe/Madrid"
 
     # ClickUp (personal API token, never expires)
     clickup_api_token: str
