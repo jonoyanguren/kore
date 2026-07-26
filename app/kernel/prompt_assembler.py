@@ -91,6 +91,22 @@ class PromptAssembler:
             lines = [f"- (id {item_id}) {text}" for item_id, text in diary]
             parts.append("## Today's diary\n" + "\n".join(lines))
 
+        open_tasks = await self._memory.list_tasks(status="open", limit=12)
+        if open_tasks:
+            lines = []
+            for task_id, title, _st, due_at, priority in open_tasks:
+                due = f", due {due_at}" if due_at else ""
+                lines.append(f"- (id {task_id}) {title}{due} (prio {priority})")
+            parts.append("## Open tasks\n" + "\n".join(lines))
+
+        agenda = await self._memory.list_agenda_upcoming(limit=10)
+        if agenda:
+            lines = [
+                f"- (id {i}) {starts} — {title}"
+                for i, starts, title, _st in agenda
+            ]
+            parts.append("## Agenda upcoming\n" + "\n".join(lines))
+
         if active_skill is not None:
             parts.append(
                 f"## Active skill (follow this playbook now): {active_skill.name}\n"

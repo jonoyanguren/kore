@@ -41,9 +41,39 @@ CREATE TABLE IF NOT EXISTS messages (
     session_date TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'open',
+    due_at TEXT,
+    priority INTEGER NOT NULL DEFAULT 0,
+    notes TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS agenda_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    starts_at TEXT NOT NULL,
+    ends_at TEXT,
+    title TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'planned',
+    source TEXT NOT NULL DEFAULT 'chat',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS jobs (
+    name TEXT PRIMARY KEY,
+    last_run_at TEXT,
+    last_status TEXT,
+    last_error TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_memory_items_category ON memory_items(category);
 CREATE INDEX IF NOT EXISTS idx_diary_entries_day ON diary_entries(day);
 CREATE INDEX IF NOT EXISTS idx_messages_session_date ON messages(session_date);
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+CREATE INDEX IF NOT EXISTS idx_agenda_starts ON agenda_items(starts_at);
 """
 
 
@@ -230,3 +260,184 @@ class MemoryStore:
 
     async def delete_note(self, note_id: int) -> bool:
         return await self.delete_memory(note_id)
+
+    # --- Tasks --------------------------------------------------------------
+
+    async def add_task(
+        self,
+        title: str,
+        *,
+        due_at: str | None = None,
+        priority: int = 0,
+        notes: str | None = None,
+    ) -> int:
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                """
+                INSERT INTO tasks (title, due_at, priority, notes)
+                VALUES (?, ?, ?, ?)
+                """,
+                (title.strip(), due_at, int(priority), notes),
+            )
+            await db.commit()
+            return cursor.lastrowid
+
+    async def list_tasks(
+        self, status: str | None = "open", limit: int = 30
+    ) -> list[tuple[int, str, str, str | None, int]]:
+        """Return (id, title, status, due_at, priority)."""
+        async with aiosqlite.connect(self._db_path) as db:
+            if status:
+                cursor = await db.execute(
+                    """
+                    SELECT id, title, status, due_at, priority FROM tasks
+                    WHERE status = ?
+                    ORDER BY
+                        CASE WHEN due_at IS NULL THEN 1 ELSE 0 END,
+                        due_at ASC,
+                        priority DESC,
+                        id ASC
+                    LIMIT ?
+                    """,
+                    (status.strip().lower(), limit),
+                )
+            else:
+                cursor = await db.execute(
+                    """
+                    SELECT id, title, status, due_at, priority FROM tasks
+                    ORDER BY id DESC LIMIT ?
+                    """,
+                    (limit,),
+                )
+            rows = await cursor.fetchall()
+            return [
+                (row[0], row[1], row[2], row[3], row[4]) for row in rows
+            ]
+
+    async def complete_task(self, task_id: int) -> bool:
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                """
+                UPDATE tasks
+                SET status = 'done', updated_at = datetime('now')
+                WHERE id = ? AND status != 'done'
+                """,
+                (task_id,),
+            )
+            await db.commit()
+            return cursor.rowcount > 0
+
+    # --- Agenda -------------------------------------------------------------
+
+    async def add_agenda_item(
+        self,
+        title: str,
+        starts_at: str,
+        *,
+        ends_at: str | None = None,
+        source: str = "chat",
+    ) -> int:
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                """
+                INSERT INTO agenda_items (starts_at, ends_at, title, source)
+                VALUES (?, ?, ?, ?)
+                """,
+                (starts_at.strip(), ends_at, title.strip(), source),
+            )
+            await db.commit()
+            return cursor.lastrowid
+
+    async def list_agenda_upcoming(
+        self, from_day: str | None = None, limit: int = 20
+    ) -> list[tuple[int, str, str, str]]:
+        """Return (id, starts_at, title, status) from from_day onward."""
+        from_day = from_day or session_date_str()
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                """
+                SELECT id, starts_at, title, status FROM agenda_items
+                WHERE starts_at >= ? AND status != 'cancelled'
+                ORDER BY starts_at ASC, id ASC
+                LIMIT ?
+                """,
+                (from_day, limit),
+            )
+            rows = await cursor.fetchall()
+            return [(row[0], row[1], row[2], row[3]) for row in rows]
+
+    async def list_agenda_for_month(
+        self, month: str
+    ) -> list[tuple[int, str, str, str]]:
+        """month = YYYY-MM. Return (id, starts_at, title, status)."""
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                """
+                SELECT id, starts_at, title, status FROM agenda_items
+                WHERE starts_at LIKE ? AND status != 'cancelled'
+                ORDER BY starts_at ASC, id ASC
+                """,
+                (f"{month}%",),
+            )
+            rows = await cursor.fetchall()
+            return [(row[0], row[1], row[2], row[3]) for row in rows]
+
+    # --- Jobs (cron bookkeeping) --------------------------------------------
+
+    async def get_job(self, name: str) -> tuple[str | None, str | None, str | None]:
+        """Return (last_run_at, last_status, last_error)."""
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                "SELECT last_run_at, last_status, last_error FROM jobs WHERE name = ?",
+                (name,),
+            )
+            row = await cursor.fetchone()
+            if row is None:
+                return None, None, None
+            return row[0], row[1], row[2]
+
+    async def mark_job(
+        self,
+        name: str,
+        *,
+        status: str,
+        error: str | None = None,
+        ran_at: str | None = None,
+    ) -> None:
+        ran_at = ran_at or session_date_str()
+        async with aiosqlite.connect(self._db_path) as db:
+            await db.execute(
+                """
+                INSERT INTO jobs (name, last_run_at, last_status, last_error)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(name) DO UPDATE SET
+                    last_run_at = excluded.last_run_at,
+                    last_status = excluded.last_status,
+                    last_error = excluded.last_error
+                """,
+                (name, ran_at, status, error),
+            )
+            await db.commit()
+
+    async def list_memory_all_by_category(
+        self, category: str
+    ) -> list[tuple[int, str]]:
+        """All items in category oldest→newest for vault rewrite."""
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                """
+                SELECT id, text FROM memory_items
+                WHERE category = ?
+                ORDER BY id ASC
+                """,
+                (category.strip().lower(),),
+            )
+            rows = await cursor.fetchall()
+            return [(row[0], row[1]) for row in rows]
+
+    async def list_categories(self) -> list[str]:
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                "SELECT DISTINCT category FROM memory_items ORDER BY category"
+            )
+            return [row[0] for row in await cursor.fetchall()]

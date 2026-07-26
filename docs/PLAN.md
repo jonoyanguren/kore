@@ -8,7 +8,7 @@
 | Repo | `jonoyanguren/kore` |
 | Producto | **Kore** (deploy/código) · hablado **Jone** (`ASSISTANT_NAME`) |
 | Arquitectura | Companion kernel (Approach B) |
-| Fase actual | **Phase 0 cerrando → Phase 1** (dogfood OK; bot lee PLAN/TODO cada turno) |
+| Fase actual | **Phase 1** (vault + dream + tasks locales) |
 | Canal | Telegram (UI web después) |
 | Deploy | Fly.io · volumen `/data` |
 | LLM | **OpenRouter** (`OPENROUTER_API_KEY` + `OPENROUTER_MODEL`) |
@@ -25,7 +25,7 @@
 - [x] Phase 0 (parcial): `memory_items` + `diary_entries` + `messages` + migración `notes`
 - [x] Phase 0 (parcial): tools `save_memory` / `add_diary_entry` + comandos `/skills` `/hora` `/diario`
 - [x] Phase 0: imágenes Telegram → MIMO (download + content multimodal)
-- [ ] Phase 1: vault + dream 3am + tasks locales
+- [x] Phase 1 (MVP): vault + dream 3am/`/dream` + tasks/agenda locales
 - [ ] Phase 2: Gmail OAuth + digest 9am
 - [ ] Phase 3: misiones background
 - [ ] Phase 4: git/código (este repo → multi-repo)
@@ -49,7 +49,7 @@
 
 ## Roadmap
 
-### Phase 0 — Kernel + captura *(en curso)*
+### Phase 0 — Kernel + captura *(hecho)*
 
 Hecho:
 - `prompts/system.md`, `prompts/personality.md` (stub)
@@ -59,18 +59,23 @@ Hecho:
 - Historial sesión del día (Europe/Madrid) en `messages`
 - Tools: `save_memory`, `add_diary_entry`, `forget_memory` (+ aliases legacy)
 - Migración `notes` → `memory_items` category=`general`
-- Dockerfile copia `prompts/` + `skills/`
+- Dockerfile copia `prompts/` + `skills/` + `docs/`
 - Default model MIMO
+- Contexto proyecto (PLAN/TODO/skills/prompts) cada turno
 
-Pendiente Phase 0 (cierre):
-- Seguir dogfood en Telegram (captura, fotos, tono)
-- Commit/push del trabajo local cuando Jon lo pida (no es “la siguiente tarea de producto”)
+### Phase 1 — Diario / agenda / sueño *(MVP en curso)*
 
-### Phase 1 — Diario / agenda / sueño
+Hecho:
+- Vault bajo `VAULT_ROOT` / sibling de DB: `memory/`, `diary/`, `agenda/`, `dreams/` (write-through + rewrite en dream)
+- Tablas `tasks`, `agenda_items`, `jobs`
+- Tools: `add_task`, `list_tasks`, `complete_task`, `add_agenda_item`, `list_agenda`
+- Skills `/tareas` `/agenda` `/dream` (+ cron 03:00 Europe/Madrid)
+- Prompt: open tasks + agenda upcoming
 
-- Vault `memory/`, `diary/`, `agenda/`
-- Cron 03:00 `dream` + `/dream` manual
-- Tasks locales + briefing matutino opcional
+Pendiente Phase 1:
+- Briefing matutino opcional
+- Dogfood dream/tasks unos días
+- (opcional) fusionar duplicados de memoria de forma más agresiva en dream
 
 ### Phase 2 — Gmail
 
@@ -96,9 +101,9 @@ Pendiente Phase 0 (cierre):
 - [x] System + skills + `/hora` + personalidad stub
 - [ ] Chat → hechos guardados por categoría sin pedirlo siempre *(tools listos; falta validar en uso real)*
 - [x] `/diario` usable (lectura del día)
-- [ ] Agenda / tasks locales usables
+- [x] Agenda / tasks locales usables (MVP)
 - [x] Imagen Telegram vía MIMO
-- [ ] Dream 3am consolida memoria
+- [x] Dream 3am consolida memoria (MVP + `/dream`)
 - [ ] Gmail OAuth + digest 9am
 - [ ] Una misión background completada
 - [ ] Git en este repo con confirmación
@@ -111,9 +116,9 @@ Pendiente Phase 0 (cierre):
 
 ## Next steps
 
-1. Empezar **Phase 1**: vault (`memory/` `diary/` `agenda/`) + dream 3am + tasks locales
-2. Mantener PLAN.md/TODO.md al día cuando cambie el alcance (Cursor + Jone los leen)
-3. **Ship:** siempre `commit` → `push` → `fly deploy` (no deploy sin remoto al día; ver regla living-plan)
+1. Ship Phase 1 MVP: `commit` → `push` → `fly deploy`; dogfood `/tareas` `/agenda` `/dream`
+2. Briefing matutino opcional o pasar a **Phase 2** (Gmail) según prioridad
+3. Mantener PLAN.md/TODO.md al día
 
 ## Changelog del plan
 
@@ -134,3 +139,4 @@ Pendiente Phase 0 (cierre):
 | 2026-07-26 | Bot lee docs como Cursor: inject PLAN/TODO/agent-rules + tools read_project_doc; COPY docs/ en Docker |
 | 2026-07-26 | Skills playbooks completos cada turno + whitelist dinámica prompts/*.md y skills/*.md |
 | 2026-07-26 | Convención ship: commit → push → deploy (living-plan) |
+| 2026-07-26 | Phase 1 MVP: vault + tasks/agenda + dream cron/`/dream` |

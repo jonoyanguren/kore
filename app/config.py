@@ -32,8 +32,18 @@ class Settings(BaseSettings):
     # Storage — local path by default; overridden to the mounted Fly volume
     # path (/data/kore.db) in production so it survives redeploys.
     storage_db_path: str = "data/kore.db"
+    # Markdown vault (memory/diary/agenda/dreams). Empty → sibling of DB
+    # (data/vault or /data/vault on Fly).
+    vault_root: str = ""
 
     log_level: str = "INFO"
+
+    def resolved_vault_root(self) -> str:
+        if self.vault_root.strip():
+            return self.vault_root.strip()
+        from pathlib import Path
+
+        return str(Path(self.storage_db_path).resolve().parent / "vault")
 
 
 settings = Settings()

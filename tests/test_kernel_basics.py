@@ -21,9 +21,11 @@ def test_skills_load_and_catalog():
     assert names == {
         "brainstorm",
         "capture",
+        "dream",
         "execute",
         "plan",
         "project-status",
+        "tasks",
         "time-madrid",
     }
     assert "get_madrid_time" in (registry.get("time-madrid").tools or [])
@@ -85,6 +87,8 @@ def test_assembler_includes_all_skill_playbooks():
     memory = AsyncMock()
     memory.memory_digests = AsyncMock(return_value={})
     memory.list_diary_for_day = AsyncMock(return_value=[])
+    memory.list_tasks = AsyncMock(return_value=[])
+    memory.list_agenda_upcoming = AsyncMock(return_value=[])
     assembler = PromptAssembler(PROMPTS_DIR, registry, memory)
     text = asyncio.run(assembler.assemble())
     assert "## Skills playbooks (full)" in text

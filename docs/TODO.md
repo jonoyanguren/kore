@@ -27,6 +27,9 @@ Convención: `- [ ]` pendiente · `- [x]` hecho. Añade fecha o contexto breve s
 - [x] Jone lee contexto de proyecto (PLAN/TODO/agent-rules inyectados + `read_project_doc`)
 - [x] Skills/prompts completos cada turno + whitelist dinámica
 - [x] Convención documentada: commit → push → deploy
+- [x] Phase 1 MVP: vault + tasks/agenda + dream 3am/`/dream`
+- [ ] Briefing matutino opcional (Phase 1 leftover)
+- [ ] Dogfood dream/tasks en Telegram unos días
 
 ## Notas
 

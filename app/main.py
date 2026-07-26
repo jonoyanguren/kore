@@ -19,14 +19,18 @@ from app.integrations.clickup.clickup_client import ClickUpClient
 from app.integrations.clickup.tools import build_clickup_tools
 from app.integrations.lol.opgg_client import call_lol_tool, list_lol_tools
 from app.kernel.command_router import CommandRouter
-from app.kernel.prompt_assembler import PromptAssembler
-from app.kernel.skill_registry import SkillRegistry
+from app.kernel.dream import run_dream
 from app.kernel.project_tools import build_project_tools
+from app.kernel.prompt_assembler import PromptAssembler
+from app.kernel.scheduler import scheduler_loop
+from app.kernel.skill_registry import SkillRegistry
 from app.kernel.time_tools import build_time_tools
 from app.llm.llm_assistant import LLMAssistant, ToolHandler
 from app.paths import PROMPTS_DIR, SKILLS_DIR
 from app.storage.memory import MemoryStore
+from app.storage.task_tools import build_task_tools
 from app.storage.tools import build_memory_tools
+from app.storage.vault import Vault
 from app.telegram.client import TelegramClient
 from app.telegram.schemas import TelegramUpdate
 from app.timeutil import format_madrid_clock, session_date_str
@@ -78,7 +82,11 @@ async def lifespan(app: FastAPI):
 
     memory_store = MemoryStore(settings.storage_db_path)
     await memory_store.init()
-    memory_tool_schemas, memory_handlers = build_memory_tools(memory_store)
+    vault = Vault(settings.resolved_vault_root())
+    vault.ensure()
+
+    memory_tool_schemas, memory_handlers = build_memory_tools(memory_store, vault)
+    task_tool_schemas, task_handlers = build_task_tools(memory_store, vault)
     time_tool_schemas, time_handlers = build_time_tools()
     project_tool_schemas, project_handlers = build_project_tools()
 
@@ -107,6 +115,7 @@ async def lifespan(app: FastAPI):
 
     all_tools = (
         memory_tool_schemas
+        + task_tool_schemas
         + time_tool_schemas
         + project_tool_schemas
         + clickup_tool_schemas
@@ -114,14 +123,18 @@ async def lifespan(app: FastAPI):
     )
     all_handlers: dict[str, ToolHandler] = {
         **memory_handlers,
+        **task_handlers,
         **time_handlers,
         **project_handlers,
         **clickup_handlers,
         **lol_handlers,
     }
 
-    app.state.telegram = TelegramClient(settings.telegram_bot_token, http_client)
+    telegram = TelegramClient(settings.telegram_bot_token, http_client)
+    app.state.telegram = telegram
     app.state.memory = memory_store
+    app.state.vault = vault
+    app.state.llm_client = llm_client
     app.state.skills = skill_registry
     app.state.commands = command_router
     app.state.pending_photos = {}  # chat_id -> PendingPhoto
@@ -129,8 +142,17 @@ async def lifespan(app: FastAPI):
         llm_client, all_tools, all_handlers, memory_store, prompt_assembler
     )
 
+    sched_task = asyncio.create_task(
+        scheduler_loop(memory_store, vault, llm_client, telegram)
+    )
+
     yield
 
+    sched_task.cancel()
+    try:
+        await sched_task
+    except asyncio.CancelledError:
+        pass
     await http_client.aclose()
     await llm_client.close()
 
@@ -170,6 +192,9 @@ async def handle_text_message(
     pending_photos: dict[int, PendingPhoto],
     chat_id: int,
     text: str,
+    *,
+    vault: Vault | None = None,
+    llm_client: openai.AsyncOpenAI | None = None,
 ) -> None:
     match = commands.match(text)
 
@@ -180,7 +205,9 @@ async def handle_text_message(
     if match is not None and match.builtin == "skills":
         catalog = skills.catalog_text()
         await telegram.send_message(
-            chat_id, f"Skills disponibles:\n{catalog}\n\nTambién: /hora /diario /captura"
+            chat_id,
+            f"Skills disponibles:\n{catalog}\n\n"
+            f"También: /hora /diario /tareas /agenda /dream /captura",
         )
         return
 
@@ -197,6 +224,53 @@ async def handle_text_message(
     # Fast path for /hora — authoritative clock, no LLM
     if match is not None and match.skill and match.skill.name == "time-madrid":
         await telegram.send_message(chat_id, format_madrid_clock())
+        return
+
+    # /dream — consolidate (default yesterday; optional YYYY-MM-DD arg)
+    if match is not None and match.skill and match.skill.name == "dream":
+        if vault is None or llm_client is None:
+            await telegram.send_message(chat_id, "Sueño no disponible ahora.")
+            return
+        # Manual: today (or YYYY-MM-DD arg). Cron uses yesterday explicitly.
+        day_arg = match.args.strip() or session_date_str()
+        typing_task = asyncio.create_task(_keep_typing(telegram, chat_id))
+        try:
+            summary = await run_dream(
+                memory,
+                vault,
+                llm_client,
+                day=day_arg,
+                telegram=None,
+                notify=False,
+            )
+            text_out = summary if len(summary) < 3500 else summary[:3490] + "…"
+            await telegram.send_message(chat_id, text_out)
+        except Exception:
+            logger.exception("Dream command failed")
+            await telegram.send_message(chat_id, "El sueño falló. Prueba otra vez.")
+        finally:
+            typing_task.cancel()
+        return
+
+    # /tareas /agenda without args — list from SQLite
+    if match is not None and match.skill and match.skill.name == "tasks" and not match.args:
+        if match.command == "/agenda":
+            rows = await memory.list_agenda_upcoming(limit=20)
+            if not rows:
+                await telegram.send_message(chat_id, "Agenda vacía.")
+            else:
+                lines = [f"- {starts} — {title}" for _i, starts, title, _st in rows]
+                await telegram.send_message(chat_id, "Agenda:\n" + "\n".join(lines))
+            return
+        rows = await memory.list_tasks(status="open", limit=30)
+        if not rows:
+            await telegram.send_message(chat_id, "No hay tareas abiertas.")
+        else:
+            lines = []
+            for task_id, title, _st, due_at, _p in rows:
+                due = f" ({due_at})" if due_at else ""
+                lines.append(f"- (id {task_id}) {title}{due}")
+            await telegram.send_message(chat_id, "Tareas abiertas:\n" + "\n".join(lines))
         return
 
     user_text = text
@@ -236,7 +310,7 @@ async def handle_start(telegram: TelegramClient, chat_id: int) -> None:
     await telegram.send_message(
         chat_id,
         f"¡Hola! Soy {name}. Ya estoy en línea — escríbeme lo que necesites. "
-        f"Comandos: /skills /hora /diario",
+        f"Comandos: /skills /hora /diario /tareas /agenda /dream",
     )
 
 
@@ -327,6 +401,8 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks) 
     memory: MemoryStore = request.app.state.memory
     skills: SkillRegistry = request.app.state.skills
     pending_photos: dict[int, PendingPhoto] = request.app.state.pending_photos
+    vault: Vault = request.app.state.vault
+    llm_client: openai.AsyncOpenAI = request.app.state.llm_client
     message = update.message
     text = message.text
 
@@ -355,6 +431,8 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks) 
             pending_photos,
             chat_id,
             text,
+            vault=vault,
+            llm_client=llm_client,
         )
 
     return {"ok": True}

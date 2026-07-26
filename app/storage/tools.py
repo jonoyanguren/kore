@@ -5,11 +5,15 @@ from __future__ import annotations
 from typing import Any, Awaitable, Callable
 
 from app.storage.memory import MemoryStore
+from app.storage.vault import Vault
+from app.timeutil import session_date_str
 
 ToolHandler = Callable[[dict[str, Any]], Awaitable[str]]
 
 
-def build_memory_tools(store: MemoryStore) -> tuple[list[dict], dict[str, ToolHandler]]:
+def build_memory_tools(
+    store: MemoryStore, vault: Vault | None = None
+) -> tuple[list[dict], dict[str, ToolHandler]]:
     """Return (tool schemas, handlers) for categorical memory + diary."""
 
     async def _save_memory(args: dict[str, Any]) -> str:
@@ -18,10 +22,15 @@ def build_memory_tools(store: MemoryStore) -> tuple[list[dict], dict[str, ToolHa
             text=args["text"],
         )
         category = (args.get("category") or "general").strip().lower()
+        if vault is not None:
+            vault.append_memory(category, item_id, args["text"])
         return f"Memoria guardada en '{category}' (id {item_id})."
 
     async def _add_diary_entry(args: dict[str, Any]) -> str:
-        entry_id = await store.add_diary_entry(text=args["text"], day=args.get("day"))
+        day = args.get("day") or session_date_str()
+        entry_id = await store.add_diary_entry(text=args["text"], day=day)
+        if vault is not None:
+            vault.append_diary(day, entry_id, args["text"])
         return f"Entrada de diario guardada (id {entry_id})."
 
     async def _forget_memory(args: dict[str, Any]) -> str:
