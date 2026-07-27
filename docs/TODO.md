@@ -70,8 +70,8 @@ Plan: [`docs/web-console-plan.md`](./web-console-plan.md)
 Super-herramienta para Jon; barra UX alta. **No** multi-user / venta / billing.
 
 Orden:
-1. [ ] Day strip (fecha Madrid + briefing/dream + agenda próxima)
-2. [ ] Chat vivo (“pensando / tools…”, streaming si cabe; acciones en respuesta)
+1. [x] Day strip (fecha Madrid + briefing/dream + agenda próxima) (2026-07-27)
+2. [ ] Chat vivo (“pensando / tools…”, streaming si cabe; acciones en respuesta) — thinking baseline 2026-07-27
 3. [ ] Tarjeta tarea editable (proyecto, url, notas, due) + filtros + buscar
 4. [ ] Voz one-tap (mic → transcripción → enviar)
 5. [ ] ⌘K / command palette (dream, hora, nueva tarea, proyecto)

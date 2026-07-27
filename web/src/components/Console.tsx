@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { apiLogout } from '../api'
 import { ChatPanel } from './ChatPanel'
+import { DayStrip } from './DayStrip'
 import { TaskBoard } from './TaskBoard'
 
 type Props = {
@@ -15,6 +16,10 @@ export function Console({ onLogout }: Props) {
     onLogout()
   }
 
+  function bump() {
+    setBoardToken((n) => n + 1)
+  }
+
   return (
     <div className="console">
       <header className="console__bar">
@@ -23,10 +28,9 @@ export function Console({ onLogout }: Props) {
           Salir
         </button>
       </header>
+      <DayStrip refreshToken={boardToken} />
       <div className="console__body">
-        <ChatPanel
-          onAfterChat={() => setBoardToken((n) => n + 1)}
-        />
+        <ChatPanel onAfterChat={() => bump()} />
         <TaskBoard refreshToken={boardToken} />
       </div>
     </div>

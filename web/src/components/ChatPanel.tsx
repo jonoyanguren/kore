@@ -45,6 +45,7 @@ export function ChatPanel({ onAfterChat }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
+  const [thinking, setThinking] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [tick, setTick] = useState(0)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -83,6 +84,11 @@ export function ChatPanel({ onAfterChat }: Props) {
     if (!t || busy) return
     setText('')
     setBusy(true)
+    setThinking(
+      t.startsWith('/')
+        ? 'Ejecutando…'
+        : 'Pensando… (puede usar tools)',
+    )
     setError(null)
     setMessages((prev) => [
       ...prev,
@@ -90,6 +96,7 @@ export function ChatPanel({ onAfterChat }: Props) {
     ])
     try {
       const result = await apiChat(t)
+      setThinking(null)
       let reply = result.reply
       if (
         looksLikeTaskClaim(reply) &&
@@ -118,6 +125,7 @@ export function ChatPanel({ onAfterChat }: Props) {
         tasksChanged: result.tasks_changed || result.tasks_listed.length > 0,
       })
     } catch (err) {
+      setThinking(null)
       setError(String(err))
       setMessages((prev) => [
         ...prev,
@@ -125,6 +133,7 @@ export function ChatPanel({ onAfterChat }: Props) {
       ])
     } finally {
       setBusy(false)
+      setThinking(null)
     }
   }
 
@@ -194,7 +203,10 @@ export function ChatPanel({ onAfterChat }: Props) {
             ) : null}
           </div>
         ))}
-        {busy ? <p className="muted chat__thinking">Pensando…</p> : null}
+        {thinking ? <p className="muted chat__thinking">{thinking}</p> : null}
+        {busy && !thinking ? (
+          <p className="muted chat__thinking">Pensando…</p>
+        ) : null}
         <div ref={bottomRef} />
       </div>
       {error ? <p className="error">{error}</p> : null}

@@ -75,6 +75,22 @@ export async function apiCompleteTask(id: number): Promise<Task> {
   return r.data.task
 }
 
+export type DaySnapshot = {
+  today: string
+  clock: string
+  headline: string
+  tasks: { in_progress: number; open: number }
+  agenda: { id: number; starts_at: string; title: string; status: string }[]
+  dream: { day: string; excerpt: string } | null
+  server_now: string
+}
+
+export async function apiDay(): Promise<DaySnapshot> {
+  const r = await req<DaySnapshot>('/api/day')
+  if (!r.ok) throw new Error(`day ${r.status}`)
+  return r.data
+}
+
 export type ChatMessage = {
   id?: number
   role: string

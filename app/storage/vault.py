@@ -72,6 +72,13 @@ class Vault:
         path.write_text(content.strip() + "\n", encoding="utf-8")
         return path
 
+    def read_dream(self, day: str) -> str | None:
+        path = self.root / "dreams" / f"{day}.md"
+        if not path.is_file():
+            return None
+        text = path.read_text(encoding="utf-8").strip()
+        return text or None
+
     def write_tasks(self, lines_body: list[str]) -> Path:
         self.ensure()
         path = self.root / "tasks" / "open.md"

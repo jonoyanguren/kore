@@ -157,6 +157,15 @@ async def _run():
             assert "Tareas" in tareas.json()["reply"]
             assert isinstance(tareas.json().get("tasks_listed"), list)
 
+            day = await ac.get(
+                "/api/day",
+                headers={"Authorization": f"Bearer {secret}"},
+            )
+            assert day.status_code == 200
+            snap = day.json()
+            assert "clock" in snap and "headline" in snap
+            assert "tasks" in snap and "agenda" in snap
+
 
 def test_web_api_auth_and_tasks():
     asyncio.run(_run())
