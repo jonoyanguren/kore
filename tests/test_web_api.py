@@ -294,16 +294,6 @@ async def _run():
             assert z.headers["content-type"].startswith("application/zip")
             assert len(z.content) > 20
 
-            # Space hint on chat (ask receives prefix; history stores clean text)
-            space_chat = await ac.post(
-                "/api/chat",
-                headers={"Authorization": f"Bearer {secret}"},
-                json={"text": "qué toca", "space": "kimay"},
-            )
-            assert space_chat.status_code == 200
-            assert "Espacio activo: kimay" in space_chat.json()["reply"]
-            assert "qué toca" in space_chat.json()["reply"]
-
 
 def test_web_api_auth_and_tasks():
     asyncio.run(_run())

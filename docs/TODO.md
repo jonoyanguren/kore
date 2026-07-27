@@ -7,14 +7,14 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 ## P0 — Esta semana (dogfood)
 
 - [ ] **Mañana ~09:00:** abrir vista Día en https://kore.fly.dev/ y validar briefing
-- [ ] **3–5 días:** operar desde consola (chat / mic / espacios / board)
+- [ ] **3–5 días:** operar desde consola (chat / mic / board)
 - [ ] Dogfood: fricciones reales (ya: no cards de `/tareas` en chat; web tools)
 
 ## P1 — Phase 1.6 (producto)
 
 - [x] **Voz one-tap** — mic → OpenRouter Whisper → input del chat
 - [x] **Mobile / empty states** — bar + mic + empties
-- [x] **Proyectos como espacios** — Todo / Personal / Kimay / Kore
+- [x] **Proyectos** — slug en tareas; el modelo infiere (sin chips de espacio)
 - [x] **Privacidad** — overview, export vault zip, borrar categoría
 
 ## P2 — Phase 2+

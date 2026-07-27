@@ -148,8 +148,9 @@ def build_task_tools(
                 "description": (
                     "Create a local personal task in SQLite (not ClickUp). "
                     "If the user pasted a URL (Instagram, YouTube, doc…), ALWAYS set url. "
-                    "Use notes for extra context. Use project slug when clear "
-                    "(kore, kimay, personal, lol, …)."
+                    "Use notes for extra context. Always set project when the "
+                    "topic is clear (kore, kimay, personal, lol, …) — infer from "
+                    "conversation; there is no UI space picker."
                 ),
                 "parameters": {
                     "type": "object",
@@ -170,7 +171,10 @@ def build_task_tools(
                         },
                         "project": {
                             "type": "string",
-                            "description": "Short project slug, e.g. kore, personal",
+                            "description": (
+                                "Inferred slug: kore, kimay, personal, lol, … "
+                                "Omit only if unclear."
+                            ),
                         },
                         "status": {
                             "type": "string",

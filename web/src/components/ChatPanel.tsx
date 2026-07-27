@@ -16,8 +16,6 @@ import {
   type ChatMessage,
 } from '../api'
 import { formatRelativeEs } from '../relativeTime'
-import type { SpaceId } from '../spaces'
-import { spaceDef } from '../spaces'
 import type { Task } from '../types'
 import { ChatTaskCard } from './ChatTaskCard'
 import { useToast } from './Toasts'
@@ -29,7 +27,6 @@ export type ChatPanelHandle = {
 type Props = {
   onAfterChat?: (info: { tasksChanged: boolean }) => void
   onOpenTask?: (task: Task) => void
-  space?: SpaceId
 }
 
 const PAGE = 10
@@ -87,7 +84,7 @@ function firstPersistedId(messages: ChatMessage[]): number | undefined {
 type MicState = 'idle' | 'recording' | 'transcribing'
 
 export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
-  { onAfterChat, onOpenTask, space = 'all' },
+  { onAfterChat, onOpenTask },
   ref,
 ) {
   const toast = useToast()
@@ -115,7 +112,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const analyserRef = useRef<AnalyserNode | null>(null)
   const rafRef = useRef<number>(0)
   const recStartedAtRef = useRef(0)
-  const spaceProject = spaceDef(space).project
 
   useEffect(() => {
     busyRef.current = busy
@@ -282,16 +278,12 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       { role: 'user', content: t, relative: 'hace un momento', tasks: [] },
     ])
     try {
-      const result = await apiChatLive(
-        t,
-        {
-          onStatus: (label) => {
-            stickBottomRef.current = true
-            setThinking(label)
-          },
+      const result = await apiChatLive(t, {
+        onStatus: (label) => {
+          stickBottomRef.current = true
+          setThinking(label)
         },
-        spaceProject,
-      )
+      })
       setThinking(null)
       let reply = result.reply
       if (
@@ -462,17 +454,13 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
 
   const now = new Date()
   void tick
-  const spaceLabel = spaceDef(space).label
   const recClock = `${String(Math.floor(recSecs / 60)).padStart(2, '0')}:${String(recSecs % 60).padStart(2, '0')}`
 
   return (
     <section className="chat">
       <header className="chat__head">
         <h2>Chat</h2>
-        <span className="muted">
-          Jone
-          {space !== 'all' ? ` · ${spaceLabel}` : ''}
-        </span>
+        <span className="muted">Jone</span>
       </header>
       <div className="chat__quick" aria-label="Acciones rápidas">
         {QUICK.map((q) => (

@@ -325,13 +325,13 @@ export type ChatResult = {
   tasks_changed: boolean
 }
 
-export async function apiChat(text: string, space?: string | null): Promise<ChatResult> {
+export async function apiChat(text: string): Promise<ChatResult> {
   const controller = new AbortController()
   const timer = window.setTimeout(() => controller.abort(), 180_000)
   try {
     const r = await req<ChatResult>('/api/chat', {
       method: 'POST',
-      body: JSON.stringify({ text, space: space || undefined }),
+      body: JSON.stringify({ text }),
       signal: controller.signal,
     })
     if (!r.ok) throw new Error(`chat ${r.status}`)
@@ -354,7 +354,6 @@ export type ChatStreamHandlers = {
 export async function apiChatLive(
   text: string,
   handlers: ChatStreamHandlers = {},
-  space?: string | null,
 ): Promise<ChatResult> {
   const controller = new AbortController()
   const timer = window.setTimeout(() => controller.abort(), 180_000)
@@ -363,11 +362,11 @@ export async function apiChatLive(
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, space: space || undefined }),
+      body: JSON.stringify({ text }),
       signal: controller.signal,
     })
     if (!res.ok || !res.body) {
-      return apiChat(text, space)
+      return apiChat(text)
     }
     const reader = res.body.getReader()
     const decoder = new TextDecoder()
@@ -419,7 +418,7 @@ export async function apiChatLive(
     }
     if (err) throw new Error(err)
     if (result) return result
-    return apiChat(text, space)
+    return apiChat(text)
   } finally {
     window.clearTimeout(timer)
   }

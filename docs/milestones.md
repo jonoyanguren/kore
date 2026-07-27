@@ -48,7 +48,7 @@ Hecho en consola:
 - Día: ★ En curso + «No se pueden escapar» (dream / due / prio)
 - Canal matutino = **vista Día** (`DREAM_NOTIFY_TELEGRAM=false` por defecto)
 - **Voz one-tap** — MediaRecorder → `POST /api/transcribe` (OpenRouter Whisper) → input chat
-- **Espacios** — Todo / Personal / Kimay / Kore (filtro board + hint chat + default project)
+- **Espacios** — retirados; el modelo infiere `project` en tareas (filtro board vía ⌘K)
 - **Privacidad** — overview, export vault `.zip`, borrar categoría de memoria
 - Mobile polish + empty states en chat/board/drawer
 

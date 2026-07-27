@@ -17,13 +17,13 @@ No es `docs/TODO.md` (eso es backlog de desarrollo Kore en git).
 - title (corto)
 - status: `open` | `in_progress` | `done` | `cancelled`
 - due_at: YYYY-MM-DD
-- project: slug (`kore`, `personal`, `kimay`, `lol`, …)
+- project: slug inferido del chat (`kore`, `personal`, `kimay`, `lol`, …). No hay chips de espacio en la UI — dedúcelo tú.
 - url: link si el usuario pegó o mencionó uno (Instagram, YouTube, doc…)
 - notes: contexto extra
 
 ## How
-1. Crear → `add_task` **obligatorio** antes de decir "creada/añadida". Sin tool = no digas que está hecha.
-2. "en curso" / "importante" → `status=in_progress` o `priority` alta; proyecto si se deduce.
+1. Crear → `add_task` **obligatorio** antes de decir "creada/añadida". Sin tool = no digas que está hecha. Incluye `project` si el tema es claro (Kimay → `kimay`, el companion/Kore → `kore`, vida personal → `personal`, LoL → `lol`).
+2. "en curso" / "importante" → `status=in_progress` o `priority` alta.
 3. Listar → `list_tasks` **solo si Jon pide la lista** (o necesitas ids para editar). En consola web el board ya muestra tareas: no vuelques un listado completo en cada respuesta.
 4. Editar link/nota/estado → `update_task`. Borrar → `delete_task`. Hecha → `complete_task`.
 5. Fechas naturales → `resolve_madrid_date` → due_at ISO.

@@ -1,4 +1,4 @@
-/** Canonical project spaces for the console. */
+/** Project color accents for task cards (no UI space chips). */
 
 export type SpaceId = 'all' | 'personal' | 'kimay' | 'kore'
 

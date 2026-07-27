@@ -1,12 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { apiLogout } from '../api'
-import {
-  readSpace,
-  writeSpace,
-  SPACES,
-  type SpaceId,
-  spaceDef,
-} from '../spaces'
 import { ChatPanel, type ChatPanelHandle } from './ChatPanel'
 import {
   CommandPalette,
@@ -28,6 +21,8 @@ const LAYOUTS: { id: LayoutMode; label: string }[] = [
 ]
 
 const STORAGE_KEY = 'kore.layout'
+/** Default accent (no space chips). */
+const ACCENT = '#2f6f5e'
 
 type Props = {
   onLogout: () => void
@@ -49,7 +44,6 @@ export function Console({ onLogout }: Props) {
   const [docsOpen, setDocsOpen] = useState(false)
   const [docsSection, setDocsSection] = useState<DocsSectionId>('que-es')
   const [layout, setLayout] = useState<LayoutMode>(() => readLayout())
-  const [space, setSpace] = useState<SpaceId>(() => readSpace())
   const chatRef = useRef<ChatPanelHandle>(null)
   const boardRef = useRef<TaskBoardHandle>(null)
 
@@ -65,17 +59,6 @@ export function Console({ onLogout }: Props) {
   function setLayoutPersist(next: LayoutMode) {
     setLayout(next)
     localStorage.setItem(STORAGE_KEY, next)
-  }
-
-  function setSpacePersist(next: SpaceId) {
-    setSpace(next)
-    writeSpace(next)
-    const project = spaceDef(next).project
-    if (project) {
-      window.setTimeout(() => boardRef.current?.filterProject(project), 0)
-    } else {
-      boardRef.current?.clearFilters()
-    }
   }
 
   function openMemory(tab: 'diary' | 'memory' | 'privacy' = 'diary') {
@@ -129,19 +112,14 @@ export function Console({ onLogout }: Props) {
         break
       case 'filter_project':
         setLayoutPersist('operate')
-        {
-          const match = SPACES.find((s) => s.project === action.project)
-          if (match) setSpacePersist(match.id)
-          else {
-            window.setTimeout(
-              () => boardRef.current?.filterProject(action.project),
-              0,
-            )
-          }
-        }
+        window.setTimeout(
+          () => boardRef.current?.filterProject(action.project),
+          0,
+        )
         break
       case 'clear_filters':
-        setSpacePersist('all')
+        setLayoutPersist('operate')
+        window.setTimeout(() => boardRef.current?.clearFilters(), 0)
         break
       case 'layout':
         setLayoutPersist(action.mode)
@@ -158,12 +136,10 @@ export function Console({ onLogout }: Props) {
     }
   }
 
-  const accent = spaceDef(space).color
-
   return (
     <div
-      className={`console console--${layout} console--space-${space}`}
-      style={{ ['--space-accent' as string]: accent }}
+      className={`console console--${layout}`}
+      style={{ ['--space-accent' as string]: ACCENT }}
     >
       <header className="console__bar">
         <div className="console__brand">
@@ -211,20 +187,6 @@ export function Console({ onLogout }: Props) {
             Salir
           </button>
         </div>
-        <nav className="console__spaces" aria-label="Espacio">
-          {SPACES.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              className={`console__space${space === s.id ? ' is-active' : ''}`}
-              style={{ ['--chip' as string]: s.color }}
-              onClick={() => setSpacePersist(s.id)}
-              title={`Espacio ${s.label}`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </nav>
       </header>
 
       <DayStrip
@@ -238,16 +200,10 @@ export function Console({ onLogout }: Props) {
       <div className="console__body">
         <ChatPanel
           ref={chatRef}
-          space={space}
           onAfterChat={() => bump()}
           onOpenTask={onOpenTask}
         />
-        <TaskBoard
-          ref={boardRef}
-          refreshToken={boardToken}
-          defaultProject={spaceDef(space).project}
-          spaceFilter={spaceDef(space).project}
-        />
+        <TaskBoard ref={boardRef} refreshToken={boardToken} />
       </div>
 
       <CommandPalette

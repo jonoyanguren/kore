@@ -76,14 +76,10 @@ export type TaskBoardHandle = {
 
 type Props = {
   refreshToken?: number
-  /** Default project when creating tasks from the quick-add. */
-  defaultProject?: string | null
-  /** When set (space ≠ Todo), force board filter to this project. */
-  spaceFilter?: string | null
 }
 
 export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
-  { refreshToken = 0, defaultProject = null, spaceFilter = null },
+  { refreshToken = 0 },
   ref,
 ) {
   const toast = useToast()
@@ -97,11 +93,6 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
   const [projectFilter, setProjectFilter] = useState('')
   const [view, setView] = useState<ViewMode>(loadView)
   const addInputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    if (spaceFilter) setProjectFilter(spaceFilter)
-    else setProjectFilter('')
-  }, [spaceFilter])
 
   useImperativeHandle(ref, () => ({
     focusNewTask: () => {
@@ -211,7 +202,7 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
       const task = await apiCreateTask({
         title: t,
         status: 'open',
-        project: defaultProject || projectFilter || undefined,
+        project: projectFilter || undefined,
       })
       setTasks((prev) => [...prev, task])
       toast.ok('Tarea añadida')
@@ -493,11 +484,7 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
             ref={addInputRef}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder={
-              defaultProject
-                ? `Nueva tarea (${defaultProject})…`
-                : 'Nueva tarea…'
-            }
+              placeholder="Nueva tarea…"
           />
           <button type="submit">Añadir</button>
         </form>
@@ -580,7 +567,7 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
                   <span className="empty-state__title">Sin tareas aquí</span>
                   <span>
                     {projectFilter
-                      ? `Nada en «${projectFilter}». Cambia de espacio o añade una.`
+                      ? `Nada en «${projectFilter}». Quita el filtro o añade una.`
                       : 'Añade una arriba o pide a Jone en el chat.'}
                   </span>
                 </li>

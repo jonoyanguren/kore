@@ -393,8 +393,6 @@ async def delete_task(request: Request, task_id: int) -> dict[str, Any]:
 
 class ChatBody(BaseModel):
     text: str = Field(min_length=1, max_length=8000)
-    # Optional project space (kimay / kore / personal) — hints the model.
-    space: str | None = Field(default=None, max_length=32)
 
 
 @router.get("/day", dependencies=[Depends(require_console_auth)])
@@ -499,7 +497,6 @@ async def _run_chat(
     request: Request,
     text: str,
     *,
-    space: str | None = None,
     on_status: Any | None = None,
 ) -> dict[str, Any]:
     """Shared chat handler for JSON and SSE endpoints."""
@@ -511,21 +508,12 @@ async def _run_chat(
 
     memory = request.app.state.memory
     cmd = text.split()[0].lower() if text.startswith("/") else ""
-    space_key = (space or "").strip().lower() or None
     ask_text = text
-    if space_key and not text.startswith("/"):
-        ask_text = (
-            f"[Espacio activo: {space_key}. Si creas o listes tareas, "
-            f"prioriza project={space_key} salvo que diga lo contrario.]\n\n{text}"
-        )
 
     if cmd in ("/tareas", "/tasks"):
         await status("Listando tareas…")
-        rows = await memory.list_tasks(
-            status="open", limit=40, project=space_key
-        )
-        heading = f"Tareas ({space_key})" if space_key else "Tareas"
-        reply = format_tasks_message(rows, heading=heading)
+        rows = await memory.list_tasks(status="open", limit=40)
+        reply = format_tasks_message(rows, heading="Tareas")
         await _persist_exchange(memory, text, reply)
         return {
             "reply": reply,
@@ -605,7 +593,7 @@ async def chat(request: Request, body: ChatBody) -> dict[str, Any]:
     text = body.text.strip()
     if not text:
         raise HTTPException(status_code=400, detail="empty text")
-    return await _run_chat(request, text, space=body.space)
+    return await _run_chat(request, text)
 
 
 @router.post("/chat/stream", dependencies=[Depends(require_console_auth)])
@@ -626,7 +614,7 @@ async def chat_stream(request: Request, body: ChatBody) -> StreamingResponse:
     async def worker() -> None:
         try:
             result = await _run_chat(
-                request, text, space=body.space, on_status=on_status
+                request, text, on_status=on_status
             )
             await queue.put({"type": "done", **result})
         except HTTPException as e:
