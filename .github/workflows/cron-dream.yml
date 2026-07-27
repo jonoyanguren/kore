@@ -1,15 +1,9 @@
-# Briefing / sueño de Kore ~09:00 Europe/Madrid.
-# CET (invierno)  = 09:00 Madrid → 08:00 UTC
-# CEST (verano)   = 09:00 Madrid → 07:00 UTC
-# Ambos slots: consolidación idempotente; notify matutino 1×/día Madrid
-# (job dream_morning), aunque el dream ya se hubiera corrido de noche.
+# Optional manual trigger for dream (in-process cron is the primary schedule).
+# workflow_dispatch only — no GitHub schedule (delays of hours).
 name: cron-dream
 
 on:
-  schedule:
-    - cron: "0 7 * * *" # 07:00 UTC ≈ 09:00 CEST
-    - cron: "0 8 * * *" # 08:00 UTC ≈ 09:00 CET
-  workflow_dispatch: # manual desde GitHub Actions
+  workflow_dispatch:
 
 jobs:
   dream:

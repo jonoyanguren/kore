@@ -235,13 +235,13 @@ const SECTIONS: Section[] = [
     blocks: [
       {
         type: 'p',
-        text: 'Cada mañana (~**09:00 Madrid**) Kore consolida el **día anterior**: chat + tools → `vault/dreams` + mensaje a Telegram.',
+        text: 'Cada mañana a las **09:00 Europe/Madrid** (cron **dentro** de la app en Fly) Kore consolida el **día anterior**: chat + tools → `vault/dreams` + mensaje a Telegram.',
       },
       {
         type: 'ul',
         items: [
           'Manual: `/dream` o ⌘K → «Sueño del día» (por defecto **hoy**)',
-          'Cron: mira **ayer**; si ya estaba consolidado, igual manda el briefing 1×/mañana',
+          'Si el proceso arranca después de las 09:00 y aún no avisó hoy → catch-up',
           'Vista Día usa el dream para la sección **Ayuda**',
         ],
       },

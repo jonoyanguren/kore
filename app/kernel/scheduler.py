@@ -1,9 +1,10 @@
-"""Cron entrypoints — triggered by external schedule (GitHub Actions), not in-process polling."""
+"""Morning dream schedule — in-process asyncio loop (+ optional HTTP trigger)."""
 
 from __future__ import annotations
 
+import asyncio
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import openai
 
@@ -12,7 +13,7 @@ from app.kernel.dream import run_dream
 from app.storage.memory import MemoryStore
 from app.storage.vault import Vault
 from app.telegram.client import TelegramClient
-from app.timeutil import today_madrid
+from app.timeutil import MADRID, now_madrid, today_madrid
 
 logger = logging.getLogger(__name__)
 
@@ -34,17 +35,58 @@ def dream_body_from_vault(raw: str | None) -> str | None:
     return body or None
 
 
+def today_fire_at(
+    now: datetime,
+    *,
+    hour: int,
+    minute: int,
+) -> datetime:
+    """Today's fire instant in Europe/Madrid (naive inputs normalized to Madrid)."""
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=MADRID)
+    else:
+        now = now.astimezone(MADRID)
+    return now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+
+def next_fire_at(
+    now: datetime,
+    *,
+    hour: int,
+    minute: int,
+) -> datetime:
+    """Next fire at hour:minute Madrid (tomorrow if today's slot already passed)."""
+    fire = today_fire_at(now, hour=hour, minute=minute)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=MADRID)
+    else:
+        now = now.astimezone(MADRID)
+    if now >= fire:
+        return fire + timedelta(days=1)
+    return fire
+
+
+async def sleep_until(target: datetime) -> None:
+    """Sleep until `target` (Madrid-aware). Wakes in ≤30s chunks for clock skew."""
+    if target.tzinfo is None:
+        target = target.replace(tzinfo=MADRID)
+    while True:
+        delay = (target - now_madrid()).total_seconds()
+        if delay <= 0:
+            return
+        await asyncio.sleep(min(delay, 30.0))
+
+
 async def run_scheduled_dream(
     store: MemoryStore,
     vault: Vault,
     llm_client: openai.AsyncOpenAI,
     telegram: TelegramClient,
 ) -> dict[str, str | bool]:
-    """Consolidate yesterday once; always deliver morning briefing once per Madrid day.
+    """Consolidate yesterday once; deliver morning briefing once per Madrid day.
 
     Idempotent consolidate: if dream job already ok for yesterday, reuse vault file.
-    Idempotent notify: job `dream_morning` keyed by today's Madrid date (covers dual
-    CET/CEST GH Actions slots without double-sending).
+    Idempotent notify: job `dream_morning` keyed by today's Madrid date.
     """
     target = (today_madrid() - timedelta(days=1)).isoformat()
     morning = today_madrid().isoformat()
@@ -60,7 +102,6 @@ async def run_scheduled_dream(
         error = ""
     else:
         logger.info("Cron dream starting for day=%s", target)
-        # Scheduler owns Telegram delivery (once per morning).
         summary = await run_dream(
             store,
             vault,
@@ -102,3 +143,55 @@ async def run_scheduled_dream(
         "error": error,
         "preview": summary[:200],
     }
+
+
+async def dream_cron_loop(
+    store: MemoryStore,
+    vault: Vault,
+    llm_client: openai.AsyncOpenAI,
+    telegram: TelegramClient,
+    *,
+    hour: int | None = None,
+    minute: int | None = None,
+) -> None:
+    """Fire `run_scheduled_dream` every day at hour:minute Europe/Madrid.
+
+    Catch-up: if the process starts after today's fire and morning notify
+    has not run yet, fire immediately then wait until tomorrow.
+    """
+    hour = settings.dream_cron_hour if hour is None else hour
+    minute = settings.dream_cron_minute if minute is None else minute
+    logger.info(
+        "Dream cron loop started — daily %02d:%02d Europe/Madrid",
+        hour,
+        minute,
+    )
+    while True:
+        try:
+            now = now_madrid()
+            fire_today = today_fire_at(now, hour=hour, minute=minute)
+            morning = today_madrid().isoformat()
+            last_m, status_m, _ = await store.get_job(JOB_MORNING)
+            done_today = last_m == morning and status_m == "ok"
+
+            if now >= fire_today and not done_today:
+                logger.info(
+                    "Dream cron firing (on-time or catch-up) morning=%s", morning
+                )
+                await run_scheduled_dream(store, vault, llm_client, telegram)
+                await sleep_until(fire_today + timedelta(days=1))
+            elif now < fire_today:
+                logger.info("Dream cron sleeping until %s", fire_today.isoformat())
+                await sleep_until(fire_today)
+            else:
+                nxt = fire_today + timedelta(days=1)
+                logger.info(
+                    "Dream cron already done today — sleep until %s", nxt.isoformat()
+                )
+                await sleep_until(nxt)
+        except asyncio.CancelledError:
+            logger.info("Dream cron loop cancelled")
+            raise
+        except Exception:
+            logger.exception("Dream cron loop error — retry in 60s")
+            await asyncio.sleep(60)

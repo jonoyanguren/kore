@@ -76,7 +76,7 @@ Hecho:
 - Tablas `tasks`, `agenda_items`, `jobs`
 - Tools: `add_task`, `list_tasks`, `get_task`, `update_task`, `complete_task`, `delete_task`, `add_agenda_item`, `list_agenda`
 - Tasks: url + project + status `open|in_progress|done|cancelled`; `/tareas` muestra links/notas; mirror `vault/tasks/open.md`
-- Skills `/tareas` `/agenda` `/dream` (+ cron externo ~**09:00 Madrid** → `/internal/cron/dream`)
+- Skills `/tareas` `/agenda` `/dream` (+ cron in-process **09:00 Madrid**; HTTP manual opcional)
 - Dream lee `messages` del día, rellena huecos con tools, vault + briefing Telegram (resumen + prep)
 - Prompt: open tasks + agenda upcoming
 
@@ -181,7 +181,7 @@ Alcance (orden de ataque):
 | 2026-07-26 | Convención ship: commit → push → deploy (living-plan) |
 | 2026-07-26 | Phase 1 MVP: vault + tasks/agenda + dream cron/`/dream` |
 | 2026-07-26 | Gate ship: QA local (uvicorn + pytest + qa_local) antes de commit/push/deploy |
-| 2026-07-26 | Dream: quitar polling 60s; cron HTTP + GitHub Actions |
+| 2026-07-27 | Dream: cron in-process 09:00 Madrid (GH Actions solo manual) |
 | 2026-07-26 | Dream a tope 09:00 Madrid: chat del día + tools + prep |
 | 2026-07-26 | Skills split: companion/ (bot) vs dev/ (Cursor); close = dev |
 | 2026-07-26 | Closes de desarrollo persistidos en `docs/closes/YYYY-MM-DD.md` |

@@ -24,7 +24,7 @@ from app.kernel.command_router import CommandRouter
 from app.kernel.dream import run_dream
 from app.kernel.project_tools import build_project_tools
 from app.kernel.prompt_assembler import PromptAssembler
-from app.kernel.scheduler import run_scheduled_dream
+from app.kernel.scheduler import dream_cron_loop, run_scheduled_dream
 from app.kernel.skill_registry import SkillRegistry
 from app.kernel.time_tools import build_time_tools
 from app.llm.llm_assistant import LLMAssistant, ToolHandler
@@ -148,8 +148,23 @@ async def lifespan(app: FastAPI):
         llm_client, all_tools, all_handlers, memory_store, prompt_assembler
     )
 
+    dream_task: asyncio.Task | None = None
+    if settings.dream_cron_enabled:
+        dream_task = asyncio.create_task(
+            dream_cron_loop(memory_store, vault, llm_client, telegram),
+            name="dream-cron",
+        )
+    else:
+        logger.info("Dream cron disabled (DREAM_CRON_ENABLED=false)")
+
     yield
 
+    if dream_task is not None:
+        dream_task.cancel()
+        try:
+            await dream_task
+        except asyncio.CancelledError:
+            pass
     await http_client.aclose()
     await llm_client.close()
 
@@ -371,7 +386,7 @@ async def healthz() -> dict:
 
 @app.post("/internal/cron/dream")
 async def cron_dream(request: Request) -> dict:
-    """External cron (GitHub Actions ~09:00 Madrid). No in-process polling."""
+    """Manual/external trigger (optional). Primary schedule is in-process ~09:00 Madrid."""
     auth = request.headers.get("authorization", "")
     expected = f"Bearer {settings.cron_secret}" if settings.cron_secret else ""
     if not expected or not secrets.compare_digest(auth, expected):

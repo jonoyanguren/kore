@@ -38,9 +38,14 @@ class Settings(BaseSettings):
     # (data/vault or /data/vault on Fly).
     vault_root: str = ""
 
-    # Bearer token for POST /internal/cron/* (GitHub Actions / external cron).
+    # Bearer token for POST /internal/cron/* (optional external/manual trigger).
     # Empty = cron endpoints always 403.
     cron_secret: str = ""
+
+    # In-process morning dream at Europe/Madrid (default 09:00). Precise to ~1s.
+    dream_cron_enabled: bool = True
+    dream_cron_hour: int = 9
+    dream_cron_minute: int = 0
 
     # Shared secret for web console (/api/*). Empty = console always 401.
     # Cookie kore_console or Authorization: Bearer <secret>.

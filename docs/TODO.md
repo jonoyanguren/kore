@@ -28,12 +28,12 @@ Convención: `- [ ]` pendiente · `- [x]` hecho. Añade fecha o contexto breve s
 - [x] Skills/prompts completos cada turno + whitelist dinámica
 - [x] Convención documentada: commit → push → deploy
 - [x] Phase 1 MVP: vault + tasks/agenda + dream 3am/`/dream`
-- [x] Sueño vía **cron externo** (no polling): `POST /internal/cron/dream` + GitHub Actions ~**09:00 Madrid**
+- [x] Sueño vía **cron in-process** 09:00 Madrid (asyncio) + `POST /internal/cron/dream` manual (2026-07-27)
 - [x] Dream a tope: transcript del día + tools (huecos) + resumen Telegram + prep día siguiente
 - [x] Separar `skills/companion/` (Telegram) vs `skills/dev/` (Cursor); `dev/close` → `docs/closes/YYYY-MM-DD.md`
 - [x] Skill `dev/open` — arranque leyendo último close + PLAN (PM senior)
 - [x] Regla Cursor `dev-session`: auto-open en chat nuevo o frío
-- [x] `CRON_SECRET` en Fly (GitHub repo secret: confirmar si ya lo metiste)
+- [x] `CRON_SECRET` en Fly (trigger manual HTTP opcional)
 - [ ] Verificar una vez el briefing de las 09:00 en Telegram
 - [ ] Dogfood dream/tasks en Telegram unos días
 - [x] Gate ship: QA local (uvicorn + pytest + qa_local) antes de commit/push/deploy

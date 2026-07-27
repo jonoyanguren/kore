@@ -7,8 +7,8 @@ tools: [save_memory, add_diary_entry, add_task, complete_task, delete_task, list
 
 # Dream (briefing matutino)
 
-Cron externo ~**09:00 Europe/Madrid** → `POST /internal/cron/dream` (consolida el **día anterior**).
-Manual `/dream` → por defecto **hoy** (o `YYYY-MM-DD` en args).
+Cron in-process **09:00 Europe/Madrid** (Fly, asyncio). Manual `/dream` → por defecto **hoy**.
+`POST /internal/cron/dream` queda como trigger opcional.
 
 ## Qué hace el runner (no improvisar a mano)
 1. Carga el transcript completo de `messages` de ese día + diario/memoria/tareas/agenda.
