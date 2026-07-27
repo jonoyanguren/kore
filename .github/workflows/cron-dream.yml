@@ -1,7 +1,8 @@
 # Briefing / sueño de Kore ~09:00 Europe/Madrid.
 # CET (invierno)  = 09:00 Madrid → 08:00 UTC
 # CEST (verano)   = 09:00 Madrid → 07:00 UTC
-# Ambos slots: el endpoint es idempotente (skip si ya ok ese día).
+# Ambos slots: consolidación idempotente; notify matutino 1×/día Madrid
+# (job dream_morning), aunque el dream ya se hubiera corrido de noche.
 name: cron-dream
 
 on:

@@ -371,7 +371,7 @@ async def healthz() -> dict:
 
 @app.post("/internal/cron/dream")
 async def cron_dream(request: Request) -> dict:
-    """External cron (GitHub Actions ~03:00 Madrid). No in-process polling."""
+    """External cron (GitHub Actions ~09:00 Madrid). No in-process polling."""
     auth = request.headers.get("authorization", "")
     expected = f"Bearer {settings.cron_secret}" if settings.cron_secret else ""
     if not expected or not secrets.compare_digest(auth, expected):
