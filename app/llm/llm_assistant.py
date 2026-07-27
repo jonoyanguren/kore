@@ -3,6 +3,9 @@
 Owns the tool loop: call the model, execute tool calls, feed results back,
 until a final text answer or MAX_TOOL_ITERATIONS. System prompt comes from
 PromptAssembler; same-day session history is loaded from MemoryStore.
+
+Big asks: gather with tools, then a forced synthesis turn (no tools) so the
+user never gets an empty reply after a long tool chain.
 """
 
 from __future__ import annotations
@@ -24,13 +27,25 @@ logger = logging.getLogger(__name__)
 
 ToolHandler = Callable[[dict[str, Any]], Awaitable[str]]
 
-MAX_TOOL_ITERATIONS = 10
+MAX_TOOL_ITERATIONS = 8
 SESSION_HISTORY_LIMIT = 20
+SYNTH_MAX_TOKENS = 4096
 
 # OpenRouter's free-model router — picks among free models, filtering for
 # tool-calling support. Used as a one-time fallback when the configured
 # (paid) model returns 402 Insufficient Credits.
 FALLBACK_MODEL = "openrouter/free"
+
+_SYNTH_NUDGE = (
+    "STOP. No llames más tools. Con los resultados de tools de este turno, "
+    "responde YA en español (texto plano):\n"
+    "1) Plan corto (3–6 pasos)\n"
+    "2) Hallazgos de lo que ya miraste\n"
+    "3) Resumen accionable\n"
+    "4) Un solo siguiente paso\n"
+    "Si faltan datos, dilo y entrega igual un partial útil. "
+    "No digas solo que vas a buscar — escribe la respuesta."
+)
 
 
 def _user_content(
@@ -57,7 +72,6 @@ def _parse_tool_arguments(raw: str | None) -> dict[str, Any] | None:
         data = json.loads(text)
         return data if isinstance(data, dict) else {"value": data}
     except json.JSONDecodeError:
-        # Common: truncated string value — close quotes/braces best-effort
         repaired = text
         if repaired.count('"') % 2 == 1:
             repaired += '"'
@@ -90,6 +104,13 @@ def _tool_calls_for_history(tool_calls: list[Any]) -> list[dict[str, Any]]:
         }
         out.append(item)
     return out
+
+
+def _is_blank_reply(text: str | None) -> bool:
+    t = (text or "").strip()
+    if not t:
+        return True
+    return t in ("(respuesta vacía)", "(sin herramientas válidas)")
 
 
 class LLMAssistant:
@@ -167,28 +188,37 @@ class LLMAssistant:
         model = settings.openrouter_model
         used_fallback = False
         final_text: str | None = None
+        used_any_tool = False
 
         await status("Pensando…")
         try:
-            for _ in range(MAX_TOOL_ITERATIONS):
+            for iteration in range(MAX_TOOL_ITERATIONS):
                 await status("Consultando modelo…")
-                try:
-                    response = await self._client.chat.completions.create(
-                        model=model,
-                        max_tokens=settings.llm_max_tokens,
-                        messages=messages,
-                        tools=self._tools or None,
-                    )
-                except openai.RateLimitError:
-                    logger.warning("OpenRouter rate limit hit")
+                # Last tool-iteration: nudge toward answering instead of more tools
+                call_tools = self._tools or None
+                if iteration >= MAX_TOOL_ITERATIONS - 1 and used_any_tool:
+                    call_tools = None
+
+                response, err = await self._create(
+                    model=model,
+                    messages=messages,
+                    tools=call_tools,
+                    max_tokens=settings.llm_max_tokens,
+                )
+                if err == "rate_limit":
                     return (
                         "Estoy con rate limit ahora mismo — prueba de nuevo en un minuto."
                     )
-                except openai.APIConnectionError:
-                    logger.exception("Could not reach OpenRouter")
+                if err == "connection":
                     return "No logro conectar con el modelo ahora mismo. Prueba en un rato."
-                except openai.APIStatusError as e:
-                    if e.status_code == 402 and not used_fallback:
+                if err == "upstream":
+                    return "El servicio está teniendo problemas — prueba en un rato."
+                if err == "api":
+                    return "Algo falló hablando con el modelo."
+                if err == "unexpected":
+                    return "Algo salió mal de forma inesperada. Perdón por eso."
+                if err == "no_credits":
+                    if not used_fallback:
                         logger.warning(
                             "Out of OpenRouter credits — falling back to %s",
                             FALLBACK_MODEL,
@@ -196,42 +226,32 @@ class LLMAssistant:
                         model = FALLBACK_MODEL
                         used_fallback = True
                         continue
-                    if e.status_code >= 500:
-                        logger.warning("OpenRouter upstream error: %s", e)
-                        return "El servicio está teniendo problemas — prueba en un rato."
-                    logger.exception("OpenRouter API error: %s", e)
+                    return "Sin saldo en OpenRouter — recarga y reintenta."
+                if response is None:
                     return "Algo falló hablando con el modelo."
-                except Exception:
-                    logger.exception("Unexpected error calling OpenRouter")
-                    return "Algo salió mal de forma inesperada. Perdón por eso."
 
                 choices = getattr(response, "choices", None) or []
-                if not choices:
+                if not choices or choices[0] is None:
                     logger.warning(
                         "OpenRouter returned empty choices (model=%s)", model
                     )
-                    return (
-                        "El modelo no devolvió respuesta (choices vacío). "
-                        "Prueba otra vez o acorta el prompt."
-                    )
+                    break
 
                 choice = choices[0]
-                if choice is None:
-                    logger.warning("OpenRouter returned null choice")
-                    return "El modelo respondió vacío — prueba otra vez."
-
                 if choice.finish_reason == "content_filter":
                     return "No puedo ayudarte con eso."
 
                 message = choice.message
                 if message is None:
                     logger.warning("OpenRouter choice missing message")
-                    return "El modelo respondió sin mensaje — prueba otra vez."
+                    break
 
                 tool_calls = message.tool_calls
-
-                if not tool_calls:
-                    text = message.content or "(respuesta vacía)"
+                if not tool_calls or call_tools is None:
+                    text = (message.content or "").strip()
+                    if _is_blank_reply(text):
+                        # Need synthesis if we gathered tools; else leave blank for synth
+                        break
                     if used_fallback:
                         text = (
                             "[Sin saldo en OpenRouter — esta respuesta viene de un "
@@ -244,10 +264,12 @@ class LLMAssistant:
 
                 serialized = _tool_calls_for_history(list(tool_calls))
                 if not serialized:
-                    text = message.content or "(sin herramientas válidas)"
-                    final_text = text
+                    text = (message.content or "").strip()
+                    if not _is_blank_reply(text):
+                        final_text = text
                     break
 
+                used_any_tool = True
                 messages.append(
                     {
                         "role": "assistant",
@@ -260,6 +282,9 @@ class LLMAssistant:
                     tool_name = (getattr(fn, "name", None) if fn else None) or "tool"
                     await status(f"Usando {tool_name}…")
                     result = await self._execute_tool(tool_call)
+                    # Cap huge tool dumps so synthesis still fits
+                    if len(result) > 8000:
+                        result = result[:8000] + "\n…[tool output truncado]"
                     messages.append(
                         {
                             "role": "tool",
@@ -272,12 +297,22 @@ class LLMAssistant:
             logger.exception("Unexpected error in tool loop")
             return "Me he tropezado a mitad de la respuesta — prueba otra vez."
 
-        if final_text is None:
-            logger.warning("Hit MAX_TOOL_ITERATIONS without a final answer")
-            final_text = (
-                "Me enredé encadenando herramientas — prueba a reformular "
-                "(pide el plan primero, o acota a las últimas 20 partidas)."
+        if _is_blank_reply(final_text):
+            await status("Resumiendo…")
+            synth = await self._synthesize(
+                model=model,
+                messages=messages,
+                used_fallback=used_fallback,
             )
+            if synth:
+                final_text = synth
+            elif final_text is None:
+                logger.warning("Hit MAX_TOOL_ITERATIONS / empty without synthesis")
+                final_text = (
+                    "Me enredé en una tarea gorda. Mejor en dos turns: "
+                    "1) «haz solo el plan» 2) «ejecuta el paso 1». "
+                    "¿Empezamos por el plan?"
+                )
 
         if persist:
             try:
@@ -291,7 +326,75 @@ class LLMAssistant:
             except Exception:
                 logger.exception("Failed to persist session messages")
 
-        return final_text
+        return final_text or "(sin respuesta)"
+
+    async def _create(
+        self,
+        *,
+        model: str,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None,
+        max_tokens: int,
+    ) -> tuple[Any | None, str | None]:
+        """Return (response, error_code). error_code None means ok."""
+        try:
+            kwargs: dict[str, Any] = {
+                "model": model,
+                "max_tokens": max_tokens,
+                "messages": messages,
+            }
+            if tools:
+                kwargs["tools"] = tools
+            response = await self._client.chat.completions.create(**kwargs)
+            return response, None
+        except openai.RateLimitError:
+            logger.warning("OpenRouter rate limit hit")
+            return None, "rate_limit"
+        except openai.APIConnectionError:
+            logger.exception("Could not reach OpenRouter")
+            return None, "connection"
+        except openai.APIStatusError as e:
+            if e.status_code == 402:
+                return None, "no_credits"
+            if e.status_code >= 500:
+                logger.warning("OpenRouter upstream error: %s", e)
+                return None, "upstream"
+            logger.exception("OpenRouter API error: %s", e)
+            return None, "api"
+        except Exception:
+            logger.exception("Unexpected error calling OpenRouter")
+            return None, "unexpected"
+
+    async def _synthesize(
+        self,
+        *,
+        model: str,
+        messages: list[dict[str, Any]],
+        used_fallback: bool,
+    ) -> str | None:
+        """Force a text-only wrap-up after tools / empty final message."""
+        synth_messages = list(messages)
+        synth_messages.append({"role": "user", "content": _SYNTH_NUDGE})
+        response, err = await self._create(
+            model=model,
+            messages=synth_messages,
+            tools=None,
+            max_tokens=max(settings.llm_max_tokens, SYNTH_MAX_TOKENS),
+        )
+        if err or response is None:
+            logger.warning("Synthesis call failed: %s", err)
+            return None
+        choices = getattr(response, "choices", None) or []
+        if not choices or choices[0] is None or choices[0].message is None:
+            return None
+        text = (choices[0].message.content or "").strip()
+        if not text:
+            return None
+        if used_fallback:
+            text = (
+                "[Sin saldo en OpenRouter — modelo gratis.]\n\n" + text
+            )
+        return text
 
     async def _execute_tool(self, tool_call: Any) -> str:
         fn = getattr(tool_call, "function", None)

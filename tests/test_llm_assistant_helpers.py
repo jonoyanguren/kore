@@ -40,3 +40,13 @@ def test_tool_calls_for_history_ok():
             "function": {"name": "web_search", "arguments": '{"query": "x"}'},
         }
     ]
+
+
+def test_is_blank_reply():
+    from app.llm.llm_assistant import _is_blank_reply
+
+    assert _is_blank_reply(None)
+    assert _is_blank_reply("")
+    assert _is_blank_reply("  ")
+    assert _is_blank_reply("(respuesta vacía)")
+    assert not _is_blank_reply("hola")
