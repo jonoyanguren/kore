@@ -46,6 +46,8 @@ class Settings(BaseSettings):
     dream_cron_enabled: bool = True
     dream_cron_hour: int = 9
     dream_cron_minute: int = 0
+    # Morning cron Telegram ping. False = UI (vista Día) is the primary channel.
+    dream_notify_telegram: bool = False
 
     # Shared secret for web console (/api/*). Empty = console always 401.
     # Cookie kore_console or Authorization: Bearer <secret>.

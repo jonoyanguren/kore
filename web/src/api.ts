@@ -154,6 +154,7 @@ export async function apiPurgeCompletedTasks(): Promise<number> {
 export type DayBriefing = {
   day: string | null
   has_dream: boolean
+  summary: string[]
   important_tasks: {
     id: number
     title: string

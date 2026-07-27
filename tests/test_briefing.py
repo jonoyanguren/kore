@@ -28,6 +28,7 @@ Vamos.
     assert "Cerrar PR de layouts" in s["tasks"]
     assert "10:00 sync Kimay" in s["meetings"]
     assert "Empieza por el board" in s["help"]
+    assert "Día largo con Kore." in s["summary"]
     assert "Vamos." not in s["help"]
 
 

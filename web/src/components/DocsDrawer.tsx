@@ -235,14 +235,14 @@ const SECTIONS: Section[] = [
     blocks: [
       {
         type: 'p',
-        text: 'Cada mañana a las **09:00 Europe/Madrid** (cron **dentro** de la app en Fly) Kore consolida el **día anterior**: chat + tools → `vault/dreams` + mensaje a Telegram.',
+        text: 'Cada mañana a las **09:00 Europe/Madrid** el cron consolida el **día anterior** y deja el briefing en la **vista Día** de esta consola (canal principal). Telegram es opcional (`DREAM_NOTIFY_TELEGRAM`).',
       },
       {
         type: 'ul',
         items: [
-          'Manual: `/dream` o ⌘K → «Sueño del día» (por defecto **hoy**)',
-          'Si el proceso arranca después de las 09:00 y aún no avisó hoy → catch-up',
-          'Vista Día usa el dream para la sección **Ayuda**',
+          'Mañana: abre https://kore.fly.dev/ → vista **Día** (Resumen / Tareas / Reuniones / Ayuda)',
+          'Chat de la consola: `/dream` si quieres forzar a mano',
+          'Captura rápida en móvil: Telegram sigue disponible, pero no es obligatorio',
         ],
       },
     ],

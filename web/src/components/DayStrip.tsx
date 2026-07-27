@@ -9,6 +9,21 @@ type Props = {
   onOpenMemory?: () => void
 }
 
+const MONTHS_ES_SHORT = [
+  'Ene',
+  'Feb',
+  'Mar',
+  'Abr',
+  'May',
+  'Jun',
+  'Jul',
+  'Ago',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dic',
+]
+
 function formatAgendaWhen(startsAt: string): string {
   const m = startsAt.match(/T(\d{2}:\d{2})/)
   const day = startsAt.slice(0, 10)
@@ -17,13 +32,19 @@ function formatAgendaWhen(startsAt: string): string {
   })
   const time = m ? m[1] : ''
   if (day === today) return time ? `hoy ${time}` : 'hoy'
-  const tomorrow = new Date()
-  tomorrow.setDate(tomorrow.getDate() + 1)
-  const tom = tomorrow.toLocaleDateString('en-CA', {
-    timeZone: 'Europe/Madrid',
-  })
+
+  // Compare calendar days in Madrid, not local browser TZ +1 day
+  const tomDate = new Date(`${today}T12:00:00`)
+  tomDate.setDate(tomDate.getDate() + 1)
+  const tom = tomDate.toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' })
   if (day === tom) return time ? `mañana ${time}` : 'mañana'
-  return time ? `${day.slice(5)} ${time}` : day.slice(5)
+
+  const y = Number(day.slice(0, 4))
+  const mo = Number(day.slice(5, 7))
+  const d = Number(day.slice(8, 10))
+  if (!y || !mo || !d) return day
+  const label = `${String(d).padStart(2, '0')}-${MONTHS_ES_SHORT[mo - 1]}`
+  return time ? `${label} ${time}` : label
 }
 
 function clockParts(clock: string): { time: string; rest: string } {
@@ -52,7 +73,7 @@ export function DayStrip({
 
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
+    async function load() {
       try {
         const snap = await apiDay()
         if (!cancelled) {
@@ -62,9 +83,13 @@ export function DayStrip({
       } catch (e) {
         if (!cancelled) setError(String(e))
       }
-    })()
+    }
+    void load()
+    // Soft poll so vista Día picks up the 09:00 dream without Telegram.
+    const id = window.setInterval(() => void load(), 60_000)
     return () => {
       cancelled = true
+      window.clearInterval(id)
     }
   }, [refreshToken])
 
@@ -86,6 +111,7 @@ export function DayStrip({
 
   const { time, rest } = clockParts(day.clock)
   const briefing = day.briefing
+  const summary = briefing?.summary ?? []
   const important = briefing?.important_tasks ?? []
   const meetings = briefing?.meetings ?? day.agenda ?? []
   const help = briefing?.help ?? []
@@ -109,9 +135,11 @@ export function DayStrip({
             ? `Reunión: ${formatAgendaWhen(nextMeeting.starts_at)} — ${nextMeeting.title}`
             : topTask
               ? `Foco: ${topTask.title}`
-              : help[0]
-                ? help[0]
-                : 'Sin briefing aún'}
+              : summary[0]
+                ? summary[0]
+                : help[0]
+                  ? help[0]
+                  : 'Sin briefing aún'}
         </p>
       </section>
     )
@@ -137,6 +165,23 @@ export function DayStrip({
       </div>
 
       <div className="day-strip__brief">
+        <div className="day-strip__block">
+          <h3>Resumen</h3>
+          {summary.length === 0 ? (
+            <p className="muted">
+              {briefing?.has_dream
+                ? 'Sin resumen en el dream'
+                : 'Abre esta vista tras las 09:00 — el dream alimenta el Día (sin Telegram)'}
+            </p>
+          ) : (
+            <ul className="day-strip__help">
+              {summary.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+
         <div className="day-strip__block">
           <h3>Tareas importantes</h3>
           {important.length === 0 ? (
@@ -186,7 +231,7 @@ export function DayStrip({
             <p className="muted">
               {briefing?.has_dream
                 ? 'Sin notas de ayuda en el dream'
-                : 'Sin dream aún — /dream o el cron de las 09:00'}
+                : 'Sin dream aún — cron 09:00 o /dream en el chat de la consola'}
             </p>
           ) : (
             <ul className="day-strip__help">

@@ -118,7 +118,17 @@ async def run_scheduled_dream(
     last_m, status_m, _ = await store.get_job(JOB_MORNING)
     already_notified = last_m == morning and status_m == "ok"
     notified = False
-    if not already_notified and chat_id is not None:
+    if already_notified:
+        logger.info("Cron dream morning notify skip — already ok for %s", morning)
+    elif not settings.dream_notify_telegram:
+        # UI-first: mark morning done without Telegram (vista Día reads vault).
+        await store.mark_job(JOB_MORNING, status="ok", ran_at=morning, error=None)
+        logger.info(
+            "Cron dream morning ready for UI (Telegram notify off) morning=%s",
+            morning,
+        )
+        notified = False
+    elif chat_id is not None:
         text = summary if len(summary) < 3500 else summary[:3490] + "…"
         try:
             await telegram.send_message(chat_id, text)
@@ -132,14 +142,13 @@ async def run_scheduled_dream(
             )
             if not error:
                 error = str(exc)
-    elif already_notified:
-        logger.info("Cron dream morning notify skip — already ok for %s", morning)
 
     return {
         "status": consolidate_status,
         "day": target,
         "morning": morning,
         "notified": notified,
+        "telegram": settings.dream_notify_telegram,
         "error": error,
         "preview": summary[:200],
     }

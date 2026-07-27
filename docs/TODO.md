@@ -34,7 +34,7 @@ Convención: `- [ ]` pendiente · `- [x]` hecho. Añade fecha o contexto breve s
 - [x] Skill `dev/open` — arranque leyendo último close + PLAN (PM senior)
 - [x] Regla Cursor `dev-session`: auto-open en chat nuevo o frío
 - [x] `CRON_SECRET` en Fly (trigger manual HTTP opcional)
-- [ ] Verificar una vez el briefing de las 09:00 en Telegram
+- [ ] Verificar briefing 09:00 en **vista Día** (consola; Telegram opcional)
 - [ ] Dogfood dream/tasks en Telegram unos días
 - [x] Gate ship: QA local (uvicorn + pytest + qa_local) antes de commit/push/deploy
 

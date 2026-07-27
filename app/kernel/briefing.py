@@ -17,7 +17,7 @@ _SECTION_HEADERS = {
     "prep de hoy": "help",
     "c)": "help",
     "cierre": "skip",
-    "resumen": "skip",
+    "resumen": "summary",
     "huecos": "skip",
     "tareas importantes": "tasks",
     "tareas": "tasks",
@@ -61,8 +61,13 @@ def _bullet_or_line(line: str) -> str | None:
 
 
 def parse_dream_sections(raw: str | None) -> dict[str, list[str]]:
-    """Split dream markdown/plain into help / tasks / meetings bullet lists."""
-    out: dict[str, list[str]] = {"help": [], "tasks": [], "meetings": []}
+    """Split dream markdown/plain into summary / help / tasks / meetings."""
+    out: dict[str, list[str]] = {
+        "summary": [],
+        "help": [],
+        "tasks": [],
+        "meetings": [],
+    }
     if not raw:
         return out
 
@@ -91,7 +96,7 @@ def parse_dream_sections(raw: str | None) -> dict[str, list[str]]:
                 grab = True
                 continue
             if grab:
-                if _normalize_header(line) in {"skip", "tasks", "meetings"}:
+                if _normalize_header(line) in {"skip", "tasks", "meetings", "summary"}:
                     break
                 item = _bullet_or_line(line)
                 if item:
@@ -110,7 +115,6 @@ def parse_dream_sections(raw: str | None) -> dict[str, list[str]]:
             uniq.append(x)
         out[k] = uniq[:8]
     return out
-
 
 def pick_important_tasks(rows: list[TaskRow], *, limit: int = 5) -> list[TaskRow]:
     """in_progress first, then priority>0, then remaining open."""
@@ -152,7 +156,12 @@ async def build_day_briefing(memory: Any, vault: Any) -> dict[str, Any]:
     open_tasks = await memory.list_tasks(status="open", limit=80)
     important = pick_important_tasks(open_tasks, limit=5)
 
-    agenda_rows = await memory.list_agenda_upcoming(from_day=today, limit=6)
+    # Vista Día: solo ventana corta (hoy + 3 días). No meter citas de dentro de semanas.
+    agenda_rows = await memory.list_agenda_upcoming(
+        from_day=today,
+        limit=6,
+        to_day=(today_madrid() + timedelta(days=3)).isoformat(),
+    )
     meetings = [
         {
             "id": i,
@@ -173,6 +182,7 @@ async def build_day_briefing(memory: Any, vault: Any) -> dict[str, Any]:
     return {
         "day": dream_day if dream_raw else None,
         "has_dream": bool(dream_raw),
+        "summary": sections["summary"],
         "important_tasks": [task_dict(t) for t in important],
         "meetings": meetings,
         "help": help_items,

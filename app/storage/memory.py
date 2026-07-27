@@ -675,20 +675,42 @@ class MemoryStore:
             return cursor.lastrowid
 
     async def list_agenda_upcoming(
-        self, from_day: str | None = None, limit: int = 20
+        self,
+        from_day: str | None = None,
+        limit: int = 20,
+        *,
+        to_day: str | None = None,
     ) -> list[tuple[int, str, str, str]]:
-        """Return (id, starts_at, title, status) from from_day onward."""
+        """Return (id, starts_at, title, status) from from_day onward.
+
+        If to_day is set (YYYY-MM-DD), only include items with starts_at date <= to_day.
+        """
+        from datetime import date as date_cls
+        from datetime import timedelta
+
         from_day = from_day or session_date_str()
         async with aiosqlite.connect(self._db_path) as db:
-            cursor = await db.execute(
-                """
-                SELECT id, starts_at, title, status FROM agenda_items
-                WHERE starts_at >= ? AND status != 'cancelled'
-                ORDER BY starts_at ASC, id ASC
-                LIMIT ?
-                """,
-                (from_day, limit),
-            )
+            if to_day:
+                end = (date_cls.fromisoformat(to_day) + timedelta(days=1)).isoformat()
+                cursor = await db.execute(
+                    """
+                    SELECT id, starts_at, title, status FROM agenda_items
+                    WHERE starts_at >= ? AND starts_at < ? AND status != 'cancelled'
+                    ORDER BY starts_at ASC, id ASC
+                    LIMIT ?
+                    """,
+                    (from_day, end, limit),
+                )
+            else:
+                cursor = await db.execute(
+                    """
+                    SELECT id, starts_at, title, status FROM agenda_items
+                    WHERE starts_at >= ? AND status != 'cancelled'
+                    ORDER BY starts_at ASC, id ASC
+                    LIMIT ?
+                    """,
+                    (from_day, limit),
+                )
             rows = await cursor.fetchall()
             return [(row[0], row[1], row[2], row[3]) for row in rows]
 

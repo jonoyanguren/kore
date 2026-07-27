@@ -40,6 +40,7 @@ def test_scheduled_dream_skips_consolidate_but_notifies():
 
             today.return_value = date(2026, 7, 27)
             settings.telegram_allowed_chat_id = 42
+            settings.dream_notify_telegram = True
 
             result = await run_scheduled_dream(store, vault, llm, telegram)
 
@@ -79,6 +80,7 @@ def test_scheduled_dream_no_double_morning_notify():
 
             today.return_value = date(2026, 7, 27)
             settings.telegram_allowed_chat_id = 42
+            settings.dream_notify_telegram = True
 
             result = await run_scheduled_dream(store, vault, MagicMock(), telegram)
 
