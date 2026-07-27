@@ -8,12 +8,13 @@
 | Repo | `jonoyanguren/kore` |
 | Producto | **Kore** (deploy/código) · hablado **Jone** (`ASSISTANT_NAME`) |
 | Arquitectura | Companion kernel (Approach B) |
-| Fase actual | **Phase 1** (vault + dream + tasks locales) |
-| Canal | Telegram (UI web después) |
+| Fase actual | **Phase 1** (vault + dream + tasks) → **1.5 web** siguiente |
+| Canal | Telegram (captura móvil) + **consola web** (chat básico + tareas) |
 | Deploy | Fly.io · volumen `/data` |
 | LLM | **OpenRouter** (`OPENROUTER_API_KEY` + `OPENROUTER_MODEL`) |
 | Modelo default | `xiaomi/mimo-v2.5` |
 | Diseño detallado | `docs/companion-plan.md` |
+| Consola web 1.5 | `docs/web-console-plan.md` |
 | Backlog tareas | `docs/TODO.md` |
 | QA / pruebas | `docs/QA.md` |
 
@@ -26,10 +27,11 @@
 - [x] Phase 0 (parcial): tools `save_memory` / `add_diary_entry` + comandos `/skills` `/hora` `/diario`
 - [x] Phase 0: imágenes Telegram → MIMO (download + content multimodal)
 - [x] Phase 1 (MVP): vault + dream 9am/`/dream` + tasks/agenda locales
+- [ ] Phase 1.5: consola web (chat texto básico + tareas)
 - [ ] Phase 2: Gmail OAuth + digest 9am
 - [ ] Phase 3: misiones background
 - [ ] Phase 4: git/código (este repo → multi-repo)
-- [ ] Phase 5+: calendar, voz, UI, PDF
+- [ ] Phase 5+: calendar, voz, PDF, media web…
 
 ## Decisiones (cerradas)
 
@@ -44,8 +46,10 @@
 | D7 | Skills | Markdown en git + frontmatter; comandos = disparo |
 | D8 | LLM | **OpenRouter**; modelo MIMO multimodal (`xiaomi/mimo-v2.5`) |
 | D9 | Memoria | Captura por **categoría**, no log cronológico plano |
-| D10 | Confirmación destructiva | Inline keyboard Telegram |
+| D10 | Confirmación destructiva | Inline keyboard Telegram (web: botones/confirm después) |
 | D11 | Orden | Kernel por fases; rename no bloquea |
+| D12 | UI web | Phase **1.5** antes de Gmail: chat **texto** + tareas; sin media en web v1; Telegram sigue |
+| D13 | Frontend | **Vite + React + TypeScript** desde el inicio (voz/transcripción = slices posteriores, misma SPA) |
 
 ## Roadmap
 
@@ -78,6 +82,22 @@ Pendiente Phase 1:
 - Dogfood dream/tasks unos días
 - (opcional) fusionar duplicados de memoria más agresivo; briefing aún más rico
 
+### Phase 1.5 — Consola web *(siguiente, acelera dogfood)*
+
+> Diseño de implementación: [`docs/web-console-plan.md`](./web-console-plan.md)
+
+Objetivo: UI propia para operar más rápido que Telegram (listas, checks, botones), sin matar el bot.
+
+Alcance v1:
+- Auth mínima (`CONSOLE_SECRET` → cookie/Bearer)
+- Frontend **Vite + React + TS** (SPA en `web/dist`)
+- **Chat texto** → `LLMAssistant.ask` (voz/transcripción = post-v1, misma app)
+- **Tareas**: En curso / Pendientes, completar, editar, links
+- Docker multi-stage (node build + python)
+- Cortes: A scaffold+API tasks → B UI tareas → C chat → D deploy → E+ voz
+
+Fuera de v1: media, streaming, multi-usuario, agenda/dream UI. Voz prevista en la misma SPA.
+
 ### Phase 2 — Gmail
 
 - OAuth + triage + digest 09:00 + `/inbox`
@@ -95,7 +115,7 @@ Pendiente Phase 1:
 
 ### Phase 5+
 
-- Calendar externo, voz, UI web, PDF
+- Calendar externo, voz, PDF, media en web si hace falta
 
 ## Success criteria
 
@@ -105,6 +125,7 @@ Pendiente Phase 1:
 - [x] Agenda / tasks locales usables (MVP)
 - [x] Imagen Telegram vía MIMO
 - [x] Dream 9am consolida chat + memoria (tools + briefing)
+- [ ] Consola web: chat texto + completar/editar tarea en <2 clics
 - [ ] Gmail OAuth + digest 9am
 - [ ] Una misión background completada
 - [ ] Git en este repo con confirmación
@@ -113,13 +134,14 @@ Pendiente Phase 1:
 
 ## Open questions
 
-1. Tras Phase 0–1: ¿prioridad Gmail o Misiones? — *aplazado*
+1. Tras Phase 1.5: ¿prioridad Gmail o Misiones? — *aplazado*
+2. Auth web v1: `CONSOLE_SECRET` + cookie (recomendado en web-console-plan); Telegram Login = no v1
 
 ## Next steps
 
-1. Dogfood companion: `/dream`, tareas/agenda; verificar briefing ~09:00 (CRON_SECRET en GitHub si falta)
-2. En Cursor: `open` (arrancar) / `close` (aparcado en `docs/closes/`)
-3. Phase 2 (Gmail) o pulir tasks (estados, UI…) según `docs/TODO.md`
+1. Dogfood companion: `/dream`, tareas/agenda; verificar briefing ~09:00
+2. **Phase 1.5**: API + chat texto mínimo + panel tareas (antes de Gmail)
+3. En Cursor: `open` / `close` (`docs/closes/`)
 
 ## Changelog del plan
 
@@ -149,3 +171,8 @@ Pendiente Phase 1:
 | 2026-07-26 | Skill `dev/open` para arrancar sesión (último close + PLAN) |
 | 2026-07-26 | Regla `dev-session`: auto-open en chat nuevo o frío |
 | 2026-07-27 | Tasks: url/project/status + listado con links; delete/update/get tools |
+| 2026-07-27 | `/tareas`: secciones En curso → Pendientes; sin footer SQLite |
+| 2026-07-27 | Phase **1.5** consola web (chat texto básico + tareas) antes de Gmail; D12 |
+| 2026-07-27 | Plan implementación consola: `docs/web-console-plan.md` (slices A–D) |
+| 2026-07-27 | D13: frontend Vite+React+TS desde el inicio; voz = post-v1 |
+| 2026-07-27 | Phase 1.5 slice A: `/api` auth+tasks + scaffold `web/` |

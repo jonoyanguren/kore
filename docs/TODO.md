@@ -18,6 +18,8 @@ Convención: `- [ ]` pendiente · `- [x]` hecho. Añade fecha o contexto breve s
 - [ ] Decidir agresividad de captura (proactiva vs solo con “recuerda/captura”)
 - [ ] Meter varios modelos, uno para imagenes, otro para code...
 
+
+
 ## Kernel / producto
 
 - [x] Cablear imágenes Telegram → MIMO (Phase 0)
@@ -38,17 +40,35 @@ Convención: `- [ ]` pendiente · `- [x]` hecho. Añade fecha o contexto breve s
 - [ ] Dogfood dream/tasks en Telegram unos días
 - [x] Gate ship: QA local (uvicorn + pytest + qa_local) antes de commit/push/deploy
 
+
+
 ## Tareas
 
 - [ ] Meter comandos por voz
 - [x] Estados en tareas (`open` / `in_progress` / `done` / `cancelled`) + proyecto + links
 - [ ] Que las tareas se autorrellenen más en chat (seguir dogfood)
 - [x] Links/notas visibles en `/tareas` (2026-07-27)
-- [ ] Hacer la UI
+- [x] `/tareas` agrupado En curso → Pendientes, sin pie SQLite (2026-07-27)
 - [ ] Mensajes de 'pensando' o 'esto llevará un ratillo'
 - [ ] Meter contexto de proyectos que estoy haciendo (lol, kimay, ...)
-- [ ] Conexión con Gmail
+- [ ] Conexión con Gmail (Phase 2; después de 1.5)
+
+
+
+## Consola web (Phase 1.5)
+
+Plan: `[docs/web-console-plan.md](./web-console-plan.md)`
+
+- [x] **A** Scaffold Vite+React+TS + auth + API tasks + tests (2026-07-27)
+- [x] **B** UI React board Trello (DnD En curso / Pendientes / Hechas) (2026-07-27)
+- [ ] **C** `POST /api/chat` + UI chat texto
+- [x] **D** Docker multi-stage + `CONSOLE_SECRET` Fly (2026-07-27)
+- [ ] **E+** Voz / transcripción (misma SPA)
+- [x] Servir `web/dist` desde FastAPI (montado si existe `web/dist`)
+
+
 
 ## Notas
 
 - Kimay merece su propio prompt (ya cableado en PromptAssembler). No meter todo en personality.
+

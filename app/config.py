@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     # Empty = cron endpoints always 403.
     cron_secret: str = ""
 
+    # Shared secret for web console (/api/*). Empty = console always 401.
+    # Cookie kore_console or Authorization: Bearer <secret>.
+    console_secret: str = ""
+
     # Also load skills/dev/*.md into the Telegram bot (default: Cursor-only).
     load_dev_skills: bool = False
 

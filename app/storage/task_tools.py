@@ -11,7 +11,8 @@ from app.timeutil import session_date_str
 ToolHandler = Callable[[dict[str, Any]], Awaitable[str]]
 
 
-async def _sync_tasks_vault(store: MemoryStore, vault: Vault) -> None:
+async def sync_tasks_vault(store: MemoryStore, vault: Vault) -> None:
+    """Rewrite vault/tasks/open.md from active SQLite tasks."""
     rows = await store.list_tasks(status="open", limit=100)
     vault.write_tasks(
         format_task_lines(rows, detailed=True)
@@ -32,7 +33,7 @@ def build_task_tools(
             project=args.get("project"),
             status=args.get("status") or "open",
         )
-        await _sync_tasks_vault(store, vault)
+        await sync_tasks_vault(store, vault)
         task = await store.get_task(task_id)
         assert task is not None
         body = "\n".join(format_task_lines([task], detailed=True))
@@ -77,7 +78,7 @@ def build_task_tools(
         )
         if not ok:
             return "No pude actualizar esa tarea."
-        await _sync_tasks_vault(store, vault)
+        await sync_tasks_vault(store, vault)
         task = await store.get_task(int(args["task_id"]))
         assert task is not None
         return "Actualizada.\n\n" + "\n".join(
@@ -87,13 +88,13 @@ def build_task_tools(
     async def _complete_task(args: dict[str, Any]) -> str:
         ok = await store.complete_task(int(args["task_id"]))
         if ok:
-            await _sync_tasks_vault(store, vault)
+            await sync_tasks_vault(store, vault)
         return "Tarea marcada como hecha." if ok else "No encontré esa tarea."
 
     async def _delete_task(args: dict[str, Any]) -> str:
         ok = await store.delete_task(int(args["task_id"]))
         if ok:
-            await _sync_tasks_vault(store, vault)
+            await sync_tasks_vault(store, vault)
         return "Tarea eliminada (cancelada)." if ok else "No encontré esa tarea."
 
     async def _add_agenda_item(args: dict[str, Any]) -> str:

@@ -9,10 +9,12 @@ import time
 import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from pathlib import Path
 
 import httpx
 import openai
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.integrations.clickup.clickup_client import ClickUpClient
@@ -34,6 +36,7 @@ from app.storage.vault import Vault
 from app.telegram.client import TelegramClient
 from app.telegram.schemas import TelegramUpdate
 from app.timeutil import format_madrid_clock, session_date_str
+from app.web.api import router as console_api_router
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
@@ -152,6 +155,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.include_router(console_api_router)
 
 
 TYPING_REFRESH_SECONDS = 4  # Telegram's "typing..." indicator expires after ~5s
@@ -444,3 +448,9 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks) 
         )
 
     return {"ok": True}
+
+
+# Serve Vite build last so /api, /healthz, webhook keep priority.
+_WEB_DIST = Path(__file__).resolve().parent.parent / "web" / "dist"
+if _WEB_DIST.is_dir():
+    app.mount("/", StaticFiles(directory=str(_WEB_DIST), html=True), name="web")

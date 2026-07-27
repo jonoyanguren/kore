@@ -38,7 +38,7 @@ El wow: le sueltas la vida en pedazos (texto, foto, mail) y te la **clasifica, r
 
 ## Constraints
 
-- Canal principal hoy: Telegram. UI web después.
+- Canal principal hoy: Telegram. Consola web Phase 1.5: **Vite+React** (chat texto + tareas v1; voz después).
 - Modelo: pasar a **MIMO (multimodal)** vía OpenRouter para texto + imágenes; configurable por env.
 - Deploy: Fly.io, 1 máquina pequeña, volumen `/data`.
 - Contenedor desechable OK; **proteger volumen `/data`** (memoria/diario).

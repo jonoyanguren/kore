@@ -29,6 +29,12 @@ uv run pytest -q
 ./scripts/qa_local.sh                    # humo HTTP → respuesta real a Telegram
 ```
 
+```bash
+# Consola web (Phase 1.5)
+.venv/bin/python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+cd web && npm run dev   # http://127.0.0.1:5173 — login con CONSOLE_SECRET del .env
+```
+
 **Nota:** el móvil sigue yendo a Fly salvo que montes un túnel y cambies el webhook. `qa_local.sh` pega al endpoint local y la respuesta llega a tu Telegram real.
 
 ---
