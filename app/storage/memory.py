@@ -558,9 +558,9 @@ class MemoryStore:
                         WHEN 'open' THEN 1
                         ELSE 2
                     END,
+                    priority DESC,
                     CASE WHEN due_at IS NULL THEN 1 ELSE 0 END,
                     due_at ASC,
-                    priority DESC,
                     id ASC
                 LIMIT ?
                 """,

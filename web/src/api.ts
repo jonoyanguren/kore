@@ -138,6 +138,11 @@ export async function apiCompleteTask(id: number): Promise<Task> {
   return r.data.task
 }
 
+export async function apiDeleteTask(id: number): Promise<void> {
+  const r = await req(`/api/tasks/${id}`, { method: 'DELETE' })
+  if (!r.ok) throw new Error(`delete task ${r.status}`)
+}
+
 export type DayBriefing = {
   day: string | null
   has_dream: boolean

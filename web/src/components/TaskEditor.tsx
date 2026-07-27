@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { apiPatchTask } from '../api'
+import { apiDeleteTask, apiPatchTask } from '../api'
 import type { Task, TaskStatus } from '../types'
 import { useToast } from './Toasts'
 
@@ -8,11 +8,12 @@ type Props = {
   task: Task
   onClose: () => void
   onSaved: (task: Task) => void
+  onDeleted?: (id: number) => void
 }
 
 const STATUSES: TaskStatus[] = ['open', 'in_progress', 'done', 'cancelled']
 
-export function TaskEditor({ task, onClose, onSaved }: Props) {
+export function TaskEditor({ task, onClose, onSaved, onDeleted }: Props) {
   const toast = useToast()
   const [title, setTitle] = useState(task.title)
   const [status, setStatus] = useState(task.status)
@@ -71,6 +72,23 @@ export function TaskEditor({ task, onClose, onSaved }: Props) {
     }
   }
 
+  async function onDelete() {
+    if (!window.confirm(`¿Borrar «${task.title}»?`)) return
+    setBusy(true)
+    try {
+      await apiDeleteTask(task.id)
+      toast.ok('Borrada')
+      onDeleted?.(task.id)
+      onClose()
+    } catch (err) {
+      const msg = String(err)
+      setError(msg)
+      toast.err(msg)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div
       className="task-editor-backdrop"
@@ -85,9 +103,7 @@ export function TaskEditor({ task, onClose, onSaved }: Props) {
         onSubmit={onSubmit}
       >
         <header className="task-editor__head">
-          <h3>
-            Tarea {task.id}
-          </h3>
+          <h3>Tarea {task.id}</h3>
           <button type="button" className="ghost" onClick={onClose}>
             Cerrar
           </button>
@@ -103,7 +119,7 @@ export function TaskEditor({ task, onClose, onSaved }: Props) {
             Estado
             <select
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              onChange={(e) => setStatus(e.target.value as TaskStatus)}
             >
               {STATUSES.map((s) => (
                 <option key={s} value={s}>
@@ -164,6 +180,14 @@ export function TaskEditor({ task, onClose, onSaved }: Props) {
         {error ? <p className="error">{error}</p> : null}
 
         <div className="task-editor__actions">
+          <button
+            type="button"
+            className="ghost task-editor__danger"
+            disabled={busy}
+            onClick={() => void onDelete()}
+          >
+            Borrar
+          </button>
           <button type="submit" disabled={busy}>
             Guardar
           </button>

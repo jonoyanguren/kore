@@ -4,11 +4,19 @@ import type { Task } from '../types'
 
 type Props = {
   task: Task
-  onComplete: (id: number) => void
+  onToggleDone: (task: Task) => void
+  onToggleStar: (task: Task) => void
   onEdit?: (task: Task) => void
+  onDelete?: (id: number) => void
 }
 
-export function TaskCard({ task, onComplete, onEdit }: Props) {
+export function TaskCard({
+  task,
+  onToggleDone,
+  onToggleStar,
+  onEdit,
+  onDelete,
+}: Props) {
   const {
     attributes,
     listeners,
@@ -17,6 +25,9 @@ export function TaskCard({ task, onComplete, onEdit }: Props) {
     transition,
     isDragging,
   } = useSortable({ id: String(task.id), data: { status: task.status } })
+
+  const done = task.status === 'done'
+  const starred = task.status === 'in_progress'
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -28,22 +39,35 @@ export function TaskCard({ task, onComplete, onEdit }: Props) {
     <article
       ref={setNodeRef}
       style={style}
-      className="task-card"
+      className={`task-card${done ? ' is-done' : ''}${starred ? ' is-starred' : ''}`}
       {...attributes}
       {...listeners}
     >
       <header className="task-card__head">
         <button
           type="button"
-          className="task-card__check"
-          title="Marcar hecha"
+          className={`task-card__check${done ? ' is-on' : ''}`}
+          title={done ? 'Marcar pendiente' : 'Marcar hecha'}
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation()
-            onComplete(task.id)
+            onToggleDone(task)
           }}
         >
-          ✓
+          {done ? '✓' : '○'}
+        </button>
+        <button
+          type="button"
+          className={`task-card__star${starred ? ' is-on' : ''}`}
+          title={starred ? 'Quitar en curso' : 'En curso'}
+          aria-pressed={starred}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation()
+            onToggleStar(task)
+          }}
+        >
+          {starred ? '★' : '☆'}
         </button>
         <h3
           className={onEdit ? 'task-card__title--edit' : undefined}
@@ -71,6 +95,20 @@ export function TaskCard({ task, onComplete, onEdit }: Props) {
             }}
           >
             ✎
+          </button>
+        ) : null}
+        {onDelete ? (
+          <button
+            type="button"
+            className="task-card__edit"
+            title="Borrar"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete(task.id)
+            }}
+          >
+            ×
           </button>
         ) : null}
       </header>

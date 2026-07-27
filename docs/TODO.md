@@ -52,7 +52,7 @@ Convención: `- [ ]` pendiente · `- [x]` hecho. Añade fecha o contexto breve s
 - [ ] Contexto proyectos (lol, kimay, …) → Phase 1.6 espacios
 - [ ] Voz → Phase 1.6 voz one-tap
 - [ ] Gmail → Phase 2 (después de 1.6 salvo que digas lo contrario)
-- [ ] Que en Tareas haya modo lista con checks (check - done - not done) y modo board
+- [x] Que en Tareas haya modo lista con checks (check - done - not done) y modo board + borrar/editar (2026-07-27)
 
 
 

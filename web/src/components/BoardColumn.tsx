@@ -15,11 +15,20 @@ const LABELS: Record<BoardColumnId, string> = {
 type Props = {
   id: BoardColumnId
   tasks: Task[]
-  onComplete: (id: number) => void
+  onToggleDone: (task: Task) => void
+  onToggleStar: (task: Task) => void
   onEdit: (task: Task) => void
+  onDelete: (id: number) => void
 }
 
-export function BoardColumn({ id, tasks, onComplete, onEdit }: Props) {
+export function BoardColumn({
+  id,
+  tasks,
+  onToggleDone,
+  onToggleStar,
+  onEdit,
+  onDelete,
+}: Props) {
   const { setNodeRef, isOver } = useDroppable({ id })
 
   return (
@@ -40,8 +49,10 @@ export function BoardColumn({ id, tasks, onComplete, onEdit }: Props) {
             <TaskCard
               key={task.id}
               task={task}
-              onComplete={onComplete}
+              onToggleDone={onToggleDone}
+              onToggleStar={onToggleStar}
               onEdit={onEdit}
+              onDelete={onDelete}
             />
           ))}
           {tasks.length === 0 ? (
