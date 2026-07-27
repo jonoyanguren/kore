@@ -41,6 +41,8 @@ export function UsageChip() {
   const hot = usage.pct_used >= 85
   const warm = usage.pct_used >= 60
 
+  const fill = Math.min(100, Math.max(0, usage.pct_used))
+
   return (
     <span
       className={
@@ -51,7 +53,21 @@ export function UsageChip() {
       aria-label={title}
     >
       <span className="console__usage-label">LLM</span>
-      {label}
+      <span className="console__usage-meta">
+        <span className="console__usage-text">{label}</span>
+        <span
+          className="console__usage-track"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={pct}
+        >
+          <span
+            className="console__usage-fill"
+            style={{ width: `${fill}%` }}
+          />
+        </span>
+      </span>
     </span>
   )
 }

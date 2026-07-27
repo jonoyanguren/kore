@@ -223,7 +223,7 @@ button.ghost:hover {
   user-select: none;
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.45rem;
 }
 
 .console__usage-label {
@@ -234,16 +234,51 @@ button.ghost:hover {
   letter-spacing: 0.06em;
 }
 
+.console__usage-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  min-width: 6.5rem;
+}
+
+.console__usage-text {
+  line-height: 1.1;
+}
+
+.console__usage-track {
+  display: block;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(21, 32, 43, 0.12);
+  overflow: hidden;
+}
+
+.console__usage-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--space-accent, #2f6f5e);
+  transition: width 0.35s ease;
+}
+
 .console__usage.is-warm {
   color: #8a5a12;
   border-color: rgba(180, 120, 40, 0.35);
   background: rgba(255, 236, 200, 0.65);
 }
 
+.console__usage.is-warm .console__usage-fill {
+  background: #c4851a;
+}
+
 .console__usage.is-hot {
   color: #8b2e2e;
   border-color: rgba(180, 60, 60, 0.35);
   background: rgba(255, 220, 220, 0.7);
+}
+
+.console__usage.is-hot .console__usage-fill {
+  background: #c43c3c;
 }
 
 .console__cmdk-btn {
