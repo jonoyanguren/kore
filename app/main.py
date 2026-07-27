@@ -258,13 +258,21 @@ async def handle_text_message(
             return
         rows = await memory.list_tasks(status="open", limit=30)
         if not rows:
-            await telegram.send_message(chat_id, "No hay tareas abiertas.")
+            await telegram.send_message(
+                chat_id,
+                "No hay tareas abiertas.\n"
+                "(SQLite · Fly /data/kore.db)",
+            )
         else:
-            lines = []
-            for task_id, title, _st, due_at, _p in rows:
-                due = f" ({due_at})" if due_at else ""
-                lines.append(f"- (id {task_id}) {title}{due}")
-            await telegram.send_message(chat_id, "Tareas abiertas:\n" + "\n".join(lines))
+            from app.storage.memory import format_task_lines
+
+            lines = format_task_lines(rows, detailed=True)
+            await telegram.send_message(
+                chat_id,
+                "Tareas abiertas:\n"
+                + "\n".join(lines)
+                + "\n\n(SQLite · Fly /data/kore.db · mirror vault/tasks/open.md)",
+            )
         return
 
     user_text = text

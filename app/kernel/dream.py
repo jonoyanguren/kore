@@ -75,11 +75,10 @@ async def run_dream(
         for _i, text in items:
             mem_lines.append(f"  - {text}")
     mem_block = "\n".join(mem_lines) if mem_lines else "(sin memoria)"
+    from app.storage.memory import format_task_lines
+
     tasks_block = (
-        "\n".join(
-            f"- (id {i}) {title}" + (f" due {due}" if due else "")
-            for i, title, _st, due, _p in open_tasks
-        )
+        "\n".join(format_task_lines(open_tasks, detailed=True))
         if open_tasks
         else "(ninguna)"
     )

@@ -93,11 +93,11 @@ class PromptAssembler:
 
         open_tasks = await self._memory.list_tasks(status="open", limit=12)
         if open_tasks:
-            lines = []
-            for task_id, title, _st, due_at, priority in open_tasks:
-                due = f", due {due_at}" if due_at else ""
-                lines.append(f"- (id {task_id}) {title}{due} (prio {priority})")
-            parts.append("## Open tasks\n" + "\n".join(lines))
+            from app.storage.memory import format_task_lines
+
+            parts.append(
+                "## Open tasks\n" + "\n".join(format_task_lines(open_tasks, detailed=True))
+            )
 
         agenda = await self._memory.list_agenda_upcoming(limit=10)
         if agenda:

@@ -28,11 +28,27 @@ async def _run():
         diary_md = (vault.root / "diary" / "2026-07-25.md").read_text(encoding="utf-8")
         assert "entrené" in diary_md
 
-        tid = await store.add_task("comprar café", due_at="2026-07-27", priority=1)
+        tid = await store.add_task(
+            "comprar café",
+            due_at="2026-07-27",
+            priority=1,
+            url="https://example.com/cafe",
+            project="personal",
+            notes="con leche",
+        )
         rows = await store.list_tasks(status="open")
-        assert any(r[0] == tid for r in rows)
+        assert any(r.id == tid for r in rows)
+        got = await store.get_task(tid)
+        assert got is not None
+        assert got.url == "https://example.com/cafe"
+        assert got.project == "personal"
+        assert await store.update_task(tid, status="in_progress")
+        assert (await store.get_task(tid)).status == "in_progress"
         assert await store.complete_task(tid)
         assert await store.list_tasks(status="open") == []
+        tid2 = await store.add_task("borrarme")
+        assert await store.delete_task(tid2)
+        assert (await store.get_task(tid2)).status == "cancelled"
 
         aid = await store.add_agenda_item("dentista", "2026-07-28T10:00")
         upcoming = await store.list_agenda_upcoming(from_day="2026-07-26")

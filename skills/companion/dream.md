@@ -2,7 +2,7 @@
 name: dream
 description: Revisa el chat del día, rellena huecos (memoria/diario/tareas) y manda briefing + prep del día siguiente.
 commands: [/dream, /sueno]
-tools: [save_memory, add_diary_entry, add_task, complete_task, list_tasks, add_agenda_item, list_agenda]
+tools: [save_memory, add_diary_entry, add_task, complete_task, delete_task, list_tasks, get_task, update_task, add_agenda_item, list_agenda]
 ---
 
 # Dream (briefing matutino)

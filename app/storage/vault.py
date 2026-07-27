@@ -10,7 +10,7 @@ class Vault:
         self.root = Path(root)
 
     def ensure(self) -> None:
-        for name in ("memory", "diary", "agenda", "dreams"):
+        for name in ("memory", "diary", "agenda", "dreams", "tasks"):
             (self.root / name).mkdir(parents=True, exist_ok=True)
 
     def append_memory(self, category: str, item_id: int, text: str) -> Path:
@@ -70,4 +70,11 @@ class Vault:
         self.ensure()
         path = self.root / "dreams" / f"{day}.md"
         path.write_text(content.strip() + "\n", encoding="utf-8")
+        return path
+
+    def write_tasks(self, lines_body: list[str]) -> Path:
+        self.ensure()
+        path = self.root / "tasks" / "open.md"
+        body = "\n".join(lines_body)
+        path.write_text(f"# tasks / open\n\n{body}\n", encoding="utf-8")
         return path

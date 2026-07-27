@@ -41,8 +41,9 @@ Convención: `- [ ]` pendiente · `- [x]` hecho. Añade fecha o contexto breve s
 ## Tareas
 
 - [ ] Meter comandos por voz
-- [ ] En tareas meter "en curso, imporante..." 
-- [ ] Que las tareas se autorrellenen en el telegram
+- [x] Estados en tareas (`open` / `in_progress` / `done` / `cancelled`) + proyecto + links
+- [ ] Que las tareas se autorrellenen más en chat (seguir dogfood)
+- [x] Links/notas visibles en `/tareas` (2026-07-27)
 - [ ] Hacer la UI
 - [ ] Mensajes de 'pensando' o 'esto llevará un ratillo'
 - [ ] Meter contexto de proyectos que estoy haciendo (lol, kimay, ...)

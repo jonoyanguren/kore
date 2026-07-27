@@ -68,7 +68,8 @@ Hecho:
 Hecho:
 - Vault bajo `VAULT_ROOT` / sibling de DB: `memory/`, `diary/`, `agenda/`, `dreams/` (write-through + rewrite en dream)
 - Tablas `tasks`, `agenda_items`, `jobs`
-- Tools: `add_task`, `list_tasks`, `complete_task`, `add_agenda_item`, `list_agenda`
+- Tools: `add_task`, `list_tasks`, `get_task`, `update_task`, `complete_task`, `delete_task`, `add_agenda_item`, `list_agenda`
+- Tasks: url + project + status `open|in_progress|done|cancelled`; `/tareas` muestra links/notas; mirror `vault/tasks/open.md`
 - Skills `/tareas` `/agenda` `/dream` (+ cron externo ~**09:00 Madrid** → `/internal/cron/dream`)
 - Dream lee `messages` del día, rellena huecos con tools, vault + briefing Telegram (resumen + prep)
 - Prompt: open tasks + agenda upcoming
@@ -147,3 +148,4 @@ Pendiente Phase 1:
 | 2026-07-26 | Closes de desarrollo persistidos en `docs/closes/YYYY-MM-DD.md` |
 | 2026-07-26 | Skill `dev/open` para arrancar sesión (último close + PLAN) |
 | 2026-07-26 | Regla `dev-session`: auto-open en chat nuevo o frío |
+| 2026-07-27 | Tasks: url/project/status + listado con links; delete/update/get tools |

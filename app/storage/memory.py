@@ -2,11 +2,48 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 
 import aiosqlite
 
 from app.timeutil import session_date_str
+
+
+@dataclass(frozen=True)
+class TaskRow:
+    id: int
+    title: str
+    status: str
+    due_at: str | None
+    priority: int
+    notes: str | None = None
+    url: str | None = None
+    project: str | None = None
+
+
+ACTIVE_TASK_STATUSES = ("open", "in_progress")
+VALID_TASK_STATUSES = ("open", "in_progress", "done", "cancelled")
+
+
+def format_task_lines(tasks: list[TaskRow], *, detailed: bool = True) -> list[str]:
+    """Plain-text lines for Telegram / tools."""
+    lines: list[str] = []
+    for t in tasks:
+        bits = [f"(id {t.id})", f"[{t.status}]", t.title]
+        if t.project:
+            bits.append(f"#{t.project}")
+        if t.due_at:
+            bits.append(f"due {t.due_at}")
+        if t.priority:
+            bits.append(f"p{t.priority}")
+        lines.append("- " + " ".join(bits))
+        if detailed:
+            if t.url:
+                lines.append(f"  link: {t.url}")
+            if t.notes:
+                lines.append(f"  nota: {t.notes}")
+    return lines
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS notes (
@@ -48,6 +85,8 @@ CREATE TABLE IF NOT EXISTS tasks (
     due_at TEXT,
     priority INTEGER NOT NULL DEFAULT 0,
     notes TEXT,
+    url TEXT,
+    project TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -86,7 +125,16 @@ class MemoryStore:
         async with aiosqlite.connect(self._db_path) as db:
             await db.executescript(SCHEMA_SQL)
             await self._migrate_notes(db)
+            await self._migrate_task_columns(db)
             await db.commit()
+
+    async def _migrate_task_columns(self, db: aiosqlite.Connection) -> None:
+        cursor = await db.execute("PRAGMA table_info(tasks)")
+        cols = {row[1] for row in await cursor.fetchall()}
+        if "url" not in cols:
+            await db.execute("ALTER TABLE tasks ADD COLUMN url TEXT")
+        if "project" not in cols:
+            await db.execute("ALTER TABLE tasks ADD COLUMN project TEXT")
 
     async def _migrate_notes(self, db: aiosqlite.Connection) -> None:
         """Copy legacy flat notes into memory_items (category=general), idempotent."""
@@ -288,62 +336,164 @@ class MemoryStore:
         due_at: str | None = None,
         priority: int = 0,
         notes: str | None = None,
+        url: str | None = None,
+        project: str | None = None,
+        status: str = "open",
     ) -> int:
+        status = (status or "open").strip().lower()
+        if status not in VALID_TASK_STATUSES:
+            status = "open"
+        project = (project or "").strip().lower() or None
+        url = (url or "").strip() or None
+        notes = (notes or "").strip() or None
         async with aiosqlite.connect(self._db_path) as db:
             cursor = await db.execute(
                 """
-                INSERT INTO tasks (title, due_at, priority, notes)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO tasks (title, status, due_at, priority, notes, url, project)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (title.strip(), due_at, int(priority), notes),
+                (
+                    title.strip(),
+                    status,
+                    due_at,
+                    int(priority),
+                    notes,
+                    url,
+                    project,
+                ),
             )
             await db.commit()
             return cursor.lastrowid
 
-    async def list_tasks(
-        self, status: str | None = "open", limit: int = 30
-    ) -> list[tuple[int, str, str, str | None, int]]:
-        """Return (id, title, status, due_at, priority)."""
-        async with aiosqlite.connect(self._db_path) as db:
-            if status:
-                cursor = await db.execute(
-                    """
-                    SELECT id, title, status, due_at, priority FROM tasks
-                    WHERE status = ?
-                    ORDER BY
-                        CASE WHEN due_at IS NULL THEN 1 ELSE 0 END,
-                        due_at ASC,
-                        priority DESC,
-                        id ASC
-                    LIMIT ?
-                    """,
-                    (status.strip().lower(), limit),
-                )
-            else:
-                cursor = await db.execute(
-                    """
-                    SELECT id, title, status, due_at, priority FROM tasks
-                    ORDER BY id DESC LIMIT ?
-                    """,
-                    (limit,),
-                )
-            rows = await cursor.fetchall()
-            return [
-                (row[0], row[1], row[2], row[3], row[4]) for row in rows
-            ]
-
-    async def complete_task(self, task_id: int) -> bool:
+    async def get_task(self, task_id: int) -> TaskRow | None:
         async with aiosqlite.connect(self._db_path) as db:
             cursor = await db.execute(
                 """
-                UPDATE tasks
-                SET status = 'done', updated_at = datetime('now')
-                WHERE id = ? AND status != 'done'
+                SELECT id, title, status, due_at, priority, notes, url, project
+                FROM tasks WHERE id = ?
                 """,
                 (task_id,),
             )
+            row = await cursor.fetchone()
+            if row is None:
+                return None
+            return TaskRow(*row)
+
+    async def list_tasks(
+        self,
+        status: str | None = "open",
+        limit: int = 30,
+        *,
+        project: str | None = None,
+    ) -> list[TaskRow]:
+        """status: open (= open+in_progress), in_progress, done, cancelled, all."""
+        async with aiosqlite.connect(self._db_path) as db:
+            clauses: list[str] = []
+            params: list[object] = []
+            if status and status != "all":
+                st = status.strip().lower()
+                if st == "open":
+                    placeholders = ",".join("?" * len(ACTIVE_TASK_STATUSES))
+                    clauses.append(f"status IN ({placeholders})")
+                    params.extend(ACTIVE_TASK_STATUSES)
+                else:
+                    clauses.append("status = ?")
+                    params.append(st)
+            if project:
+                clauses.append("project = ?")
+                params.append(project.strip().lower())
+            where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+            params.append(limit)
+            cursor = await db.execute(
+                f"""
+                SELECT id, title, status, due_at, priority, notes, url, project
+                FROM tasks
+                {where}
+                ORDER BY
+                    CASE status
+                        WHEN 'in_progress' THEN 0
+                        WHEN 'open' THEN 1
+                        ELSE 2
+                    END,
+                    CASE WHEN due_at IS NULL THEN 1 ELSE 0 END,
+                    due_at ASC,
+                    priority DESC,
+                    id ASC
+                LIMIT ?
+                """,
+                params,
+            )
+            rows = await cursor.fetchall()
+            return [TaskRow(*row) for row in rows]
+
+    async def update_task(
+        self,
+        task_id: int,
+        *,
+        title: str | None = None,
+        status: str | None = None,
+        due_at: str | None = None,
+        priority: int | None = None,
+        notes: str | None = None,
+        url: str | None = None,
+        project: str | None = None,
+        clear_due: bool = False,
+        clear_url: bool = False,
+        clear_notes: bool = False,
+        clear_project: bool = False,
+    ) -> bool:
+        task = await self.get_task(task_id)
+        if task is None:
+            return False
+        new_status = task.status
+        if status is not None:
+            new_status = status.strip().lower()
+            if new_status not in VALID_TASK_STATUSES:
+                return False
+        new_title = title.strip() if title is not None else task.title
+        new_due = None if clear_due else (due_at if due_at is not None else task.due_at)
+        new_prio = int(priority) if priority is not None else task.priority
+        new_notes = None if clear_notes else (notes if notes is not None else task.notes)
+        new_url = None if clear_url else (url if url is not None else task.url)
+        if clear_project:
+            new_project = None
+        elif project is not None:
+            new_project = project.strip().lower() or None
+        else:
+            new_project = task.project
+        if isinstance(new_notes, str):
+            new_notes = new_notes.strip() or None
+        if isinstance(new_url, str):
+            new_url = new_url.strip() or None
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                """
+                UPDATE tasks SET
+                    title = ?, status = ?, due_at = ?, priority = ?,
+                    notes = ?, url = ?, project = ?,
+                    updated_at = datetime('now')
+                WHERE id = ?
+                """,
+                (
+                    new_title,
+                    new_status,
+                    new_due,
+                    new_prio,
+                    new_notes,
+                    new_url,
+                    new_project,
+                    task_id,
+                ),
+            )
             await db.commit()
             return cursor.rowcount > 0
+
+    async def complete_task(self, task_id: int) -> bool:
+        return await self.update_task(task_id, status="done")
+
+    async def delete_task(self, task_id: int) -> bool:
+        """Soft-delete: status=cancelled."""
+        return await self.update_task(task_id, status="cancelled")
 
     # --- Agenda -------------------------------------------------------------
 
