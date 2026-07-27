@@ -34,6 +34,31 @@ SYNTH_MAX_TOKENS = 4096
 # OpenRouter's free-model router — picks among free models, filtering for
 # tool-calling support. Used as a one-time fallback when the configured
 # (paid) model returns 402 Insufficient Credits.
+_STRONG_HINT = re.compile(
+    r"(?i)\b("
+    r"megaprompt|mega[- ]?prompt|coach|coaching|solo\s*q|soloq|"
+    r"investiga|research|auditor[ií]a|plan completo|plan detallado|"
+    r"[uú]ltimas?\s*\d+\s*partidas|haz un plan y|modelo fuerte|/strong"
+    r")\b"
+)
+
+
+def wants_strong_model(user_text: str) -> bool:
+    """Heuristic: long / coaching / research asks → strong model."""
+    t = (user_text or "").strip()
+    if len(t) >= 400:
+        return True
+    return bool(_STRONG_HINT.search(t))
+
+
+def resolve_model(*, strong: bool = False) -> str:
+    primary = (settings.openrouter_model or "").strip() or "anthropic/claude-sonnet-4.6"
+    heavy = (settings.openrouter_model_strong or "").strip()
+    if strong and heavy:
+        return heavy
+    return primary
+
+
 FALLBACK_MODEL = "openrouter/free"
 
 _SYNTH_NUDGE = (
@@ -185,11 +210,13 @@ class LLMAssistant:
             }
         )
 
-        model = settings.openrouter_model
+        model = resolve_model(strong=wants_strong_model(user_text))
         used_fallback = False
         final_text: str | None = None
         used_any_tool = False
-
+        if model != resolve_model(strong=False):
+            await status("Modelo fuerte…")
+            logger.info("Using strong model %s", model)
         await status("Pensando…")
         try:
             for iteration in range(MAX_TOOL_ITERATIONS):

@@ -9,7 +9,9 @@ primary_region = 'fra'
 [env]
   STORAGE_DB_PATH = "/data/kore.db"
   ASSISTANT_NAME = "Jone"
-  OPENROUTER_MODEL = "xiaomi/mimo-v2.5"
+  OPENROUTER_MODEL = "anthropic/claude-sonnet-4.6"
+  OPENROUTER_MODEL_STRONG = "anthropic/claude-opus-4.8"
+  LLM_MAX_TOKENS = "4096"
 
 [build]
 

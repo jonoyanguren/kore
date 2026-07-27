@@ -42,11 +42,25 @@ def test_tool_calls_for_history_ok():
     ]
 
 
-def test_is_blank_reply():
-    from app.llm.llm_assistant import _is_blank_reply
+def test_wants_strong_model():
+    from app.llm.llm_assistant import wants_strong_model
 
-    assert _is_blank_reply(None)
-    assert _is_blank_reply("")
-    assert _is_blank_reply("  ")
-    assert _is_blank_reply("(respuesta vacía)")
-    assert not _is_blank_reply("hola")
+    assert not wants_strong_model("hola qué tal")
+    assert wants_strong_model("haz un coaching para subir en soloQ")
+    assert wants_strong_model("x" * 401)
+
+
+def test_resolve_model_strong():
+    from app.config import settings
+    from app.llm.llm_assistant import resolve_model
+
+    prev = settings.openrouter_model
+    prev_s = settings.openrouter_model_strong
+    try:
+        settings.openrouter_model = "anthropic/claude-sonnet-4.6"
+        settings.openrouter_model_strong = "anthropic/claude-opus-4.8"
+        assert resolve_model(strong=False) == "anthropic/claude-sonnet-4.6"
+        assert resolve_model(strong=True) == "anthropic/claude-opus-4.8"
+    finally:
+        settings.openrouter_model = prev
+        settings.openrouter_model_strong = prev_s

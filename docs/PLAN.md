@@ -10,7 +10,7 @@
 | Fase actual | **1.6 UX personal** (código P1 hecho; falta dogfood) |
 | Canal | Consola web = operar / día · Telegram = captura móvil opcional |
 | Deploy | Fly.io · `/data` |
-| LLM | OpenRouter · default `xiaomi/mimo-v2.5` |
+| LLM | OpenRouter · `claude-sonnet-4.6` (+ `opus-4.8` en asks gordas) |
 | Diseño largo | `companion-plan.md` · Consola 1.5: `web-console-plan.md` |
 
 ## Estado

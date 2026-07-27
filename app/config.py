@@ -16,12 +16,14 @@ class Settings(BaseSettings):
 
     # LLM (OpenRouter — OpenAI-compatible endpoint proxying many providers)
     openrouter_api_key: str
-    # Default: Xiaomi MiMo multimodal (images later). Override via OPENROUTER_MODEL.
-    openrouter_model: str = "xiaomi/mimo-v2.5"
+    # Daily driver (tools + chat). Override via OPENROUTER_MODEL.
+    openrouter_model: str = "anthropic/claude-sonnet-4.6"
+    # Optional heavier model for mega-asks. Empty = same as openrouter_model.
+    openrouter_model_strong: str = "anthropic/claude-opus-4.8"
     # Speech-to-text (console mic). Same OpenRouter key.
     openrouter_stt_model: str = "openai/whisper-1"
     openrouter_stt_language: str = "es"
-    llm_max_tokens: int = 2048
+    llm_max_tokens: int = 4096
     timezone: str = "Europe/Madrid"
 
     # ClickUp (personal API token, never expires)
