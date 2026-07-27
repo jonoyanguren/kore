@@ -30,10 +30,12 @@ export function UsageChip() {
 
   if (!usage) return null
 
-  const label = `${formatUsd(usage.usage_usd)} · ${Math.round(usage.pct_used)}%`
+  const used = formatUsd(usage.usage_usd)
+  const total = formatUsd(usage.total_usd)
+  const pct = Math.round(usage.pct_used)
+  const label = `${used} / ${total} · ${pct}%`
   const title =
-    `OpenRouter: ${formatUsd(usage.usage_usd)} usados de ` +
-    `${formatUsd(usage.total_usd)} (${usage.pct_used.toFixed(1)}%). ` +
+    `OpenRouter: ${used} usados de ${total} (${usage.pct_used.toFixed(1)}%). ` +
     `Quedan ${formatUsd(usage.remaining_usd)}.`
 
   const hot = usage.pct_used >= 85
@@ -48,6 +50,7 @@ export function UsageChip() {
       title={title}
       aria-label={title}
     >
+      <span className="console__usage-label">LLM</span>
       {label}
     </span>
   )
