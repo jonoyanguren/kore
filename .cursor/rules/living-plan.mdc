@@ -29,6 +29,8 @@ No subas ni deploys sin QA local verde:
 
 No dejes producción adelantada al remoto: el deploy sale del working tree local, pero el historial en GitHub debe reflejar lo mismo.
 
+Tras **commit + push** de una tarea cerrada: regla **`next-step-after-ship`** (mini-plan del siguiente paso en la misma respuesta; no esperar a que Jon pregunte “qué toca”).
+
 ## Mantener el plan actualizado
 
 En el **mismo cambio** (mismo PR / misma sesión de edits), actualiza `docs/PLAN.md` cuando:

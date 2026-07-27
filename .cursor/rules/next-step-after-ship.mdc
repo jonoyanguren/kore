@@ -1,0 +1,34 @@
+---
+description: Tras commit/push de una tarea, proponer mini-plan del siguiente paso
+alwaysApply: true
+---
+
+# Siguiente paso tras ship
+
+Cuando en la sesión **completes una tarea** y hagas **commit + push** (y/o deploy), **no cierres solo con “listo”**.
+
+En la **misma respuesta final** (después del resultado del ship):
+
+1. Mira `docs/TODO.md` (Phase 1.6 / backlog) y `docs/PLAN.md` (fase actual + next steps).
+2. Elige **un** siguiente paso concreto (el más natural tras lo acabado).
+3. Escribe un **mini-plan** corto (3–5 líneas máx.):
+   - Qué harías
+   - Por qué ahora
+   - Alternativa rápida (1 línea) si hay otra opción sensata
+4. Pregunta solo: **¿Seguimos con eso?** — no listes todo el roadmap.
+
+## Formato ejemplo
+
+```
+Siguiente: drawer memoria/diario.
+- API categorías + panel lateral desde Día/⌘K
+- Leer/añadir entrada sin salir del layout
+¿Seguimos con eso? (alt: voz one-tap)
+```
+
+## No hacer
+
+- No esperar a que Jon pregunte “qué toca”
+- No soltar 8 opciones del TODO; **una** recomendación + 1 alt
+- No inventar trabajo fuera de PLAN/TODO salvo bug obvio del ship
+- No auto-implementar el siguiente paso hasta confirmación (salvo “dale” / “sigue”)
