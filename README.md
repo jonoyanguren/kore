@@ -73,11 +73,16 @@ openssl rand -hex 32   # -> TELEGRAM_WEBHOOK_SECRET
 openssl rand -hex 32   # -> TELEGRAM_WEBHOOK_PATH_SECRET
 ```
 
-Levanta el servidor local:
+Levanta API + consola web (Vite):
 
 ```bash
-uv run uvicorn app.main:app --reload
+make start
+# API  http://127.0.0.1:8000
+# UI   http://127.0.0.1:5173
+# Ctrl+C para ambos · make stop si quedó algo colgado
 ```
+
+Solo backend: `make back` · solo front: `make front`.
 
 Verifica que responde:
 

@@ -102,7 +102,7 @@ Alcance (orden de ataque):
 2. **Chat vivo** — “pensando / usando tools…” (y streaming si cabe); acciones en respuesta (abrir/completar tarea)
 3. **Tarjeta de tarea rica** — editar inline (proyecto, url, notas, due); filtros por proyecto; buscar
 4. **Voz one-tap** — mic → transcripción → enviar (misma SPA)
-5. **⌘K / command palette** — dream, hora, nueva tarea, saltar a proyecto
+5. **⌘K / command palette** — dream, hora, nueva tarea, saltar a proyecto ✅
 6. **Layouts** — Focus (chat) / Operate (board) / Day (briefing+agenda)
 7. **Drawer memoria/diario** — por categoría + meter en diario
 8. **Feedback de sistema** — guardado, error LLM recuperable, tip “sync con Telegram”

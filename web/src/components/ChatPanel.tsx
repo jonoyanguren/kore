@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react'
 import {
   apiChat,
   apiCompleteTask,
@@ -8,6 +14,10 @@ import {
 import { formatRelativeEs } from '../relativeTime'
 import type { Task } from '../types'
 import { ChatTaskCard } from './ChatTaskCard'
+
+export type ChatPanelHandle = {
+  run: (text: string) => void
+}
 
 type Props = {
   onAfterChat?: (info: { tasksChanged: boolean }) => void
@@ -41,7 +51,10 @@ function whenLabel(m: ChatMessage, now: Date): string {
   return m.relative ?? ''
 }
 
-export function ChatPanel({ onAfterChat }: Props) {
+export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
+  { onAfterChat },
+  ref,
+) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
@@ -50,42 +63,35 @@ export function ChatPanel({ onAfterChat }: Props) {
   const [tick, setTick] = useState(0)
   const bottomRef = useRef<HTMLDivElement>(null)
   const logRef = useRef<HTMLDivElement>(null)
+  const busyRef = useRef(false)
+
+  useEffect(() => {
+    busyRef.current = busy
+  }, [busy])
 
   async function load() {
     const rows = await apiListMessages(100)
-    setMessages(rows.filter((m) => m.role === 'user' || m.role === 'assistant'))
+    setMessages(rows)
   }
 
   useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      try {
-        await load()
-      } catch (e) {
-        if (!cancelled) setError(String(e))
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
+    void load().catch((e) => setError(String(e)))
   }, [])
 
-  // Re-render relative labels every minute
   useEffect(() => {
-    const id = window.setInterval(() => setTick((n) => n + 1), 60_000)
+    const id = window.setInterval(() => setTick((n) => n + 1), 30_000)
     return () => window.clearInterval(id)
   }, [])
 
   useEffect(() => {
     const log = logRef.current
     if (!log) return
-    // Scroll only the chat log — never the page (scrollIntoView was jumping).
     log.scrollTop = log.scrollHeight
   }, [messages, busy, thinking])
 
   async function sendText(raw: string) {
     const t = raw.trim()
-    if (!t || busy) return
+    if (!t || busyRef.current) return
     setText('')
     setBusy(true)
     setThinking(
@@ -141,6 +147,12 @@ export function ChatPanel({ onAfterChat }: Props) {
     }
   }
 
+  useImperativeHandle(ref, () => ({
+    run: (cmd: string) => {
+      void sendText(cmd)
+    },
+  }))
+
   async function onCompleteTask(id: number) {
     try {
       await apiCompleteTask(id)
@@ -152,7 +164,6 @@ export function ChatPanel({ onAfterChat }: Props) {
   }
 
   const now = new Date()
-  // tick forces recompute of relative labels
   void tick
 
   return (
@@ -176,7 +187,7 @@ export function ChatPanel({ onAfterChat }: Props) {
       </div>
       <div className="chat__log" ref={logRef} aria-live="polite">
         {messages.length === 0 && !busy ? (
-          <p className="muted chat__empty">Escribe algo o pulsa /tareas…</p>
+          <p className="muted chat__empty">Escribe algo o pulsa ⌘K…</p>
         ) : null}
         {messages.map((m, i) => (
           <div
@@ -224,7 +235,7 @@ export function ChatPanel({ onAfterChat }: Props) {
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Mensaje o /tareas…"
+          placeholder="Mensaje o ⌘K…"
           rows={2}
           disabled={busy}
           onKeyDown={(e) => {
@@ -240,4 +251,4 @@ export function ChatPanel({ onAfterChat }: Props) {
       </form>
     </section>
   )
-}
+})

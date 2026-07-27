@@ -74,7 +74,7 @@ Orden:
 2. [ ] Chat vivo (“pensando / tools…”, streaming si cabe; acciones en respuesta) — thinking baseline 2026-07-27
 3. [x] Tarjeta tarea editable (proyecto, url, notas, due) + filtros + buscar (2026-07-27)
 4. [ ] Voz one-tap (mic → transcripción → enviar)
-5. [ ] ⌘K / command palette (dream, hora, nueva tarea, proyecto)
+5. [x] ⌘K / command palette (dream, hora, nueva tarea, proyecto)
 6. [ ] Layouts Focus / Operate / Day
 7. [ ] Drawer memoria/diario (categorías + meter en diario)
 8. [ ] Feedback sistema (guardado, error LLM, sync Telegram)

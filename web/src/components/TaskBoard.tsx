@@ -7,7 +7,14 @@ import {
   useSensors,
 } from '@dnd-kit/core'
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
-import { useEffect, useMemo, useState } from 'react'
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import type { FormEvent } from 'react'
 import {
   apiCompleteTask,
@@ -29,11 +36,20 @@ function columnOf(status: string): BoardColumnId | null {
   return null
 }
 
+export type TaskBoardHandle = {
+  focusNewTask: () => void
+  filterProject: (project: string) => void
+  clearFilters: () => void
+}
+
 type Props = {
   refreshToken?: number
 }
 
-export function TaskBoard({ refreshToken = 0 }: Props) {
+export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
+  { refreshToken = 0 },
+  ref,
+) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -42,6 +58,19 @@ export function TaskBoard({ refreshToken = 0 }: Props) {
   const [editing, setEditing] = useState<Task | null>(null)
   const [query, setQuery] = useState('')
   const [projectFilter, setProjectFilter] = useState('')
+  const addInputRef = useRef<HTMLInputElement>(null)
+
+  useImperativeHandle(ref, () => ({
+    focusNewTask: () => {
+      addInputRef.current?.focus()
+      addInputRef.current?.scrollIntoView({ block: 'nearest' })
+    },
+    filterProject: (project: string) => setProjectFilter(project),
+    clearFilters: () => {
+      setQuery('')
+      setProjectFilter('')
+    },
+  }))
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -175,6 +204,7 @@ export function TaskBoard({ refreshToken = 0 }: Props) {
         <h2>Tareas</h2>
         <form className="console__add" onSubmit={onAdd}>
           <input
+            ref={addInputRef}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Nueva tarea…"
@@ -258,4 +288,4 @@ export function TaskBoard({ refreshToken = 0 }: Props) {
       ) : null}
     </section>
   )
-}
+})
