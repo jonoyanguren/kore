@@ -6,6 +6,7 @@ import {
   type CommandAction,
 } from './CommandPalette'
 import { DayStrip } from './DayStrip'
+import { DocsDrawer, type DocsSectionId } from './DocsDrawer'
 import { MemoryDrawer } from './MemoryDrawer'
 import { TaskBoard, type TaskBoardHandle } from './TaskBoard'
 import type { Task } from '../types'
@@ -35,6 +36,8 @@ export function Console({ onLogout }: Props) {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [memoryOpen, setMemoryOpen] = useState(false)
   const [memoryTab, setMemoryTab] = useState<'diary' | 'memory'>('diary')
+  const [docsOpen, setDocsOpen] = useState(false)
+  const [docsSection, setDocsSection] = useState<DocsSectionId>('que-es')
   const [layout, setLayout] = useState<LayoutMode>(() => readLayout())
   const chatRef = useRef<ChatPanelHandle>(null)
   const boardRef = useRef<TaskBoardHandle>(null)
@@ -58,6 +61,11 @@ export function Console({ onLogout }: Props) {
     setMemoryOpen(true)
   }
 
+  function openDocs(section: DocsSectionId = 'que-es') {
+    setDocsSection(section)
+    setDocsOpen(true)
+  }
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -76,6 +84,7 @@ export function Console({ onLogout }: Props) {
       if (e.key === '2') setLayoutPersist('focus')
       if (e.key === '3') setLayoutPersist('operate')
       if (e.key.toLowerCase() === 'm') openMemory('diary')
+      if (e.key === '?' || e.key.toLowerCase() === 'h') openDocs()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -112,6 +121,9 @@ export function Console({ onLogout }: Props) {
       case 'open_memory':
         openMemory(action.tab ?? 'diary')
         break
+      case 'open_docs':
+        openDocs(action.section ?? 'que-es')
+        break
       case 'logout':
         void handleLogout()
         break
@@ -137,6 +149,14 @@ export function Console({ onLogout }: Props) {
           ))}
         </nav>
         <div className="console__bar-actions">
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => openDocs()}
+            title="Docs (?)"
+          >
+            Docs
+          </button>
           <button
             type="button"
             className="ghost"
@@ -185,6 +205,11 @@ export function Console({ onLogout }: Props) {
         open={memoryOpen}
         initialTab={memoryTab}
         onClose={() => setMemoryOpen(false)}
+      />
+      <DocsDrawer
+        open={docsOpen}
+        initialSection={docsSection}
+        onClose={() => setDocsOpen(false)}
       />
     </div>
   )

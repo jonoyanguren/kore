@@ -18,8 +18,6 @@ Convención: `- [ ]` pendiente · `- [x]` hecho. Añade fecha o contexto breve s
 - [ ] Decidir agresividad de captura (proactiva vs solo con “recuerda/captura”)
 - [ ] Meter varios modelos, uno para imagenes, otro para code...
 
-
-
 ## Kernel / producto
 
 - [x] Cablear imágenes Telegram → MIMO (Phase 0)
@@ -40,8 +38,6 @@ Convención: `- [ ]` pendiente · `- [x]` hecho. Añade fecha o contexto breve s
 - [ ] Dogfood dream/tasks en Telegram unos días
 - [x] Gate ship: QA local (uvicorn + pytest + qa_local) antes de commit/push/deploy
 
-
-
 ## Tareas
 
 - [x] Estados en tareas (`open` / `in_progress` / `done` / `cancelled`) + proyecto + links
@@ -53,8 +49,7 @@ Convención: `- [ ]` pendiente · `- [x]` hecho. Añade fecha o contexto breve s
 - [ ] Voz → Phase 1.6 voz one-tap
 - [ ] Gmail → Phase 2 (después de 1.6 salvo que digas lo contrario)
 - [x] Que en Tareas haya modo lista con checks (check - done - not done) y modo board + borrar/editar (2026-07-27)
-
-
+- [x] Hacer una documentación en la UI web para entender como funciona kore (Jone en mi caso) (2026-07-27)
 
 ## Consola web (Phase 1.5) — MVP
 
@@ -65,8 +60,6 @@ Plan: `[docs/web-console-plan.md](./web-console-plan.md)`
 - [x] **C** `POST /api/chat` + UI chat texto (2026-07-27)
 - [x] **D** Docker multi-stage + `CONSOLE_SECRET` Fly (2026-07-27)
 - [x] Servir `web/dist` desde FastAPI
-
-
 
 ## UX personal premium (Phase 1.6)
 
@@ -86,8 +79,6 @@ Orden:
 10. [ ] Proyectos como espacios (color + contexto Kimay/Kore/…)
 11. [ ] Privacidad personal (export vault, qué sabe, borrar categoría)
 12. [ ] Inbox del día (cuando Gmail / Phase 2)
-
-
 
 ## Notas
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { apiListTasks } from '../api'
+import type { DocsSectionId } from './DocsDrawer'
 
 export type CommandAction =
   | { kind: 'chat'; text: string }
@@ -9,6 +10,7 @@ export type CommandAction =
   | { kind: 'clear_filters' }
   | { kind: 'layout'; mode: 'day' | 'focus' | 'operate' }
   | { kind: 'open_memory'; tab?: 'diary' | 'memory' }
+  | { kind: 'open_docs'; section?: DocsSectionId }
   | { kind: 'logout' }
 
 type Item = {
@@ -60,6 +62,34 @@ const STATIC: Item[] = [
     hint: 'drawer',
     keywords: 'categorías memory hechos',
     action: { kind: 'open_memory', tab: 'memory' },
+  },
+  {
+    id: 'docs',
+    label: 'Cómo funciona Kore',
+    hint: '?',
+    keywords: 'docs documentación ayuda help jone guía',
+    action: { kind: 'open_docs', section: 'que-es' },
+  },
+  {
+    id: 'docs-skills',
+    label: 'Docs: skills',
+    hint: '?',
+    keywords: 'docs skills playbooks dream capture tasks',
+    action: { kind: 'open_docs', section: 'skills' },
+  },
+  {
+    id: 'docs-comandos',
+    label: 'Docs: comandos',
+    hint: '?',
+    keywords: 'docs comandos slash /tareas /dream /hora',
+    action: { kind: 'open_docs', section: 'comandos' },
+  },
+  {
+    id: 'docs-tareas',
+    label: 'Docs: tareas',
+    hint: '?',
+    keywords: 'docs tareas check estrella board lista',
+    action: { kind: 'open_docs', section: 'tareas' },
   },
   {
     id: 'dream',
