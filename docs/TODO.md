@@ -72,7 +72,7 @@ Super-herramienta para Jon; barra UX alta. **No** multi-user / venta / billing.
 Orden:
 1. [x] Day strip (fecha Madrid + briefing/dream + agenda próxima) (2026-07-27)
 2. [ ] Chat vivo (“pensando / tools…”, streaming si cabe; acciones en respuesta) — thinking baseline 2026-07-27
-3. [ ] Tarjeta tarea editable (proyecto, url, notas, due) + filtros + buscar
+3. [x] Tarjeta tarea editable (proyecto, url, notas, due) + filtros + buscar (2026-07-27)
 4. [ ] Voz one-tap (mic → transcripción → enviar)
 5. [ ] ⌘K / command palette (dream, hora, nueva tarea, proyecto)
 6. [ ] Layouts Focus / Operate / Day

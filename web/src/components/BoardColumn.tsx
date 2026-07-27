@@ -16,9 +16,10 @@ type Props = {
   id: BoardColumnId
   tasks: Task[]
   onComplete: (id: number) => void
+  onEdit: (task: Task) => void
 }
 
-export function BoardColumn({ id, tasks, onComplete }: Props) {
+export function BoardColumn({ id, tasks, onComplete, onEdit }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id })
 
   return (
@@ -36,7 +37,12 @@ export function BoardColumn({ id, tasks, onComplete }: Props) {
       >
         <div className="board-col__list">
           {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} onComplete={onComplete} />
+            <TaskCard
+              key={task.id}
+              task={task}
+              onComplete={onComplete}
+              onEdit={onEdit}
+            />
           ))}
           {tasks.length === 0 ? (
             <p className="board-col__empty">Suelta aquí</p>

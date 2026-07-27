@@ -438,6 +438,106 @@ button.ghost {
   font-size: 1.05rem;
 }
 
+.board-panel__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.board-panel__filters input,
+.board-panel__filters select {
+  flex: 1;
+  min-width: 8rem;
+}
+
+.task-card__title--edit {
+  cursor: pointer;
+}
+
+.task-card__title--edit:hover {
+  color: var(--accent);
+}
+
+.task-card__edit {
+  flex: none;
+  width: 1.55rem;
+  height: 1.55rem;
+  padding: 0;
+  line-height: 1;
+  background: transparent;
+  color: var(--muted);
+  border-color: var(--line);
+  font-size: 0.85rem;
+}
+
+.task-editor-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 25, 22, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 40;
+}
+
+.task-editor {
+  width: min(28rem, 100%);
+  max-height: min(90svh, 40rem);
+  overflow: auto;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  box-shadow: var(--shadow);
+}
+
+.task-editor__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.task-editor__head h3 {
+  font-size: 1.1rem;
+}
+
+.task-editor label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.task-editor input,
+.task-editor select,
+.task-editor textarea {
+  font: inherit;
+  color: var(--ink);
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  border-radius: 2px;
+}
+
+.task-editor__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+
+.task-editor__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.25rem;
+}
+
 .board {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

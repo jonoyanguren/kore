@@ -18,6 +18,7 @@ import {
 import type { BoardColumnId, Task } from '../types'
 import { BoardColumn } from './BoardColumn'
 import { TaskCard } from './TaskCard'
+import { TaskEditor } from './TaskEditor'
 
 const COLUMNS: BoardColumnId[] = ['open', 'in_progress', 'done']
 
@@ -38,6 +39,9 @@ export function TaskBoard({ refreshToken = 0 }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [editing, setEditing] = useState<Task | null>(null)
+  const [query, setQuery] = useState('')
+  const [projectFilter, setProjectFilter] = useState('')
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -65,18 +69,39 @@ export function TaskBoard({ refreshToken = 0 }: Props) {
     }
   }, [refreshToken])
 
+  const projects = useMemo(() => {
+    const set = new Set<string>()
+    for (const t of tasks) {
+      if (t.project) set.add(t.project)
+    }
+    return Array.from(set).sort()
+  }, [tasks])
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return tasks.filter((t) => {
+      if (projectFilter && (t.project ?? '') !== projectFilter) return false
+      if (!q) return true
+      const hay = [t.title, t.project, t.notes, t.url, t.due_at]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      return hay.includes(q)
+    })
+  }, [tasks, query, projectFilter])
+
   const grouped = useMemo(() => {
     const map: Record<BoardColumnId, Task[]> = {
       in_progress: [],
       open: [],
       done: [],
     }
-    for (const t of tasks) {
+    for (const t of filtered) {
       const col = columnOf(t.status)
       if (col) map[col].push(t)
     }
     return map
-  }, [tasks])
+  }, [filtered])
 
   const activeTask = activeId
     ? (tasks.find((t) => String(t.id) === activeId) ?? null)
@@ -158,6 +183,39 @@ export function TaskBoard({ refreshToken = 0 }: Props) {
         </form>
       </header>
 
+      <div className="board-panel__filters">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar…"
+          aria-label="Buscar tareas"
+        />
+        <select
+          value={projectFilter}
+          onChange={(e) => setProjectFilter(e.target.value)}
+          aria-label="Filtrar por proyecto"
+        >
+          <option value="">Todos los proyectos</option>
+          {projects.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+        {(query || projectFilter) && (
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => {
+              setQuery('')
+              setProjectFilter('')
+            }}
+          >
+            Limpiar
+          </button>
+        )}
+      </div>
+
       {error ? <p className="error">{error}</p> : null}
       {loading ? <p className="muted">Cargando…</p> : null}
 
@@ -174,6 +232,7 @@ export function TaskBoard({ refreshToken = 0 }: Props) {
               id={col}
               tasks={grouped[col]}
               onComplete={onComplete}
+              onEdit={setEditing}
             />
           ))}
         </div>
@@ -183,6 +242,20 @@ export function TaskBoard({ refreshToken = 0 }: Props) {
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {editing ? (
+        <TaskEditor
+          task={editing}
+          onClose={() => setEditing(null)}
+          onSaved={(updated) => {
+            setTasks((rows) =>
+              rows
+                .map((row) => (row.id === updated.id ? updated : row))
+                .filter((row) => row.status !== 'cancelled'),
+            )
+          }}
+        />
+      ) : null}
     </section>
   )
 }

@@ -5,9 +5,10 @@ import type { Task } from '../types'
 type Props = {
   task: Task
   onComplete: (id: number) => void
+  onEdit?: (task: Task) => void
 }
 
-export function TaskCard({ task, onComplete }: Props) {
+export function TaskCard({ task, onComplete, onEdit }: Props) {
   const {
     attributes,
     listeners,
@@ -44,7 +45,34 @@ export function TaskCard({ task, onComplete }: Props) {
         >
           ✓
         </button>
-        <h3>{task.title}</h3>
+        <h3
+          className={onEdit ? 'task-card__title--edit' : undefined}
+          title={onEdit ? 'Editar' : undefined}
+          onPointerDown={(e) => {
+            if (onEdit) e.stopPropagation()
+          }}
+          onClick={(e) => {
+            if (!onEdit) return
+            e.stopPropagation()
+            onEdit(task)
+          }}
+        >
+          {task.title}
+        </h3>
+        {onEdit ? (
+          <button
+            type="button"
+            className="task-card__edit"
+            title="Editar"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit(task)
+            }}
+          >
+            ✎
+          </button>
+        ) : null}
       </header>
       <div className="task-card__meta">
         {task.project ? <span>{task.project}</span> : null}
