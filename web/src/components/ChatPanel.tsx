@@ -17,6 +17,7 @@ import {
 import { formatRelativeEs } from '../relativeTime'
 import type { Task } from '../types'
 import { ChatTaskCard } from './ChatTaskCard'
+import { useToast } from './Toasts'
 
 export type ChatPanelHandle = {
   run: (text: string) => void
@@ -84,7 +85,9 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   { onAfterChat, onOpenTask },
   ref,
 ) {
+  const toast = useToast()
   const [messages, setMessages] = useState<ChatMessage[]>([])
+  const telegramTipShown = useRef(false)
   const [hasMore, setHasMore] = useState(false)
   const [loadingOlder, setLoadingOlder] = useState(false)
   const [text, setText] = useState('')
@@ -240,12 +243,21 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       }
       stickBottomRef.current = true
       requestAnimationFrame(() => scrollToBottom('smooth'))
+      if (result.tasks_changed || result.tasks_created.length > 0) {
+        toast.ok('Tareas actualizadas')
+        if (!telegramTipShown.current) {
+          telegramTipShown.current = true
+          toast.info('Mismo vault que Telegram — ya está sync')
+        }
+      }
       onAfterChat?.({
         tasksChanged: result.tasks_changed || result.tasks_listed.length > 0,
       })
     } catch (err) {
       setThinking(null)
-      setError(String(err))
+      const msg = String(err)
+      setError(msg)
+      toast.err(msg.includes('abort') ? 'El modelo tardó demasiado' : msg)
       setMessages((prev) => [
         ...prev,
         { role: 'assistant', content: '(error al responder)', tasks: [] },
@@ -268,9 +280,12 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     try {
       await apiCompleteTask(id)
       setMessages((prev) => patchTasksInMessages(prev, id, { status: 'done' }))
+      toast.ok('Hecha')
       onAfterChat?.({ tasksChanged: true })
     } catch (e) {
-      setError(String(e))
+      const msg = String(e)
+      setError(msg)
+      toast.err(msg)
     }
   }
 
@@ -280,9 +295,12 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       setMessages((prev) =>
         patchTasksInMessages(prev, id, { status: 'in_progress' }),
       )
+      toast.ok('En curso')
       onAfterChat?.({ tasksChanged: true })
     } catch (e) {
-      setError(String(e))
+      const msg = String(e)
+      setError(msg)
+      toast.err(msg)
     }
   }
 

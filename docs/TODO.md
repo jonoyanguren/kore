@@ -52,12 +52,13 @@ Convención: `- [ ]` pendiente · `- [x]` hecho. Añade fecha o contexto breve s
 - [ ] Contexto proyectos (lol, kimay, …) → Phase 1.6 espacios
 - [ ] Voz → Phase 1.6 voz one-tap
 - [ ] Gmail → Phase 2 (después de 1.6 salvo que digas lo contrario)
+- [ ] Que en Tareas haya modo lista con checks (check - done - not done) y modo board
 
 
 
 ## Consola web (Phase 1.5) — MVP
 
-Plan: [`docs/web-console-plan.md`](./web-console-plan.md)
+Plan: `[docs/web-console-plan.md](./web-console-plan.md)`
 
 - [x] **A** Scaffold Vite+React+TS + auth + API tasks + tests (2026-07-27)
 - [x] **B** UI React board Trello (DnD En curso / Pendientes / Hechas) (2026-07-27)
@@ -65,11 +66,14 @@ Plan: [`docs/web-console-plan.md`](./web-console-plan.md)
 - [x] **D** Docker multi-stage + `CONSOLE_SECRET` Fly (2026-07-27)
 - [x] Servir `web/dist` desde FastAPI
 
+
+
 ## UX personal premium (Phase 1.6)
 
 Super-herramienta para Jon; barra UX alta. **No** multi-user / venta / billing.
 
 Orden:
+
 1. [x] Day strip (fecha Madrid + briefing/dream + agenda próxima) (2026-07-27)
 2. [x] Chat vivo (status SSE + acciones Abrir/En curso/Hecha) (2026-07-27)
 3. [x] Tarjeta tarea editable (proyecto, url, notas, due) + filtros + buscar (2026-07-27)
@@ -77,11 +81,13 @@ Orden:
 5. [x] ⌘K / command palette (dream, hora, nueva tarea, proyecto)
 6. [x] Layouts Focus / Operate / Day + look Momentum (aire, Outfit) (2026-07-27)
 7. [ ] Drawer memoria/diario (categorías + meter en diario)
-8. [ ] Feedback sistema (guardado, error LLM, sync Telegram)
+8. [x] Feedback sistema (toasts guardado / error / tip sync) (2026-07-27)
 9. [ ] Design system (tokens, empty states, mobile)
 10. [ ] Proyectos como espacios (color + contexto Kimay/Kore/…)
 11. [ ] Privacidad personal (export vault, qué sabe, borrar categoría)
 12. [ ] Inbox del día (cuando Gmail / Phase 2)
+
+
 
 ## Notas
 

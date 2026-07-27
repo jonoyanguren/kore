@@ -26,6 +26,7 @@ import type { BoardColumnId, Task } from '../types'
 import { BoardColumn } from './BoardColumn'
 import { TaskCard } from './TaskCard'
 import { TaskEditor } from './TaskEditor'
+import { useToast } from './Toasts'
 
 const COLUMNS: BoardColumnId[] = ['open', 'in_progress', 'done']
 
@@ -51,6 +52,7 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
   { refreshToken = 0 },
   ref,
 ) {
+  const toast = useToast()
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -146,8 +148,11 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
     try {
       const task = await apiCreateTask({ title: t, status: 'open' })
       setTasks((prev) => [...prev, task])
+      toast.ok('Tarea añadida')
     } catch (err) {
-      setError(String(err))
+      const msg = String(err)
+      setError(msg)
+      toast.err(msg)
     }
   }
 
@@ -159,9 +164,12 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
     try {
       const updated = await apiCompleteTask(id)
       setTasks((rows) => rows.map((row) => (row.id === id ? updated : row)))
+      toast.ok('Hecha')
     } catch (err) {
       setTasks(prev)
-      setError(String(err))
+      const msg = String(err)
+      setError(msg)
+      toast.err(msg)
     }
   }
 
@@ -173,9 +181,12 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
     try {
       const updated = await apiPatchTask(id, { status })
       setTasks((rows) => rows.map((row) => (row.id === id ? updated : row)))
+      toast.ok('Movida')
     } catch (err) {
       setTasks(prev)
-      setError(String(err))
+      const msg = String(err)
+      setError(msg)
+      toast.err(msg)
     }
   }
 

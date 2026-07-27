@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiPatchTask } from '../api'
 import type { Task, TaskStatus } from '../types'
+import { useToast } from './Toasts'
 
 type Props = {
   task: Task
@@ -12,6 +13,7 @@ type Props = {
 const STATUSES: TaskStatus[] = ['open', 'in_progress', 'done', 'cancelled']
 
 export function TaskEditor({ task, onClose, onSaved }: Props) {
+  const toast = useToast()
   const [title, setTitle] = useState(task.title)
   const [status, setStatus] = useState(task.status)
   const [project, setProject] = useState(task.project ?? '')
@@ -38,6 +40,7 @@ export function TaskEditor({ task, onClose, onSaved }: Props) {
     const t = title.trim()
     if (!t) {
       setError('Título vacío')
+      toast.err('Título vacío')
       return
     }
     setBusy(true)
@@ -56,10 +59,13 @@ export function TaskEditor({ task, onClose, onSaved }: Props) {
         clear_due: !dueAt.trim(),
         clear_notes: !notes.trim(),
       })
+      toast.ok('Tarea guardada')
       onSaved(updated)
       onClose()
     } catch (err) {
-      setError(String(err))
+      const msg = String(err)
+      setError(msg)
+      toast.err(msg)
     } finally {
       setBusy(false)
     }

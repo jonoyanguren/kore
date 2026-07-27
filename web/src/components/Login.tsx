@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiLogin } from '../api'
+import { useToast } from './Toasts'
 
 type Props = {
   onSuccess: () => void
 }
 
 export function Login({ onSuccess }: Props) {
+  const toast = useToast()
   const [secret, setSecret] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -19,8 +21,10 @@ export function Login({ onSuccess }: Props) {
       const ok = await apiLogin(secret.trim())
       if (!ok) {
         setError('Secret incorrecto')
+        toast.err('Secret incorrecto')
         return
       }
+      toast.ok('Dentro')
       onSuccess()
     } finally {
       setBusy(false)
