@@ -115,6 +115,98 @@ async def me() -> dict[str, bool]:
     return {"ok": True}
 
 
+class MemoryBody(BaseModel):
+    text: str = Field(min_length=1, max_length=4000)
+    category: str = Field(default="general", max_length=64)
+
+
+class DiaryBody(BaseModel):
+    text: str = Field(min_length=1, max_length=4000)
+    day: str | None = None
+
+
+@router.get("/memory/categories", dependencies=[Depends(require_console_auth)])
+async def memory_categories(request: Request) -> dict[str, list[str]]:
+    cats = await request.app.state.memory.list_categories()
+    return {"categories": cats}
+
+
+@router.get("/memory", dependencies=[Depends(require_console_auth)])
+async def list_memory(
+    request: Request,
+    category: str | None = None,
+    limit: int = 40,
+) -> dict[str, Any]:
+    rows = await request.app.state.memory.list_memory(
+        category=category, limit=min(max(limit, 1), 100)
+    )
+    return {
+        "items": [
+            {"id": i, "category": cat, "text": text} for i, cat, text in rows
+        ]
+    }
+
+
+@router.post("/memory", dependencies=[Depends(require_console_auth)])
+async def create_memory(request: Request, body: MemoryBody) -> dict[str, Any]:
+    cat = (body.category or "general").strip().lower() or "general"
+    item_id = await request.app.state.memory.save_memory(
+        category=cat, text=body.text, source="console"
+    )
+    vault = request.app.state.vault
+    vault.append_memory(cat, item_id, body.text)
+    return {"item": {"id": item_id, "category": cat, "text": body.text.strip()}}
+
+
+@router.delete("/memory/{item_id}", dependencies=[Depends(require_console_auth)])
+async def delete_memory_item(request: Request, item_id: int) -> dict[str, bool]:
+    memory = request.app.state.memory
+    existing = await memory.get_memory(item_id)
+    if existing is None:
+        raise HTTPException(status_code=404, detail="memory not found")
+    _id, cat, _text = existing
+    ok = await memory.delete_memory(item_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="memory not found")
+    items = await memory.list_memory_all_by_category(cat)
+    request.app.state.vault.rewrite_memory_category(cat, items)
+    return {"ok": True}
+
+
+@router.get("/diary", dependencies=[Depends(require_console_auth)])
+async def list_diary(
+    request: Request,
+    day: str | None = None,
+) -> dict[str, Any]:
+    day = day or session_date_str()
+    rows = await request.app.state.memory.list_diary_for_day(day)
+    return {
+        "day": day,
+        "entries": [{"id": i, "text": text} for i, text in rows],
+    }
+
+
+@router.post("/diary", dependencies=[Depends(require_console_auth)])
+async def create_diary(request: Request, body: DiaryBody) -> dict[str, Any]:
+    day = body.day or session_date_str()
+    entry_id = await request.app.state.memory.add_diary_entry(
+        text=body.text, day=day, source="console"
+    )
+    request.app.state.vault.append_diary(day, entry_id, body.text)
+    return {"entry": {"id": entry_id, "text": body.text.strip(), "day": day}}
+
+
+@router.delete("/diary/{entry_id}", dependencies=[Depends(require_console_auth)])
+async def delete_diary(request: Request, entry_id: int) -> dict[str, bool]:
+    memory = request.app.state.memory
+    day = await memory.delete_diary_entry(entry_id)
+    if day is None:
+        raise HTTPException(status_code=404, detail="diary entry not found")
+    entries = await memory.list_diary_for_day(day)
+    request.app.state.vault.rewrite_diary_day(day, entries)
+    return {"ok": True}
+
+
 @router.get("/tasks", dependencies=[Depends(require_console_auth)])
 async def list_tasks(
     request: Request,

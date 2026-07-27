@@ -35,6 +35,69 @@ export async function apiLogout(): Promise<void> {
   await req('/api/logout', { method: 'POST' })
 }
 
+export type MemoryItem = { id: number; category: string; text: string }
+export type DiaryEntry = { id: number; text: string }
+
+export async function apiMemoryCategories(): Promise<string[]> {
+  const r = await req<{ categories: string[] }>('/api/memory/categories')
+  if (!r.ok) throw new Error(`memory categories ${r.status}`)
+  return r.data.categories
+}
+
+export async function apiListMemory(
+  category?: string,
+  limit = 40,
+): Promise<MemoryItem[]> {
+  const qs = new URLSearchParams({ limit: String(limit) })
+  if (category) qs.set('category', category)
+  const r = await req<{ items: MemoryItem[] }>(`/api/memory?${qs}`)
+  if (!r.ok) throw new Error(`list memory ${r.status}`)
+  return r.data.items
+}
+
+export async function apiCreateMemory(input: {
+  text: string
+  category?: string
+}): Promise<MemoryItem> {
+  const r = await req<{ item: MemoryItem }>('/api/memory', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+  if (!r.ok) throw new Error(`create memory ${r.status}`)
+  return r.data.item
+}
+
+export async function apiDeleteMemory(id: number): Promise<void> {
+  const r = await req(`/api/memory/${id}`, { method: 'DELETE' })
+  if (!r.ok) throw new Error(`delete memory ${r.status}`)
+}
+
+export async function apiListDiary(
+  day?: string,
+): Promise<{ day: string; entries: DiaryEntry[] }> {
+  const qs = day ? `?day=${encodeURIComponent(day)}` : ''
+  const r = await req<{ day: string; entries: DiaryEntry[] }>(`/api/diary${qs}`)
+  if (!r.ok) throw new Error(`list diary ${r.status}`)
+  return r.data
+}
+
+export async function apiCreateDiary(input: {
+  text: string
+  day?: string
+}): Promise<DiaryEntry & { day: string }> {
+  const r = await req<{ entry: DiaryEntry & { day: string } }>('/api/diary', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+  if (!r.ok) throw new Error(`create diary ${r.status}`)
+  return r.data.entry
+}
+
+export async function apiDeleteDiary(id: number): Promise<void> {
+  const r = await req(`/api/diary/${id}`, { method: 'DELETE' })
+  if (!r.ok) throw new Error(`delete diary ${r.status}`)
+}
+
 export async function apiListTasks(): Promise<Task[]> {
   const r = await req<{ tasks: Task[] }>('/api/tasks?status=all&limit=100')
   if (!r.ok) throw new Error(`list tasks ${r.status}`)

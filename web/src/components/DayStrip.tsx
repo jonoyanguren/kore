@@ -6,6 +6,7 @@ type Props = {
   variant?: 'hero' | 'rail'
   onOpenChat?: () => void
   onOpenBoard?: () => void
+  onOpenMemory?: () => void
 }
 
 function formatAgendaWhen(startsAt: string): string {
@@ -44,6 +45,7 @@ export function DayStrip({
   variant = 'rail',
   onOpenChat,
   onOpenBoard,
+  onOpenMemory,
 }: Props) {
   const [day, setDay] = useState<DaySnapshot | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -196,10 +198,19 @@ export function DayStrip({
           <button
             type="button"
             className="ghost day-strip__cta"
-            onClick={onOpenChat}
+            onClick={onOpenMemory ?? onOpenChat}
           >
-            Hablar con Jone →
+            {onOpenMemory ? 'Memoria / diario →' : 'Hablar con Jone →'}
           </button>
+          {onOpenMemory && onOpenChat ? (
+            <button
+              type="button"
+              className="ghost day-strip__cta"
+              onClick={onOpenChat}
+            >
+              Hablar con Jone →
+            </button>
+          ) : null}
         </div>
       </div>
     </section>

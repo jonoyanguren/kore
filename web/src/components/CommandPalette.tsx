@@ -8,6 +8,7 @@ export type CommandAction =
   | { kind: 'filter_project'; project: string }
   | { kind: 'clear_filters' }
   | { kind: 'layout'; mode: 'day' | 'focus' | 'operate' }
+  | { kind: 'open_memory'; tab?: 'diary' | 'memory' }
   | { kind: 'logout' }
 
 type Item = {
@@ -47,6 +48,20 @@ const STATIC: Item[] = [
     action: { kind: 'layout', mode: 'operate' },
   },
   {
+    id: 'memory-drawer',
+    label: 'Memoria / diario',
+    hint: 'drawer',
+    keywords: 'memoria memory diario journal vault categorías',
+    action: { kind: 'open_memory', tab: 'diary' },
+  },
+  {
+    id: 'memory-cats',
+    label: 'Categorías de memoria',
+    hint: 'drawer',
+    keywords: 'categorías memory hechos',
+    action: { kind: 'open_memory', tab: 'memory' },
+  },
+  {
     id: 'dream',
     label: 'Sueño del día',
     hint: '/dream',
@@ -68,10 +83,10 @@ const STATIC: Item[] = [
     action: { kind: 'chat', text: '/agenda' },
   },
   {
-    id: 'diario',
-    label: 'Diario',
+    id: 'diario-chat',
+    label: 'Diario en chat',
     hint: '/diario',
-    keywords: 'diario journal',
+    keywords: 'diario journal chat',
     action: { kind: 'chat', text: '/diario' },
   },
   {

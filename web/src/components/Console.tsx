@@ -6,6 +6,7 @@ import {
   type CommandAction,
 } from './CommandPalette'
 import { DayStrip } from './DayStrip'
+import { MemoryDrawer } from './MemoryDrawer'
 import { TaskBoard, type TaskBoardHandle } from './TaskBoard'
 import type { Task } from '../types'
 
@@ -32,6 +33,8 @@ function readLayout(): LayoutMode {
 export function Console({ onLogout }: Props) {
   const [boardToken, setBoardToken] = useState(0)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [memoryOpen, setMemoryOpen] = useState(false)
+  const [memoryTab, setMemoryTab] = useState<'diary' | 'memory'>('diary')
   const [layout, setLayout] = useState<LayoutMode>(() => readLayout())
   const chatRef = useRef<ChatPanelHandle>(null)
   const boardRef = useRef<TaskBoardHandle>(null)
@@ -48,6 +51,11 @@ export function Console({ onLogout }: Props) {
   function setLayoutPersist(next: LayoutMode) {
     setLayout(next)
     localStorage.setItem(STORAGE_KEY, next)
+  }
+
+  function openMemory(tab: 'diary' | 'memory' = 'diary') {
+    setMemoryTab(tab)
+    setMemoryOpen(true)
   }
 
   useEffect(() => {
@@ -67,6 +75,7 @@ export function Console({ onLogout }: Props) {
       if (e.key === '1') setLayoutPersist('day')
       if (e.key === '2') setLayoutPersist('focus')
       if (e.key === '3') setLayoutPersist('operate')
+      if (e.key.toLowerCase() === 'm') openMemory('diary')
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -100,6 +109,9 @@ export function Console({ onLogout }: Props) {
       case 'layout':
         setLayoutPersist(action.mode)
         break
+      case 'open_memory':
+        openMemory(action.tab ?? 'diary')
+        break
       case 'logout':
         void handleLogout()
         break
@@ -127,6 +139,14 @@ export function Console({ onLogout }: Props) {
         <div className="console__bar-actions">
           <button
             type="button"
+            className="ghost"
+            onClick={() => openMemory('diary')}
+            title="Memoria (M)"
+          >
+            Memoria
+          </button>
+          <button
+            type="button"
             className="ghost console__cmdk-btn"
             onClick={() => setPaletteOpen(true)}
             title="⌘K"
@@ -144,6 +164,7 @@ export function Console({ onLogout }: Props) {
         variant={layout === 'day' ? 'hero' : 'rail'}
         onOpenChat={() => setLayoutPersist('focus')}
         onOpenBoard={() => setLayoutPersist('operate')}
+        onOpenMemory={() => openMemory('diary')}
       />
 
       <div className="console__body">
@@ -159,6 +180,11 @@ export function Console({ onLogout }: Props) {
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
         onRun={onCommand}
+      />
+      <MemoryDrawer
+        open={memoryOpen}
+        initialTab={memoryTab}
+        onClose={() => setMemoryOpen(false)}
       />
     </div>
   )

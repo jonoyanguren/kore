@@ -197,6 +197,44 @@ async def _run():
             assert "meetings" in snap["briefing"]
             assert "help" in snap["briefing"]
 
+            mem = await ac.post(
+                "/api/memory",
+                headers={"Authorization": f"Bearer {secret}"},
+                json={"category": "personal", "text": "le gusta el minimalismo"},
+            )
+            assert mem.status_code == 200
+            mid = mem.json()["item"]["id"]
+            listed = await ac.get(
+                "/api/memory?category=personal",
+                headers={"Authorization": f"Bearer {secret}"},
+            )
+            assert listed.status_code == 200
+            assert any(i["id"] == mid for i in listed.json()["items"])
+            diary = await ac.post(
+                "/api/diary",
+                headers={"Authorization": f"Bearer {secret}"},
+                json={"text": "probando drawer"},
+            )
+            assert diary.status_code == 200
+            did = diary.json()["entry"]["id"]
+            dlist = await ac.get(
+                "/api/diary",
+                headers={"Authorization": f"Bearer {secret}"},
+            )
+            assert any(e["id"] == did for e in dlist.json()["entries"])
+            assert (
+                await ac.delete(
+                    f"/api/diary/{did}",
+                    headers={"Authorization": f"Bearer {secret}"},
+                )
+            ).status_code == 200
+            assert (
+                await ac.delete(
+                    f"/api/memory/{mid}",
+                    headers={"Authorization": f"Bearer {secret}"},
+                )
+            ).status_code == 200
+
 
 def test_web_api_auth_and_tasks():
     asyncio.run(_run())

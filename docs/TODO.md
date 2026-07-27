@@ -80,7 +80,7 @@ Orden:
 4. [ ] Voz one-tap (mic → transcripción → enviar)
 5. [x] ⌘K / command palette (dream, hora, nueva tarea, proyecto)
 6. [x] Layouts Focus / Operate / Day + look Momentum (aire, Outfit) (2026-07-27)
-7. [ ] Drawer memoria/diario (categorías + meter en diario)
+7. [x] Drawer memoria/diario (categorías + meter en diario) (2026-07-27)
 8. [x] Feedback sistema (toasts guardado / error / tip sync) (2026-07-27)
 9. [ ] Design system (tokens, empty states, mobile)
 10. [ ] Proyectos como espacios (color + contexto Kimay/Kore/…)

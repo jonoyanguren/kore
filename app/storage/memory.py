@@ -296,6 +296,17 @@ class MemoryStore:
             await db.commit()
             return cursor.rowcount > 0
 
+    async def get_memory(self, item_id: int) -> tuple[int, str, str] | None:
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                "SELECT id, category, text FROM memory_items WHERE id = ?",
+                (item_id,),
+            )
+            row = await cursor.fetchone()
+            if row is None:
+                return None
+            return (int(row[0]), row[1], row[2])
+
     # --- Diary --------------------------------------------------------------
 
     async def add_diary_entry(
@@ -326,6 +337,21 @@ class MemoryStore:
             )
             rows = await cursor.fetchall()
             return [(row[0], row[1]) for row in rows]
+
+    async def delete_diary_entry(self, entry_id: int) -> str | None:
+        """Delete diary row; return its day if deleted, else None."""
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                "SELECT day FROM diary_entries WHERE id = ?",
+                (entry_id,),
+            )
+            row = await cursor.fetchone()
+            if row is None:
+                return None
+            day = row[0]
+            await db.execute("DELETE FROM diary_entries WHERE id = ?", (entry_id,))
+            await db.commit()
+            return day
 
     # --- Session messages ---------------------------------------------------
 
