@@ -399,6 +399,11 @@ button.ghost:hover {
   margin-bottom: 0.65rem;
 }
 
+.day-strip__hint {
+  margin: -0.35rem 0 0.65rem;
+  font-size: 0.78rem;
+}
+
 .day-strip__block ul {
   list-style: none;
   margin: 0;

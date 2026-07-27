@@ -112,15 +112,17 @@ export function DayStrip({
   const { time, rest } = clockParts(day.clock)
   const briefing = day.briefing
   const summary = briefing?.summary ?? []
+  const starred = briefing?.in_progress_tasks ?? []
+  const mustNotMiss = briefing?.must_not_miss ?? []
   const important = briefing?.important_tasks ?? []
   const meetings = briefing?.meetings ?? day.agenda ?? []
   const help = briefing?.help ?? []
   // "lunes 27 de julio de 2026" → weekday + date once (not repeated)
   const dateLine = rest || day.headline || ''
+  const focusTask = starred[0] ?? mustNotMiss[0] ?? important[0]
 
   if (variant === 'rail') {
     const nextMeeting = meetings[0]
-    const topTask = important[0]
     return (
       <section className="day-strip day-strip--rail" aria-label="Hoy">
         <div className="day-strip__rail-main">
@@ -133,8 +135,8 @@ export function DayStrip({
         <p className="day-strip__rail-next muted">
           {nextMeeting
             ? `Reunión: ${formatAgendaWhen(nextMeeting.starts_at)} — ${nextMeeting.title}`
-            : topTask
-              ? `Foco: ${topTask.title}`
+            : focusTask
+              ? `Foco: ${focusTask.title}`
               : summary[0]
                 ? summary[0]
                 : help[0]
@@ -183,12 +185,42 @@ export function DayStrip({
         </div>
 
         <div className="day-strip__block">
-          <h3>Tareas importantes</h3>
-          {important.length === 0 ? (
-            <p className="muted">Ninguna destacada</p>
+          <h3>★ En curso</h3>
+          {starred.length === 0 ? (
+            <p className="muted">Nada con estrella — márcalas en Tareas</p>
           ) : (
             <ul>
-              {important.map((t) => (
+              {starred.map((t) => (
+                <li key={t.id}>
+                  <button
+                    type="button"
+                    className="day-strip__task-link"
+                    onClick={onOpenBoard}
+                  >
+                    {t.title}
+                  </button>
+                  <span className="day-strip__tag">
+                    {t.project ? t.project : 'en curso'}
+                    {t.due_at
+                      ? ` · ${formatAgendaWhen(t.due_at.length === 10 ? `${t.due_at}T00:00` : t.due_at)}`
+                      : ''}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="day-strip__block">
+          <h3>No se pueden escapar</h3>
+          <p className="day-strip__hint muted">
+            Las que Jone prioriza por dream, due y prioridad
+          </p>
+          {mustNotMiss.length === 0 ? (
+            <p className="muted">Ninguna ahora</p>
+          ) : (
+            <ul>
+              {mustNotMiss.map((t) => (
                 <li key={t.id}>
                   <button
                     type="button"
@@ -200,6 +232,9 @@ export function DayStrip({
                   <span className="day-strip__tag">
                     {STATUS_SHORT[t.status] ?? t.status}
                     {t.project ? ` · ${t.project}` : ''}
+                    {t.due_at
+                      ? ` · ${formatAgendaWhen(t.due_at.length === 10 ? `${t.due_at}T00:00` : t.due_at)}`
+                      : ''}
                   </span>
                 </li>
               ))}

@@ -1,4 +1,8 @@
-from app.kernel.briefing import parse_dream_sections, pick_important_tasks
+from app.kernel.briefing import (
+    parse_dream_sections,
+    pick_important_tasks,
+    pick_must_not_miss,
+)
 from app.storage.memory import TaskRow
 
 
@@ -52,3 +56,22 @@ def test_pick_important_tasks_order():
     ]
     picked = pick_important_tasks(rows, limit=2)
     assert [t.id for t in picked] == [2, 3]
+
+
+def test_pick_must_not_miss_dream_and_due():
+    rows = [
+        TaskRow(1, "Cerrar PR de layouts web", "open", None, 0, None, None, None),
+        TaskRow(2, "Starred one", "in_progress", None, 0, None, None, None),
+        TaskRow(3, "Banal", "open", None, 0, None, None, None),
+        TaskRow(4, "Pagar ITV", "open", "2026-07-27", 0, None, None, None),
+    ]
+    picked = pick_must_not_miss(
+        rows,
+        dream_task_titles=["Cerrar PR de layouts"],
+        today="2026-07-27",
+        limit=5,
+    )
+    ids = [t.id for t in picked]
+    assert 2 not in ids  # starred excluded
+    assert 1 in ids and 4 in ids
+    assert 3 not in ids

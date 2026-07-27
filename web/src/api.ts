@@ -155,6 +155,22 @@ export type DayBriefing = {
   day: string | null
   has_dream: boolean
   summary: string[]
+  in_progress_tasks: {
+    id: number
+    title: string
+    status: string
+    project?: string | null
+    due_at?: string | null
+    priority?: number
+  }[]
+  must_not_miss: {
+    id: number
+    title: string
+    status: string
+    project?: string | null
+    due_at?: string | null
+    priority?: number
+  }[]
   important_tasks: {
     id: number
     title: string
