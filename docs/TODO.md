@@ -8,7 +8,7 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 
 - [ ] **Mañana ~09:00:** abrir vista Día en https://kore.fly.dev/ y validar briefing
 - [ ] **3–5 días:** operar desde consola (chat / mic / espacios / board)
-- [ ] Anotar fricciones reales
+- [ ] Dogfood: fricciones reales (ya: no cards de `/tareas` en chat; web tools)
 
 ## P1 — Phase 1.6 (producto)
 

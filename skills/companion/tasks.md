@@ -24,9 +24,9 @@ No es `docs/TODO.md` (eso es backlog de desarrollo Kore en git).
 ## How
 1. Crear → `add_task` **obligatorio** antes de decir "creada/añadida". Sin tool = no digas que está hecha.
 2. "en curso" / "importante" → `status=in_progress` o `priority` alta; proyecto si se deduce.
-3. Listar → `list_tasks` (open incluye in_progress). Detalle → `get_task`.
+3. Listar → `list_tasks` **solo si Jon pide la lista** (o necesitas ids para editar). En consola web el board ya muestra tareas: no vuelques un listado completo en cada respuesta.
 4. Editar link/nota/estado → `update_task`. Borrar → `delete_task`. Hecha → `complete_task`.
 5. Fechas naturales → `resolve_madrid_date` → due_at ISO.
 6. Confirma corto mostrando id + link si existe. Sin upsell.
-7. `/tareas` sin args = lista rápida del bot; con args o chat libre = tools.
+7. `/tareas` (Telegram) = lista rápida; chat libre = tools solo cuando toca.
 8. Duplicados: busca con `list_tasks` y `delete_task` / fusiona con `update_task`, no crees otra igual.

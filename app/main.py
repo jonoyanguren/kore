@@ -30,6 +30,7 @@ from app.kernel.time_tools import build_time_tools
 from app.llm.llm_assistant import LLMAssistant, ToolHandler
 from app.paths import DEV_SKILLS_DIR, PROMPTS_DIR, SKILLS_DIR
 from app.storage.memory import MemoryStore
+from app.integrations.web.tools import build_web_tools
 from app.storage.task_tools import build_task_tools
 from app.storage.tools import build_memory_tools
 from app.storage.vault import Vault
@@ -92,6 +93,7 @@ async def lifespan(app: FastAPI):
     task_tool_schemas, task_handlers = build_task_tools(memory_store, vault)
     time_tool_schemas, time_handlers = build_time_tools()
     project_tool_schemas, project_handlers = build_project_tools()
+    web_tool_schemas, web_handlers = build_web_tools()
 
     if settings.load_dev_skills:
         skill_registry = SkillRegistry(SKILLS_DIR, DEV_SKILLS_DIR)
@@ -126,6 +128,7 @@ async def lifespan(app: FastAPI):
         + task_tool_schemas
         + time_tool_schemas
         + project_tool_schemas
+        + web_tool_schemas
         + clickup_tool_schemas
         + lol_tool_schemas
     )
@@ -134,6 +137,7 @@ async def lifespan(app: FastAPI):
         **task_handlers,
         **time_handlers,
         **project_handlers,
+        **web_handlers,
         **clickup_handlers,
         **lol_handlers,
     }

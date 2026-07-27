@@ -84,7 +84,7 @@ const COMPANION_SKILLS: SkillRow[] = [
 ]
 
 const CHAT_COMMANDS: CmdRow[] = [
-  { cmd: '/tareas', desc: 'Lista tareas abiertas (+ en curso)' },
+  { cmd: '/tareas', desc: 'Telegram: lista abiertas (en consola usa el board)' },
   { cmd: '/agenda', desc: 'Próximos eventos de agenda' },
   { cmd: '/dream', desc: 'Sueño / briefing del día' },
   { cmd: '/sueno', desc: 'Alias de /dream' },
@@ -205,7 +205,7 @@ const SECTIONS: Section[] = [
       },
       {
         type: 'p',
-        text: 'También puedes crear/mover tareas hablando con Jone (`/tareas` o chat libre).',
+        text: 'También puedes crear/mover tareas hablando con Jone; el board es la lista (no hace falta /tareas en chat).',
       },
     ],
   },

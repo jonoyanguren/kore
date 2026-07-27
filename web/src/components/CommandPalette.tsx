@@ -127,13 +127,6 @@ const STATIC: Item[] = [
     action: { kind: 'chat', text: '/diario' },
   },
   {
-    id: 'tareas',
-    label: 'Listar tareas en chat',
-    hint: '/tareas',
-    keywords: 'tareas tasks lista',
-    action: { kind: 'chat', text: '/tareas' },
-  },
-  {
     id: 'new',
     label: 'Nueva tarea',
     hint: 'foco en el board',

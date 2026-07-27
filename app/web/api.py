@@ -441,11 +441,10 @@ async def list_messages(
         total = await memory.count_messages()
         has_more = total > len(rows)
 
-    # Resolve task ids mentioned in content for rich cards
+    # Explicit task refs only (not "12. title" list format — floods the UI).
     task_ids: set[int] = set()
-
     id_re = re.compile(
-        r"(?:tarea|task|id)\s*#?\s*(\d+)|\b(\d+)\.\s+\S",
+        r"(?:tarea|task)\s*#?\s*(\d+)|\bid\s*#?\s*(\d+)\b",
         re.IGNORECASE,
     )
     for _mid, _role, content, _ts in rows:
@@ -581,26 +580,12 @@ async def _run_chat(
     after_rows = await memory.list_tasks(status="open", limit=100)
     after = {t.id for t in after_rows}
     created = [_task_dict(t) for t in after_rows if t.id in (after - before)]
-
-    listed = list(created)
-    id_re = re.compile(r"(?:tarea|task|id)\s*#?\s*(\d+)|\b(\d+)\.\s+\S", re.I)
-    seen = {t["id"] for t in listed}
-    for m in id_re.finditer(reply or ""):
-        for g in m.groups():
-            if not g:
-                continue
-            tid = int(g)
-            if tid in seen:
-                continue
-            row = await memory.get_task(tid)
-            if row is not None:
-                listed.append(_task_dict(row))
-                seen.add(tid)
-
+    # Only attach cards for tasks created this turn — do NOT scrape numbered
+    # lists from the reply (list_tasks format "12. title" was flooding the UI).
     return {
         "reply": reply,
         "tasks_created": created,
-        "tasks_listed": listed,
+        "tasks_listed": list(created),
         "tasks_changed": bool(created) or before != after,
     }
 

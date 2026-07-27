@@ -7,7 +7,7 @@
 |-------|--------|
 | Repo | `jonoyanguren/kore` |
 | Producto | **Kore** · hablado **Jone** (`ASSISTANT_NAME`) |
-| Fase actual | **1.6 UX personal** (en curso; gran parte hecha) |
+| Fase actual | **1.6 UX personal** (código P1 hecho; falta dogfood) |
 | Canal | Consola web = operar / día · Telegram = captura móvil opcional |
 | Deploy | Fly.io · `/data` |
 | LLM | OpenRouter · default `xiaomi/mimo-v2.5` |
@@ -43,7 +43,7 @@
 
 ## Roadmap (lean)
 
-**1.6 restante:** voz · design system · espacios proyecto · privacidad · (inbox con Gmail).
+**1.6 restante:** dogfood (vista Día 09:00 + consola como canal).
 
 **2+:** Gmail digest · misiones · git confirmado · calendar/PDF.
 
@@ -69,6 +69,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-27 | Close sesión: P1 en Fly; next = dogfood Día |
 | 2026-07-27 | P1: voz / espacios / privacidad / mobile |
 | 2026-07-27 | Split PLAN/TODO ↔ `milestones.md` (contexto histórico) |
 | 2026-07-27 | Día = canal briefing; agenda `01-Ago` + ventana 3 días; ★ / must-not-miss |

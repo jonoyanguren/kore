@@ -37,7 +37,6 @@ const TOP_LOAD_PX = 72
 const BOTTOM_STICK_PX = 80
 
 const QUICK: { label: string; send: string }[] = [
-  { label: '/tareas', send: '/tareas' },
   { label: '/hora', send: '/hora' },
   { label: '/agenda', send: '/agenda' },
   { label: '/diario', send: '/diario' },
