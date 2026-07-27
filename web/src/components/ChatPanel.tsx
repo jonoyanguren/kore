@@ -49,6 +49,7 @@ export function ChatPanel({ onAfterChat }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [tick, setTick] = useState(0)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const logRef = useRef<HTMLDivElement>(null)
 
   async function load() {
     const rows = await apiListMessages(100)
@@ -76,8 +77,11 @@ export function ChatPanel({ onAfterChat }: Props) {
   }, [])
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, busy, tick])
+    const log = logRef.current
+    if (!log) return
+    // Scroll only the chat log — never the page (scrollIntoView was jumping).
+    log.scrollTop = log.scrollHeight
+  }, [messages, busy, thinking])
 
   async function sendText(raw: string) {
     const t = raw.trim()
@@ -170,7 +174,7 @@ export function ChatPanel({ onAfterChat }: Props) {
           </button>
         ))}
       </div>
-      <div className="chat__log" aria-live="polite">
+      <div className="chat__log" ref={logRef} aria-live="polite">
         {messages.length === 0 && !busy ? (
           <p className="muted chat__empty">Escribe algo o pulsa /tareas…</p>
         ) : null}
