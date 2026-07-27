@@ -1,0 +1,16 @@
+---
+description: Commit + push always includes Fly deploy for Kore
+alwaysApply: true
+---
+
+# Ship = commit + push + deploy
+
+When Jon asks to **commit and push** (or "sube", "ship", "manda"), do **all three** in order:
+
+1. Commit (never `.env`; HEREDOC message; no amend/force unless explicitly asked)
+2. `git push` to `origin`
+3. `fly deploy` (app `kore`) — do **not** stop after push and ask whether to deploy
+
+Report commit hash, push OK, and https://kore.fly.dev/ status when done.
+
+Exception: only skip deploy if Jon says explicitly "solo commit/push, sin deploy".
