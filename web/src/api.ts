@@ -94,6 +94,8 @@ export type DaySnapshot = {
   today: string
   clock: string
   headline: string
+  greeting: string
+  owner_name: string
   tasks: { in_progress: number; open: number }
   agenda: { id: number; starts_at: string; title: string; status: string }[]
   briefing: DayBriefing

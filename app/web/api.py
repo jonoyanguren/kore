@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response,
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from app.config import settings
 from app.kernel.briefing import build_day_briefing
 from app.storage.memory import TaskRow, VALID_TASK_STATUSES, format_tasks_message
 from app.storage.task_tools import sync_tasks_vault
@@ -217,6 +218,8 @@ async def day_snapshot(request: Request) -> dict[str, Any]:
         "today": today,
         "clock": clock,
         "headline": weekday,
+        "greeting": f"Hola, {settings.owner_name}",
+        "owner_name": settings.owner_name,
         "tasks": {"in_progress": n_progress, "open": n_pending},
         "agenda": briefing["meetings"],
         "briefing": briefing,

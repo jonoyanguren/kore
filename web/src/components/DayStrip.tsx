@@ -116,7 +116,9 @@ export function DayStrip({
   return (
     <section className="day-strip day-strip--hero" aria-label="Hoy">
       <p className="day-strip__eyebrow">{rest || day.headline}</p>
-      <h2 className="day-strip__hero-title">{day.headline}</h2>
+      <h2 className="day-strip__hero-title">
+        {day.greeting || `Hola, ${day.owner_name || 'Jon'}`}
+      </h2>
       {time ? <p className="day-strip__hero-clock">{time}</p> : null}
 
       <div className="day-strip__hero-counts">

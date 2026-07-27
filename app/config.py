@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     # (or later via prompts/personality.md) — no redeploy of logic needed
     # beyond restart / fly secrets.
     assistant_name: str = "Jone"
+    # Owner display name (Day greeting, etc.)
+    owner_name: str = "Jon"
 
     # Storage — local path by default; overridden to the mounted Fly volume
     # path (/data/kore.db) in production so it survives redeploys.

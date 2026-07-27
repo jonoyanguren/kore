@@ -192,6 +192,7 @@ async def _run():
             assert "clock" in snap and "headline" in snap
             assert "tasks" in snap and "agenda" in snap
             assert "briefing" in snap
+            assert snap.get("greeting", "").startswith("Hola")
             assert "important_tasks" in snap["briefing"]
             assert "meetings" in snap["briefing"]
             assert "help" in snap["briefing"]
