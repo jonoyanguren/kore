@@ -34,12 +34,25 @@ SYNTH_MAX_TOKENS = 4096
 # OpenRouter's free-model router — picks among free models, filtering for
 # tool-calling support. Used as a one-time fallback when the configured
 # (paid) model returns 402 Insufficient Credits.
+FALLBACK_MODEL = "openrouter/free"
+
 _STRONG_HINT = re.compile(
     r"(?i)\b("
     r"megaprompt|mega[- ]?prompt|coach|coaching|solo\s*q|soloq|"
     r"investiga|research|auditor[ií]a|plan completo|plan detallado|"
     r"[uú]ltimas?\s*\d+\s*partidas|haz un plan y|modelo fuerte|/strong"
     r")\b"
+)
+
+_SYNTH_NUDGE = (
+    "STOP. No llames más tools. Con los resultados de tools de este turno, "
+    "responde YA en español (texto plano):\n"
+    "1) Plan corto (3–6 pasos)\n"
+    "2) Hallazgos de lo que ya miraste\n"
+    "3) Resumen accionable\n"
+    "4) Un solo siguiente paso\n"
+    "Si faltan datos, dilo y entrega igual un partial útil. "
+    "No digas solo que vas a buscar — escribe la respuesta."
 )
 
 
@@ -57,20 +70,6 @@ def resolve_model(*, strong: bool = False) -> str:
     if strong and heavy:
         return heavy
     return primary
-
-
-FALLBACK_MODEL = "openrouter/free"
-
-_SYNTH_NUDGE = (
-    "STOP. No llames más tools. Con los resultados de tools de este turno, "
-    "responde YA en español (texto plano):\n"
-    "1) Plan corto (3–6 pasos)\n"
-    "2) Hallazgos de lo que ya miraste\n"
-    "3) Resumen accionable\n"
-    "4) Un solo siguiente paso\n"
-    "Si faltan datos, dilo y entrega igual un partial útil. "
-    "No digas solo que vas a buscar — escribe la respuesta."
-)
 
 
 def _user_content(
@@ -210,18 +209,19 @@ class LLMAssistant:
             }
         )
 
-        model = resolve_model(strong=wants_strong_model(user_text))
+        use_strong = wants_strong_model(user_text)
+        model = resolve_model(strong=use_strong)
         used_fallback = False
         final_text: str | None = None
         used_any_tool = False
-        if model != resolve_model(strong=False):
-            await status("Modelo fuerte…")
+
+        await status("Modelo fuerte…" if use_strong else "Pensando…")
+        if use_strong:
             logger.info("Using strong model %s", model)
-        await status("Pensando…")
+
         try:
             for iteration in range(MAX_TOOL_ITERATIONS):
                 await status("Consultando modelo…")
-                # Last tool-iteration: nudge toward answering instead of more tools
                 call_tools = self._tools or None
                 if iteration >= MAX_TOOL_ITERATIONS - 1 and used_any_tool:
                     call_tools = None
@@ -277,7 +277,6 @@ class LLMAssistant:
                 if not tool_calls or call_tools is None:
                     text = (message.content or "").strip()
                     if _is_blank_reply(text):
-                        # Need synthesis if we gathered tools; else leave blank for synth
                         break
                     if used_fallback:
                         text = (
@@ -309,7 +308,6 @@ class LLMAssistant:
                     tool_name = (getattr(fn, "name", None) if fn else None) or "tool"
                     await status(f"Usando {tool_name}…")
                     result = await self._execute_tool(tool_call)
-                    # Cap huge tool dumps so synthesis still fits
                     if len(result) > 8000:
                         result = result[:8000] + "\n…[tool output truncado]"
                     messages.append(
@@ -326,14 +324,19 @@ class LLMAssistant:
 
         if _is_blank_reply(final_text):
             await status("Resumiendo…")
-            synth = await self._synthesize(
-                model=model,
-                messages=messages,
-                used_fallback=used_fallback,
-            )
+            try:
+                synth = await self._synthesize(
+                    model=model,
+                    messages=messages,
+                    used_fallback=used_fallback,
+                    prefer_strong=used_any_tool,
+                )
+            except Exception:
+                logger.exception("Synthesis pass crashed")
+                synth = None
             if synth:
                 final_text = synth
-            elif final_text is None:
+            else:
                 logger.warning("Hit MAX_TOOL_ITERATIONS / empty without synthesis")
                 final_text = (
                     "Me enredé en una tarea gorda. Mejor en dos turns: "
@@ -398,12 +401,15 @@ class LLMAssistant:
         model: str,
         messages: list[dict[str, Any]],
         used_fallback: bool,
+        prefer_strong: bool = False,
     ) -> str | None:
         """Force a text-only wrap-up after tools / empty final message."""
+        # Prefer strong model for the wrap-up of heavy tool work.
+        synth_model = resolve_model(strong=True) if prefer_strong else model
         synth_messages = list(messages)
         synth_messages.append({"role": "user", "content": _SYNTH_NUDGE})
         response, err = await self._create(
-            model=model,
+            model=synth_model,
             messages=synth_messages,
             tools=None,
             max_tokens=max(settings.llm_max_tokens, SYNTH_MAX_TOKENS),
@@ -418,9 +424,7 @@ class LLMAssistant:
         if not text:
             return None
         if used_fallback:
-            text = (
-                "[Sin saldo en OpenRouter — modelo gratis.]\n\n" + text
-            )
+            text = "[Sin saldo en OpenRouter — modelo gratis.]\n\n" + text
         return text
 
     async def _execute_tool(self, tool_call: Any) -> str:

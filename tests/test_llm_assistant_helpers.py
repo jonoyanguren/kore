@@ -64,3 +64,43 @@ def test_resolve_model_strong():
     finally:
         settings.openrouter_model = prev
         settings.openrouter_model_strong = prev_s
+
+
+def test_synthesize_uses_prefer_strong_not_outer_scope():
+    """Regression: synthesis must not NameError on used_any_tool."""
+    import asyncio
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+
+    from app.llm.llm_assistant import LLMAssistant
+
+    class FakeMessage:
+        content = "Plan:\n1) foo\nHallazgos: bar"
+
+    class FakeChoice:
+        message = FakeMessage()
+
+    class FakeResponse:
+        choices = [FakeChoice()]
+
+    assistant = LLMAssistant(
+        client=SimpleNamespace(),
+        tools=[],
+        handlers={},
+        memory=SimpleNamespace(),
+        prompt_assembler=SimpleNamespace(),
+    )
+    assistant._create = AsyncMock(return_value=(FakeResponse(), None))
+
+    text = asyncio.run(
+        assistant._synthesize(
+            model="anthropic/claude-sonnet-4.6",
+            messages=[{"role": "user", "content": "hi"}],
+            used_fallback=False,
+            prefer_strong=True,
+        )
+    )
+    assert text and "Plan" in text
+    kwargs = assistant._create.await_args.kwargs
+    assert kwargs["tools"] is None
+    assert kwargs["model"]  # resolved; may be strong if configured
