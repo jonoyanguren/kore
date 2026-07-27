@@ -7,14 +7,32 @@ import {
 } from './CommandPalette'
 import { DayStrip } from './DayStrip'
 import { TaskBoard, type TaskBoardHandle } from './TaskBoard'
+import type { Task } from '../types'
+
+export type LayoutMode = 'day' | 'focus' | 'operate'
+
+const LAYOUTS: { id: LayoutMode; label: string }[] = [
+  { id: 'day', label: 'Día' },
+  { id: 'focus', label: 'Chat' },
+  { id: 'operate', label: 'Board' },
+]
+
+const STORAGE_KEY = 'kore.layout'
 
 type Props = {
   onLogout: () => void
 }
 
+function readLayout(): LayoutMode {
+  const v = localStorage.getItem(STORAGE_KEY)
+  if (v === 'day' || v === 'focus' || v === 'operate') return v
+  return 'day'
+}
+
 export function Console({ onLogout }: Props) {
   const [boardToken, setBoardToken] = useState(0)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [layout, setLayout] = useState<LayoutMode>(() => readLayout())
   const chatRef = useRef<ChatPanelHandle>(null)
   const boardRef = useRef<TaskBoardHandle>(null)
 
@@ -27,30 +45,60 @@ export function Console({ onLogout }: Props) {
     setBoardToken((n) => n + 1)
   }
 
+  function setLayoutPersist(next: LayoutMode) {
+    setLayout(next)
+    localStorage.setItem(STORAGE_KEY, next)
+  }
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
         setPaletteOpen((v) => !v)
+        return
       }
+      const t = e.target as HTMLElement | null
+      const typing =
+        t &&
+        (t.tagName === 'INPUT' ||
+          t.tagName === 'TEXTAREA' ||
+          t.isContentEditable)
+      if (typing || e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.key === '1') setLayoutPersist('day')
+      if (e.key === '2') setLayoutPersist('focus')
+      if (e.key === '3') setLayoutPersist('operate')
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  function onOpenTask(task: Task) {
+    setLayoutPersist('operate')
+    window.setTimeout(() => boardRef.current?.openTask(task), 0)
+  }
+
   function onCommand(action: CommandAction) {
     switch (action.kind) {
       case 'chat':
-        chatRef.current?.run(action.text)
+        setLayoutPersist('focus')
+        window.setTimeout(() => chatRef.current?.run(action.text), 0)
         break
       case 'focus_new_task':
-        boardRef.current?.focusNewTask()
+        setLayoutPersist('operate')
+        window.setTimeout(() => boardRef.current?.focusNewTask(), 0)
         break
       case 'filter_project':
-        boardRef.current?.filterProject(action.project)
+        setLayoutPersist('operate')
+        window.setTimeout(
+          () => boardRef.current?.filterProject(action.project),
+          0,
+        )
         break
       case 'clear_filters':
         boardRef.current?.clearFilters()
+        break
+      case 'layout':
+        setLayoutPersist(action.mode)
         break
       case 'logout':
         void handleLogout()
@@ -59,9 +107,23 @@ export function Console({ onLogout }: Props) {
   }
 
   return (
-    <div className="console">
+    <div className={`console console--${layout}`}>
       <header className="console__bar">
-        <h1>Kore</h1>
+        <div className="console__brand">
+          <span className="console__mark">Kore</span>
+        </div>
+        <nav className="console__layouts" aria-label="Vista">
+          {LAYOUTS.map((l) => (
+            <button
+              key={l.id}
+              type="button"
+              className={`console__layout${layout === l.id ? ' is-active' : ''}`}
+              onClick={() => setLayoutPersist(l.id)}
+            >
+              {l.label}
+            </button>
+          ))}
+        </nav>
         <div className="console__bar-actions">
           <button
             type="button"
@@ -76,15 +138,23 @@ export function Console({ onLogout }: Props) {
           </button>
         </div>
       </header>
-      <DayStrip refreshToken={boardToken} />
+
+      <DayStrip
+        refreshToken={boardToken}
+        variant={layout === 'day' ? 'hero' : 'rail'}
+        onOpenChat={() => setLayoutPersist('focus')}
+        onOpenBoard={() => setLayoutPersist('operate')}
+      />
+
       <div className="console__body">
         <ChatPanel
           ref={chatRef}
           onAfterChat={() => bump()}
-          onOpenTask={(task) => boardRef.current?.openTask(task)}
+          onOpenTask={onOpenTask}
         />
         <TaskBoard ref={boardRef} refreshToken={boardToken} />
       </div>
+
       <CommandPalette
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}

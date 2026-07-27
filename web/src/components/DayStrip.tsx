@@ -3,10 +3,12 @@ import { apiDay, type DaySnapshot } from '../api'
 
 type Props = {
   refreshToken?: number
+  variant?: 'hero' | 'rail'
+  onOpenChat?: () => void
+  onOpenBoard?: () => void
 }
 
 function formatAgendaWhen(startsAt: string): string {
-  // "2026-07-28T10:00" or date-only → short label
   const m = startsAt.match(/T(\d{2}:\d{2})/)
   const day = startsAt.slice(0, 10)
   const today = new Date().toLocaleDateString('en-CA', {
@@ -23,7 +25,19 @@ function formatAgendaWhen(startsAt: string): string {
   return time ? `${day.slice(5)} ${time}` : day.slice(5)
 }
 
-export function DayStrip({ refreshToken = 0 }: Props) {
+function clockParts(clock: string): { time: string; rest: string } {
+  // "lunes, 27 de julio de 2026, 13:45" or similar — take last HH:MM
+  const m = clock.match(/(\d{1,2}:\d{2})(?!.*\d{1,2}:\d{2})/)
+  if (!m) return { time: '', rest: clock }
+  return { time: m[1], rest: clock.replace(`, ${m[1]}`, '').replace(m[1], '').trim() }
+}
+
+export function DayStrip({
+  refreshToken = 0,
+  variant = 'rail',
+  onOpenChat,
+  onOpenBoard,
+}: Props) {
   const [day, setDay] = useState<DaySnapshot | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -47,7 +61,7 @@ export function DayStrip({ refreshToken = 0 }: Props) {
 
   if (error && !day) {
     return (
-      <section className="day-strip day-strip--err">
+      <section className={`day-strip day-strip--${variant} day-strip--err`}>
         <p className="muted">{error}</p>
       </section>
     )
@@ -55,30 +69,52 @@ export function DayStrip({ refreshToken = 0 }: Props) {
 
   if (!day) {
     return (
-      <section className="day-strip">
-        <p className="muted">Cargando el día…</p>
+      <section className={`day-strip day-strip--${variant}`}>
+        <p className="muted">Cargando…</p>
+      </section>
+    )
+  }
+
+  const { time, rest } = clockParts(day.clock)
+
+  if (variant === 'rail') {
+    return (
+      <section className="day-strip day-strip--rail" aria-label="Hoy">
+        <div className="day-strip__rail-main">
+          <strong className="day-strip__rail-head">{day.headline}</strong>
+          <span className="day-strip__rail-clock">{time || day.clock}</span>
+          <span className="muted">
+            {day.tasks.in_progress} en curso · {day.tasks.open} abiertas
+          </span>
+        </div>
+        {day.agenda[0] ? (
+          <p className="day-strip__rail-next muted">
+            Próximo: {formatAgendaWhen(day.agenda[0].starts_at)} —{' '}
+            {day.agenda[0].title}
+          </p>
+        ) : null}
       </section>
     )
   }
 
   return (
-    <section className="day-strip" aria-label="Hoy">
-      <div className="day-strip__main">
-        <div className="day-strip__when">
-          <h2>{day.headline}</h2>
-          <p className="day-strip__clock">{day.clock.split(', ')[1] ?? ''}</p>
-        </div>
-        <div className="day-strip__counts">
-          <span>
-            <strong>{day.tasks.in_progress}</strong> en curso
-          </span>
-          <span>
-            <strong>{day.tasks.open}</strong> pendientes
-          </span>
-        </div>
+    <section className="day-strip day-strip--hero" aria-label="Hoy">
+      <p className="day-strip__eyebrow">{rest || day.headline}</p>
+      <h2 className="day-strip__hero-title">{day.headline}</h2>
+      {time ? <p className="day-strip__hero-clock">{time}</p> : null}
+
+      <div className="day-strip__hero-counts">
+        <button type="button" className="day-strip__stat" onClick={onOpenBoard}>
+          <strong>{day.tasks.in_progress}</strong>
+          <span>en curso</span>
+        </button>
+        <button type="button" className="day-strip__stat" onClick={onOpenBoard}>
+          <strong>{day.tasks.open}</strong>
+          <span>pendientes</span>
+        </button>
       </div>
 
-      <div className="day-strip__cols">
+      <div className="day-strip__hero-grid">
         <div className="day-strip__block">
           <h3>Agenda</h3>
           {day.agenda.length === 0 ? (
@@ -106,8 +142,15 @@ export function DayStrip({ refreshToken = 0 }: Props) {
           {day.dream ? (
             <p className="day-strip__dream">{day.dream.excerpt}</p>
           ) : (
-            <p className="muted">Sin dream aún — /dream o el cron de las 09:00</p>
+            <p className="muted">Sin dream aún</p>
           )}
+          <button
+            type="button"
+            className="ghost day-strip__cta"
+            onClick={onOpenChat}
+          >
+            Hablar con Jone →
+          </button>
         </div>
       </div>
     </section>

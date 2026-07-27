@@ -7,6 +7,7 @@ export type CommandAction =
   | { kind: 'focus_new_task' }
   | { kind: 'filter_project'; project: string }
   | { kind: 'clear_filters' }
+  | { kind: 'layout'; mode: 'day' | 'focus' | 'operate' }
   | { kind: 'logout' }
 
 type Item = {
@@ -24,6 +25,27 @@ type Props = {
 }
 
 const STATIC: Item[] = [
+  {
+    id: 'layout-day',
+    label: 'Vista Día',
+    hint: '1',
+    keywords: 'layout day día momentum briefing',
+    action: { kind: 'layout', mode: 'day' },
+  },
+  {
+    id: 'layout-focus',
+    label: 'Vista Chat',
+    hint: '2',
+    keywords: 'layout focus chat',
+    action: { kind: 'layout', mode: 'focus' },
+  },
+  {
+    id: 'layout-operate',
+    label: 'Vista Board',
+    hint: '3',
+    keywords: 'layout operate board tareas',
+    action: { kind: 'layout', mode: 'operate' },
+  },
   {
     id: 'dream',
     label: 'Sueño del día',

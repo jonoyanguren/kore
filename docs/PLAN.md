@@ -104,7 +104,7 @@ Alcance (orden de ataque):
 3. **Tarjeta de tarea rica** — editar inline (proyecto, url, notas, due); filtros por proyecto; buscar
 4. **Voz one-tap** — mic → transcripción → enviar (misma SPA)
 5. **⌘K / command palette** — dream, hora, nueva tarea, saltar a proyecto ✅
-6. **Layouts** — Focus (chat) / Operate (board) / Day (briefing+agenda)
+6. **Layouts** — Focus (chat) / Operate (board) / Day (briefing+agenda) ✅ look Momentum
 7. **Drawer memoria/diario** — por categoría + meter en diario
 8. **Feedback de sistema** — guardado, error LLM recuperable, tip “sync con Telegram”
 9. **Design system** — tokens, empty states, mobile pulido (marca propia, no genérico AI)
