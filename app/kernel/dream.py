@@ -29,12 +29,24 @@ Objetivo:
 3) Cuando hayas terminado de usar tools (o no haga falta ninguna), responde SOLO el mensaje
    final para Jon en español, texto plano (sin markdown, sin ** ni #).
 
-Estructura del mensaje final (obligatoria):
-A) Resumen del día (4–8 líneas, concreto)
-B) Huecos que acabo de anotar (si no hubo: "Nada nuevo que anotar.")
-C) Prep de hoy (día siguiente al consolidado): foco, tareas abiertas relevantes, agenda;
-   si creaste tareas/agenda para hoy, menciónalo. 3–8 líneas.
-D) Una frase de cierre corta (tono directo, sin presentarte).
+Estructura del mensaje final (obligatoria), texto plano (sin markdown, sin ** ni #):
+
+Resumen
+(4–8 líneas concretas del día consolidado)
+
+Tareas importantes
+- (3–6 bullets; las que importan para HOY / el día siguiente al consolidado)
+- Si no hay: Ninguna
+
+Reuniones
+- (hora — qué; de agenda o citas del chat)
+- Si no hay: Ninguna
+
+Ayuda
+- (3–6 bullets: foco, riesgos, recordatorios útiles — NO repitas el listado de tareas)
+
+Cierre
+(una frase corta, tono directo)
 
 Reglas: no digas que eres un modelo; no upsell; no pidas permiso; fechas naturales en el chat.
 ISO solo dentro de las tools."""
@@ -100,7 +112,8 @@ async def run_dream(
         f"=== TAREAS ABIERTAS ===\n{tasks_block}\n\n"
         f"=== AGENDA PRÓXIMA ===\n{agenda_block}\n\n"
         "Usa tools para huecos del chat que no estén ya en diario/memoria/tareas. "
-        "Luego escribe el mensaje final A–D."
+        "Luego escribe el mensaje final con las secciones "
+        "Resumen / Tareas importantes / Reuniones / Ayuda / Cierre."
     )
 
     tools, handlers = build_capture_tools(store, vault)

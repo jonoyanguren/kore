@@ -26,10 +26,17 @@ function formatAgendaWhen(startsAt: string): string {
 }
 
 function clockParts(clock: string): { time: string; rest: string } {
-  // "lunes, 27 de julio de 2026, 13:45" or similar — take last HH:MM
   const m = clock.match(/(\d{1,2}:\d{2})(?!.*\d{1,2}:\d{2})/)
   if (!m) return { time: '', rest: clock }
-  return { time: m[1], rest: clock.replace(`, ${m[1]}`, '').replace(m[1], '').trim() }
+  return {
+    time: m[1],
+    rest: clock.replace(`, ${m[1]}`, '').replace(m[1], '').trim(),
+  }
+}
+
+const STATUS_SHORT: Record<string, string> = {
+  in_progress: 'en curso',
+  open: 'pendiente',
 }
 
 export function DayStrip({
@@ -76,8 +83,14 @@ export function DayStrip({
   }
 
   const { time, rest } = clockParts(day.clock)
+  const briefing = day.briefing
+  const important = briefing?.important_tasks ?? []
+  const meetings = briefing?.meetings ?? day.agenda ?? []
+  const help = briefing?.help ?? []
 
   if (variant === 'rail') {
+    const nextMeeting = meetings[0]
+    const topTask = important[0]
     return (
       <section className="day-strip day-strip--rail" aria-label="Hoy">
         <div className="day-strip__rail-main">
@@ -87,12 +100,15 @@ export function DayStrip({
             {day.tasks.in_progress} en curso · {day.tasks.open} abiertas
           </span>
         </div>
-        {day.agenda[0] ? (
-          <p className="day-strip__rail-next muted">
-            Próximo: {formatAgendaWhen(day.agenda[0].starts_at)} —{' '}
-            {day.agenda[0].title}
-          </p>
-        ) : null}
+        <p className="day-strip__rail-next muted">
+          {nextMeeting
+            ? `Reunión: ${formatAgendaWhen(nextMeeting.starts_at)} — ${nextMeeting.title}`
+            : topTask
+              ? `Foco: ${topTask.title}`
+              : help[0]
+                ? help[0]
+                : 'Sin briefing aún'}
+        </p>
       </section>
     )
   }
@@ -114,14 +130,39 @@ export function DayStrip({
         </button>
       </div>
 
-      <div className="day-strip__hero-grid">
+      <div className="day-strip__brief">
         <div className="day-strip__block">
-          <h3>Agenda</h3>
-          {day.agenda.length === 0 ? (
+          <h3>Tareas importantes</h3>
+          {important.length === 0 ? (
+            <p className="muted">Ninguna destacada</p>
+          ) : (
+            <ul>
+              {important.map((t) => (
+                <li key={t.id}>
+                  <button
+                    type="button"
+                    className="day-strip__task-link"
+                    onClick={onOpenBoard}
+                  >
+                    {t.title}
+                  </button>
+                  <span className="day-strip__tag">
+                    {STATUS_SHORT[t.status] ?? t.status}
+                    {t.project ? ` · ${t.project}` : ''}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="day-strip__block">
+          <h3>Reuniones</h3>
+          {meetings.length === 0 ? (
             <p className="muted">Nada próximo</p>
           ) : (
             <ul>
-              {day.agenda.map((a) => (
+              {meetings.map((a) => (
                 <li key={a.id}>
                   <span className="day-strip__ag-when">
                     {formatAgendaWhen(a.starts_at)}
@@ -132,17 +173,26 @@ export function DayStrip({
             </ul>
           )}
         </div>
+
         <div className="day-strip__block">
           <h3>
-            Briefing
-            {day.dream ? (
-              <span className="muted"> · {day.dream.day}</span>
+            Ayuda
+            {briefing?.day ? (
+              <span className="muted"> · {briefing.day}</span>
             ) : null}
           </h3>
-          {day.dream ? (
-            <p className="day-strip__dream">{day.dream.excerpt}</p>
+          {help.length === 0 ? (
+            <p className="muted">
+              {briefing?.has_dream
+                ? 'Sin notas de ayuda en el dream'
+                : 'Sin dream aún — /dream o el cron de las 09:00'}
+            </p>
           ) : (
-            <p className="muted">Sin dream aún</p>
+            <ul className="day-strip__help">
+              {help.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
           )}
           <button
             type="button"

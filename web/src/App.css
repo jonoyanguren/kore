@@ -361,6 +361,22 @@ button.ghost:hover {
   margin-top: 0.5rem;
 }
 
+.day-strip__brief {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.75rem;
+  width: min(52rem, 100%);
+  text-align: left;
+  margin-top: 1rem;
+}
+
+@media (max-width: 900px) {
+  .day-strip__brief {
+    grid-template-columns: 1fr;
+    max-width: 28rem;
+  }
+}
+
 @media (max-width: 700px) {
   .day-strip__hero-grid {
     grid-template-columns: 1fr;
@@ -382,11 +398,42 @@ button.ghost:hover {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.55rem;
 }
 
 .day-strip__block li {
   font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.day-strip__help li {
+  font-weight: 300;
+  color: var(--ink);
+}
+
+.day-strip__task-link {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.day-strip__task-link:hover {
+  color: var(--accent);
+}
+
+.day-strip__tag {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 300;
 }
 
 .day-strip__ag-when {

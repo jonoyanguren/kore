@@ -191,6 +191,10 @@ async def _run():
             snap = day.json()
             assert "clock" in snap and "headline" in snap
             assert "tasks" in snap and "agenda" in snap
+            assert "briefing" in snap
+            assert "important_tasks" in snap["briefing"]
+            assert "meetings" in snap["briefing"]
+            assert "help" in snap["briefing"]
 
 
 def test_web_api_auth_and_tasks():

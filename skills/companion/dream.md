@@ -14,7 +14,8 @@ Manual `/dream` → por defecto **hoy** (o `YYYY-MM-DD` en args).
 1. Carga el transcript completo de `messages` de ese día + diario/memoria/tareas/agenda.
 2. Con tools, anota lo que se le pasó en el chat.
 3. Escribe `vault/dreams/YYYY-MM-DD.md`.
-4. Envía a Jon: resumen + huecos anotados + prep del día siguiente.
+4. Envía a Jon (plantilla fija): **Resumen / Tareas importantes / Reuniones / Ayuda / Cierre**.
+5. La consola Día usa tareas+agenda vivas + sección **Ayuda** parseada del dream.
 
 ## How (si te activan la skill en chat)
 Si el comando `/dream` ya corrió el runner, no rehagas el trabajo: el mensaje ya es el informe.

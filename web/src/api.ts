@@ -75,13 +75,29 @@ export async function apiCompleteTask(id: number): Promise<Task> {
   return r.data.task
 }
 
+export type DayBriefing = {
+  day: string | null
+  has_dream: boolean
+  important_tasks: {
+    id: number
+    title: string
+    status: string
+    project?: string | null
+    due_at?: string | null
+    priority?: number
+  }[]
+  meetings: { id: number; starts_at: string; title: string; status: string }[]
+  help: string[]
+}
+
 export type DaySnapshot = {
   today: string
   clock: string
   headline: string
   tasks: { in_progress: number; open: number }
   agenda: { id: number; starts_at: string; title: string; status: string }[]
-  dream: { day: string; excerpt: string } | null
+  briefing: DayBriefing
+  dream: { day: string | null; excerpt: string | null } | null
   server_now: string
 }
 

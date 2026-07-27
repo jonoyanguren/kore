@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import re
-from datetime import timedelta
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from app.kernel.briefing import build_day_briefing
 from app.storage.memory import TaskRow, VALID_TASK_STATUSES, format_tasks_message
 from app.storage.task_tools import sync_tasks_vault
 from app.timeutil import (
@@ -17,7 +17,6 @@ from app.timeutil import (
     format_relative_es,
     now_madrid,
     session_date_str,
-    today_madrid,
 )
 from app.web.auth import (
     COOKIE_NAME,
@@ -199,63 +198,35 @@ class ChatBody(BaseModel):
     text: str = Field(min_length=1, max_length=8000)
 
 
-def _dream_excerpt(raw: str | None, *, max_len: int = 320) -> str | None:
-    if not raw:
-        return None
-    lines = []
-    for line in raw.splitlines():
-        s = line.strip()
-        if not s or s.startswith("#"):
-            continue
-        lines.append(s)
-    text = " ".join(lines).strip()
-    if not text:
-        return None
-    if len(text) > max_len:
-        return text[: max_len - 1].rstrip() + "…"
-    return text
-
-
 @router.get("/day", dependencies=[Depends(require_console_auth)])
 async def day_snapshot(request: Request) -> dict[str, Any]:
-    """Day strip: clock, open task counts, agenda, latest dream excerpt."""
+    """Day strip: clock, counts, structured briefing (tasks / meetings / help)."""
     memory = request.app.state.memory
     vault = request.app.state.vault
     today = session_date_str()
     clock = format_madrid_clock()
-    weekday = clock.split(",")[0]  # "lunes 27 de julio de 2026"
+    weekday = clock.split(",")[0]
 
     open_tasks = await memory.list_tasks(status="open", limit=100)
     n_progress = sum(1 for t in open_tasks if t.status == "in_progress")
     n_pending = sum(1 for t in open_tasks if t.status == "open")
 
-    agenda_rows = await memory.list_agenda_upcoming(from_day=today, limit=5)
-    agenda = [
-        {
-            "id": i,
-            "starts_at": starts,
-            "title": title,
-            "status": st,
-        }
-        for i, starts, title, st in agenda_rows
-    ]
-
-    yesterday = (today_madrid() - timedelta(days=1)).isoformat()
-    dream_day = yesterday
-    dream_raw = vault.read_dream(yesterday)
-    if dream_raw is None:
-        dream_day = today
-        dream_raw = vault.read_dream(today)
-    dream = _dream_excerpt(dream_raw)
+    briefing = await build_day_briefing(memory, vault)
 
     return {
         "today": today,
         "clock": clock,
         "headline": weekday,
         "tasks": {"in_progress": n_progress, "open": n_pending},
-        "agenda": agenda,
+        "agenda": briefing["meetings"],
+        "briefing": briefing,
         "dream": (
-            {"day": dream_day, "excerpt": dream} if dream else None
+            {
+                "day": briefing["day"],
+                "excerpt": (briefing["help"][0] if briefing["help"] else None),
+            }
+            if briefing["has_dream"]
+            else None
         ),
         "server_now": now_madrid().isoformat(),
     }
