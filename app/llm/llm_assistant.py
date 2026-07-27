@@ -74,8 +74,22 @@ class LLMAssistant:
         persist: bool = True,
         image_bytes: bytes | None = None,
         image_mime: str = "image/jpeg",
+        on_status: Callable[[str], Awaitable[None]] | None = None,
     ) -> str:
-        """Return a reply for `user_text` (optional image). Never raises."""
+        """Return a reply for `user_text` (optional image). Never raises.
+
+        `on_status` receives short Spanish labels while thinking / using tools
+        (for the web console live status line).
+        """
+
+        async def status(msg: str) -> None:
+            if on_status is None:
+                return
+            try:
+                await on_status(msg)
+            except Exception:
+                logger.exception("on_status callback failed")
+
         system_prompt = await self._prompt_assembler.assemble(active_skill=active_skill)
         messages: list[dict[str, Any]] = [{"role": "system", "content": system_prompt}]
 
@@ -96,7 +110,9 @@ class LLMAssistant:
         used_fallback = False
         final_text: str | None = None
 
+        await status("Pensando…")
         for _ in range(MAX_TOOL_ITERATIONS):
+            await status("Consultando modelo…")
             try:
                 response = await self._client.chat.completions.create(
                     model=model,
@@ -143,6 +159,7 @@ class LLMAssistant:
                         "modelo gratis, peor calidad y puede fallar con "
                         "ClickUp/LoL. Recarga saldo cuando puedas.]\n\n" + text
                     )
+                await status("Redactando…")
                 final_text = text
                 break
 
@@ -154,6 +171,8 @@ class LLMAssistant:
                 }
             )
             for tool_call in tool_calls:
+                tool_name = getattr(tool_call.function, "name", None) or "tool"
+                await status(f"Usando {tool_name}…")
                 result = await self._execute_tool(tool_call)
                 messages.append(
                     {

@@ -78,7 +78,11 @@ export function Console({ onLogout }: Props) {
       </header>
       <DayStrip refreshToken={boardToken} />
       <div className="console__body">
-        <ChatPanel ref={chatRef} onAfterChat={() => bump()} />
+        <ChatPanel
+          ref={chatRef}
+          onAfterChat={() => bump()}
+          onOpenTask={(task) => boardRef.current?.openTask(task)}
+        />
         <TaskBoard ref={boardRef} refreshToken={boardToken} />
       </div>
       <CommandPalette

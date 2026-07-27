@@ -40,6 +40,7 @@ export type TaskBoardHandle = {
   focusNewTask: () => void
   filterProject: (project: string) => void
   clearFilters: () => void
+  openTask: (task: Task) => void
 }
 
 type Props = {
@@ -70,6 +71,7 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
       setQuery('')
       setProjectFilter('')
     },
+    openTask: (task: Task) => setEditing(task),
   }))
 
   const sensors = useSensors(

@@ -7,6 +7,7 @@ from datetime import timedelta
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.storage.memory import TaskRow, VALID_TASK_STATUSES, format_tasks_message
@@ -313,17 +314,24 @@ async def _persist_exchange(memory: Any, user: str, assistant: str) -> None:
     await memory.add_message("assistant", assistant)
 
 
-@router.post("/chat", dependencies=[Depends(require_console_auth)])
-async def chat(request: Request, body: ChatBody) -> dict[str, Any]:
-    text = body.text.strip()
-    if not text:
-        raise HTTPException(status_code=400, detail="empty text")
+async def _run_chat(
+    request: Request,
+    text: str,
+    *,
+    on_status: Any | None = None,
+) -> dict[str, Any]:
+    """Shared chat handler for JSON and SSE endpoints."""
+
+    async def status(msg: str) -> None:
+        if on_status is None:
+            return
+        await on_status(msg)
 
     memory = request.app.state.memory
     cmd = text.split()[0].lower() if text.startswith("/") else ""
 
-    # Fast-path skills (same idea as Telegram CommandRouter)
     if cmd in ("/tareas", "/tasks"):
+        await status("Listando tareas…")
         rows = await memory.list_tasks(status="open", limit=40)
         reply = format_tasks_message(rows, heading="Tareas")
         await _persist_exchange(memory, text, reply)
@@ -334,6 +342,7 @@ async def chat(request: Request, body: ChatBody) -> dict[str, Any]:
             "tasks_changed": False,
         }
     if cmd == "/hora":
+        await status("Mirando el reloj…")
         reply = format_madrid_clock()
         await _persist_exchange(memory, text, reply)
         return {
@@ -343,6 +352,7 @@ async def chat(request: Request, body: ChatBody) -> dict[str, Any]:
             "tasks_changed": False,
         }
     if cmd == "/agenda":
+        await status("Abriendo agenda…")
         agenda = await memory.list_agenda_upcoming(limit=20)
         if not agenda:
             reply = "Agenda vacía."
@@ -359,6 +369,7 @@ async def chat(request: Request, body: ChatBody) -> dict[str, Any]:
             "tasks_changed": False,
         }
     if cmd == "/diario":
+        await status("Leyendo diario…")
         day = session_date_str()
         entries = await memory.list_diary_for_day(day)
         if not entries:
@@ -379,14 +390,94 @@ async def chat(request: Request, body: ChatBody) -> dict[str, Any]:
         raise HTTPException(status_code=503, detail="llm not ready")
 
     before = {t.id for t in await memory.list_tasks(status="open", limit=100)}
-    reply = await llm.ask(text)
+    reply = await llm.ask(text, on_status=on_status)
     after_rows = await memory.list_tasks(status="open", limit=100)
     after = {t.id for t in after_rows}
     created = [_task_dict(t) for t in after_rows if t.id in (after - before)]
 
+    listed = list(created)
+    id_re = re.compile(r"(?:tarea|task|id)\s*#?\s*(\d+)|\b(\d+)\.\s+\S", re.I)
+    seen = {t["id"] for t in listed}
+    for m in id_re.finditer(reply or ""):
+        for g in m.groups():
+            if not g:
+                continue
+            tid = int(g)
+            if tid in seen:
+                continue
+            row = await memory.get_task(tid)
+            if row is not None:
+                listed.append(_task_dict(row))
+                seen.add(tid)
+
     return {
         "reply": reply,
         "tasks_created": created,
-        "tasks_listed": created,
+        "tasks_listed": listed,
         "tasks_changed": bool(created) or before != after,
     }
+
+
+@router.post("/chat", dependencies=[Depends(require_console_auth)])
+async def chat(request: Request, body: ChatBody) -> dict[str, Any]:
+    text = body.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="empty text")
+    return await _run_chat(request, text)
+
+
+@router.post("/chat/stream", dependencies=[Depends(require_console_auth)])
+async def chat_stream(request: Request, body: ChatBody) -> StreamingResponse:
+    """SSE: status lines while working, then a final `done` event with the reply."""
+    import asyncio
+    import json
+
+    text = body.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="empty text")
+
+    queue: asyncio.Queue[dict[str, Any] | None] = asyncio.Queue()
+
+    async def on_status(msg: str) -> None:
+        await queue.put({"type": "status", "text": msg})
+
+    async def worker() -> None:
+        try:
+            result = await _run_chat(request, text, on_status=on_status)
+            await queue.put({"type": "done", **result})
+        except HTTPException as e:
+            await queue.put(
+                {"type": "error", "detail": e.detail, "status": e.status_code}
+            )
+        except Exception as e:
+            await queue.put({"type": "error", "detail": str(e), "status": 500})
+        finally:
+            await queue.put(None)
+
+    async def event_gen():
+        task = asyncio.create_task(worker())
+        try:
+            while True:
+                if await request.is_disconnected():
+                    break
+                item = await queue.get()
+                if item is None:
+                    break
+                yield f"data: {json.dumps(item, ensure_ascii=False)}\n\n"
+        finally:
+            if not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )

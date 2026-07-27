@@ -366,17 +366,6 @@ button.ghost {
   align-items: flex-start;
 }
 
-.chat-task__done {
-  flex: none;
-  width: 1.4rem;
-  height: 1.4rem;
-  padding: 0;
-  font-size: 0.75rem;
-  background: transparent;
-  color: var(--accent);
-  border-color: var(--line);
-}
-
 .chat-task__meta {
   display: flex;
   flex-wrap: wrap;
@@ -394,9 +383,40 @@ button.ghost {
   font-size: 0.75rem;
 }
 
+.chat-task__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+
+.chat-task__btn {
+  font: inherit;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.chat-task__btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.chat-task__btn--done {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+
 .chat__thinking {
   margin: 0;
   font-style: italic;
+}
+
+.chat__thinking--live {
+  opacity: 0.95;
 }
 
 .chat__form {

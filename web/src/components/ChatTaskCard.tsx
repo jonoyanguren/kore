@@ -9,26 +9,20 @@ const STATUS_ES: Record<string, string> = {
 
 type Props = {
   task: Task
+  onOpen?: (task: Task) => void
   onComplete?: (id: number) => void
+  onStart?: (id: number) => void
 }
 
-export function ChatTaskCard({ task, onComplete }: Props) {
+export function ChatTaskCard({ task, onOpen, onComplete, onStart }: Props) {
+  const canAct = task.status !== 'done' && task.status !== 'cancelled'
+
   return (
     <div className="chat-task">
       <div className="chat-task__title">
         <strong>
           {task.id}. {task.title}
         </strong>
-        {onComplete && task.status !== 'done' && task.status !== 'cancelled' ? (
-          <button
-            type="button"
-            className="chat-task__done"
-            title="Marcar hecha"
-            onClick={() => onComplete(task.id)}
-          >
-            ✓
-          </button>
-        ) : null}
       </div>
       <div className="chat-task__meta">
         <span>{STATUS_ES[task.status] ?? task.status}</span>
@@ -40,6 +34,31 @@ export function ChatTaskCard({ task, onComplete }: Props) {
           {task.url.replace(/^https?:\/\//, '').slice(0, 40)}
         </a>
       ) : null}
+      <div className="chat-task__actions">
+        {onOpen ? (
+          <button type="button" className="chat-task__btn" onClick={() => onOpen(task)}>
+            Abrir
+          </button>
+        ) : null}
+        {onStart && canAct && task.status !== 'in_progress' ? (
+          <button
+            type="button"
+            className="chat-task__btn"
+            onClick={() => onStart(task.id)}
+          >
+            En curso
+          </button>
+        ) : null}
+        {onComplete && canAct ? (
+          <button
+            type="button"
+            className="chat-task__btn chat-task__btn--done"
+            onClick={() => onComplete(task.id)}
+          >
+            Hecha
+          </button>
+        ) : null}
+      </div>
     </div>
   )
 }

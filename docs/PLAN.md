@@ -99,7 +99,8 @@ Fuera de alcance 1.6: otros usuarios, onboarding comercial, billing, colab, OAut
 Alcance (orden de ataque):
 
 1. **Day strip** — fecha Madrid + briefing/dream + próximas agenda arriba de chat/board
-2. **Chat vivo** — “pensando / usando tools…” (y streaming si cabe); acciones en respuesta (abrir/completar tarea)
+2. **Chat vivo** — status en vivo (SSE) + acciones Abrir / En curso / Hecha ✅
+   *(token streaming del LLM aplazado; el valor es status de tools + acciones)*
 3. **Tarjeta de tarea rica** — editar inline (proyecto, url, notas, due); filtros por proyecto; buscar
 4. **Voz one-tap** — mic → transcripción → enviar (misma SPA)
 5. **⌘K / command palette** — dream, hora, nueva tarea, saltar a proyecto ✅

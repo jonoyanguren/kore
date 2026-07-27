@@ -6,9 +6,10 @@ import {
   useState,
 } from 'react'
 import {
-  apiChat,
+  apiChatLive,
   apiCompleteTask,
   apiListMessages,
+  apiPatchTask,
   type ChatMessage,
 } from '../api'
 import { formatRelativeEs } from '../relativeTime'
@@ -21,6 +22,7 @@ export type ChatPanelHandle = {
 
 type Props = {
   onAfterChat?: (info: { tasksChanged: boolean }) => void
+  onOpenTask?: (task: Task) => void
 }
 
 const QUICK: { label: string; send: string }[] = [
@@ -51,8 +53,22 @@ function whenLabel(m: ChatMessage, now: Date): string {
   return m.relative ?? ''
 }
 
+function patchTasksInMessages(
+  messages: ChatMessage[],
+  id: number,
+  patch: Partial<Task>,
+): ChatMessage[] {
+  return messages.map((m) => {
+    if (!m.tasks?.length) return m
+    return {
+      ...m,
+      tasks: m.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+    }
+  })
+}
+
 export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
-  { onAfterChat },
+  { onAfterChat, onOpenTask },
   ref,
 ) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -94,18 +110,16 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     if (!t || busyRef.current) return
     setText('')
     setBusy(true)
-    setThinking(
-      t.startsWith('/')
-        ? 'Ejecutando…'
-        : 'Pensando… (puede usar tools)',
-    )
+    setThinking(t.startsWith('/') ? 'Ejecutando…' : 'Pensando…')
     setError(null)
     setMessages((prev) => [
       ...prev,
       { role: 'user', content: t, relative: 'hace un momento', tasks: [] },
     ])
     try {
-      const result = await apiChat(t)
+      const result = await apiChatLive(t, {
+        onStatus: (label) => setThinking(label),
+      })
       setThinking(null)
       let reply = result.reply
       if (
@@ -156,7 +170,19 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   async function onCompleteTask(id: number) {
     try {
       await apiCompleteTask(id)
-      await load()
+      setMessages((prev) => patchTasksInMessages(prev, id, { status: 'done' }))
+      onAfterChat?.({ tasksChanged: true })
+    } catch (e) {
+      setError(String(e))
+    }
+  }
+
+  async function onStartTask(id: number) {
+    try {
+      await apiPatchTask(id, { status: 'in_progress' })
+      setMessages((prev) =>
+        patchTasksInMessages(prev, id, { status: 'in_progress' }),
+      )
       onAfterChat?.({ tasksChanged: true })
     } catch (e) {
       setError(String(e))
@@ -211,14 +237,18 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
                   <ChatTaskCard
                     key={task.id}
                     task={task}
+                    onOpen={onOpenTask}
                     onComplete={onCompleteTask}
+                    onStart={onStartTask}
                   />
                 ))}
               </div>
             ) : null}
           </div>
         ))}
-        {thinking ? <p className="muted chat__thinking">{thinking}</p> : null}
+        {thinking ? (
+          <p className="muted chat__thinking chat__thinking--live">{thinking}</p>
+        ) : null}
         {busy && !thinking ? (
           <p className="muted chat__thinking">Pensando…</p>
         ) : null}

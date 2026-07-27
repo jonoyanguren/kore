@@ -157,6 +157,17 @@ async def _run():
             assert "Tareas" in tareas.json()["reply"]
             assert isinstance(tareas.json().get("tasks_listed"), list)
 
+            # SSE chat stream (fast-path)
+            stream = await ac.post(
+                "/api/chat/stream",
+                headers={"Authorization": f"Bearer {secret}"},
+                json={"text": "/hora"},
+            )
+            assert stream.status_code == 200
+            raw = stream.text
+            assert "data:" in raw
+            assert '"type": "done"' in raw or '"type":"done"' in raw
+
             day = await ac.get(
                 "/api/day",
                 headers={"Authorization": f"Bearer {secret}"},

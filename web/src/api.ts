@@ -135,3 +135,81 @@ export async function apiChat(text: string): Promise<ChatResult> {
     window.clearTimeout(timer)
   }
 }
+
+export type ChatStreamHandlers = {
+  onStatus?: (text: string) => void
+}
+
+/** Live chat via SSE (`/api/chat/stream`). Falls back to JSON `/api/chat` if needed. */
+export async function apiChatLive(
+  text: string,
+  handlers: ChatStreamHandlers = {},
+): Promise<ChatResult> {
+  const controller = new AbortController()
+  const timer = window.setTimeout(() => controller.abort(), 180_000)
+  try {
+    const res = await fetch('/api/chat/stream', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+      signal: controller.signal,
+    })
+    if (!res.ok || !res.body) {
+      return apiChat(text)
+    }
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    let result: ChatResult | null = null
+    let err: string | null = null
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const parts = buffer.split('\n\n')
+      buffer = parts.pop() ?? ''
+      for (const part of parts) {
+        const line = part
+          .split('\n')
+          .map((l) => l.trim())
+          .find((l) => l.startsWith('data:'))
+        if (!line) continue
+        const raw = line.slice(5).trim()
+        if (!raw) continue
+        let ev: {
+          type?: string
+          text?: string
+          reply?: string
+          tasks_created?: Task[]
+          tasks_listed?: Task[]
+          tasks_changed?: boolean
+          detail?: string
+        }
+        try {
+          ev = JSON.parse(raw) as typeof ev
+        } catch {
+          continue
+        }
+        if (ev.type === 'status' && ev.text) {
+          handlers.onStatus?.(ev.text)
+        } else if (ev.type === 'done' && typeof ev.reply === 'string') {
+          result = {
+            reply: ev.reply,
+            tasks_created: ev.tasks_created ?? [],
+            tasks_listed: ev.tasks_listed ?? ev.tasks_created ?? [],
+            tasks_changed: Boolean(ev.tasks_changed),
+          }
+        } else if (ev.type === 'error') {
+          err = String(ev.detail ?? 'error')
+        }
+      }
+    }
+    if (err) throw new Error(err)
+    if (result) return result
+    return apiChat(text)
+  } finally {
+    window.clearTimeout(timer)
+  }
+}
