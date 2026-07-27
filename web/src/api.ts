@@ -4,12 +4,13 @@ async function req<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<{ ok: true; data: T } | { ok: false; status: number }> {
+  const { headers: initHeaders, ...rest } = init
   const res = await fetch(path, {
     credentials: 'include',
-    ...init,
+    ...rest,
     headers: {
       'Content-Type': 'application/json',
-      ...(init.headers ?? {}),
+      ...(initHeaders ?? {}),
     },
   })
   if (!res.ok) return { ok: false, status: res.status }
@@ -72,4 +73,30 @@ export async function apiCompleteTask(id: number): Promise<Task> {
   })
   if (!r.ok) throw new Error(`complete task ${r.status}`)
   return r.data.task
+}
+
+export type ChatMessage = { role: string; content: string }
+
+export async function apiListMessages(limit = 80): Promise<ChatMessage[]> {
+  const r = await req<{ messages: ChatMessage[] }>(
+    `/api/messages?limit=${limit}`,
+  )
+  if (!r.ok) throw new Error(`list messages ${r.status}`)
+  return r.data.messages
+}
+
+export async function apiChat(text: string): Promise<string> {
+  const controller = new AbortController()
+  const timer = window.setTimeout(() => controller.abort(), 180_000)
+  try {
+    const r = await req<{ reply: string }>('/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+      signal: controller.signal,
+    })
+    if (!r.ok) throw new Error(`chat ${r.status}`)
+    return r.data.reply
+  } finally {
+    window.clearTimeout(timer)
+  }
 }

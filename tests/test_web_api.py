@@ -107,6 +107,30 @@ async def _run():
             open_md = (vault.root / "tasks" / "open.md").read_text(encoding="utf-8")
             assert open_md.strip()
 
+            class _FakeLLM:
+                async def ask(self, user_text: str, **_kwargs: object) -> str:
+                    await store.add_message("user", user_text)
+                    reply = f"eco:{user_text}"
+                    await store.add_message("assistant", reply)
+                    return reply
+
+            app.state.llm = _FakeLLM()
+            chat = await ac.post(
+                "/api/chat",
+                headers={"Authorization": f"Bearer {secret}"},
+                json={"text": "hola web"},
+            )
+            assert chat.status_code == 200
+            assert chat.json()["reply"] == "eco:hola web"
+            msgs = await ac.get(
+                "/api/messages",
+                headers={"Authorization": f"Bearer {secret}"},
+            )
+            assert msgs.status_code == 200
+            contents = [m["content"] for m in msgs.json()["messages"]]
+            assert "hola web" in contents
+            assert "eco:hola web" in contents
+
 
 def test_web_api_auth_and_tasks():
     asyncio.run(_run())

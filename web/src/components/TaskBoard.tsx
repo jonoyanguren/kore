@@ -13,7 +13,6 @@ import {
   apiCompleteTask,
   apiCreateTask,
   apiListTasks,
-  apiLogout,
   apiPatchTask,
 } from '../api'
 import type { BoardColumnId, Task } from '../types'
@@ -30,10 +29,10 @@ function columnOf(status: string): BoardColumnId | null {
 }
 
 type Props = {
-  onLogout: () => void
+  refreshToken?: number
 }
 
-export function TaskBoard({ onLogout }: Props) {
+export function TaskBoard({ refreshToken = 0 }: Props) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -64,7 +63,7 @@ export function TaskBoard({ onLogout }: Props) {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [refreshToken])
 
   const grouped = useMemo(() => {
     const map: Record<BoardColumnId, Task[]> = {
@@ -145,15 +144,10 @@ export function TaskBoard({ onLogout }: Props) {
     void moveTask(taskId, to)
   }
 
-  async function handleLogout() {
-    await apiLogout()
-    onLogout()
-  }
-
   return (
-    <div className="console">
-      <header className="console__bar">
-        <h1>Kore</h1>
+    <section className="board-panel">
+      <header className="board-panel__bar">
+        <h2>Tareas</h2>
         <form className="console__add" onSubmit={onAdd}>
           <input
             value={title}
@@ -162,9 +156,6 @@ export function TaskBoard({ onLogout }: Props) {
           />
           <button type="submit">Añadir</button>
         </form>
-        <button type="button" className="ghost" onClick={() => void handleLogout()}>
-          Salir
-        </button>
       </header>
 
       {error ? <p className="error">{error}</p> : null}
@@ -192,6 +183,6 @@ export function TaskBoard({ onLogout }: Props) {
           ) : null}
         </DragOverlay>
       </DndContext>
-    </div>
+    </section>
   )
 }

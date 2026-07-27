@@ -176,3 +176,4 @@ Fuera de v1: media, streaming, multi-usuario, agenda/dream UI. Voz prevista en l
 | 2026-07-27 | Plan implementación consola: `docs/web-console-plan.md` (slices A–D) |
 | 2026-07-27 | D13: frontend Vite+React+TS desde el inicio; voz = post-v1 |
 | 2026-07-27 | Phase 1.5 slice A: `/api` auth+tasks + scaffold `web/` |
+| 2026-07-27 | Phase 1.5 slice C: `/api/chat` + `/api/messages` + panel chat en consola |

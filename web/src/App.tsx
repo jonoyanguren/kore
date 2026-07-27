@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { apiMe } from './api'
+import { Console } from './components/Console'
 import { Login } from './components/Login'
-import { TaskBoard } from './components/TaskBoard'
 import './App.css'
 
 type Auth = 'loading' | 'in' | 'out'
@@ -32,7 +32,7 @@ function App() {
     return <Login onSuccess={() => setAuth('in')} />
   }
 
-  return <TaskBoard onLogout={() => setAuth('out')} />
+  return <Console onLogout={() => setAuth('out')} />
 }
 
 export default App

@@ -61,7 +61,7 @@ Plan: `[docs/web-console-plan.md](./web-console-plan.md)`
 
 - [x] **A** Scaffold Vite+React+TS + auth + API tasks + tests (2026-07-27)
 - [x] **B** UI React board Trello (DnD En curso / Pendientes / Hechas) (2026-07-27)
-- [ ] **C** `POST /api/chat` + UI chat texto
+- [x] **C** `POST /api/chat` + UI chat texto (2026-07-27)
 - [x] **D** Docker multi-stage + `CONSOLE_SECRET` Fly (2026-07-27)
 - [ ] **E+** Voz / transcripción (misma SPA)
 - [x] Servir `web/dist` desde FastAPI (montado si existe `web/dist`)

@@ -1,4 +1,4 @@
-"""HTTP API for the web console: auth + tasks (chat comes in slice C)."""
+"""HTTP API for the web console: auth + tasks + chat."""
 
 from __future__ import annotations
 
@@ -183,3 +183,30 @@ async def delete_task(request: Request, task_id: int) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail="task not found")
     await sync_tasks_vault(request.app.state.memory, request.app.state.vault)
     return {"ok": True}
+
+
+class ChatBody(BaseModel):
+    text: str = Field(min_length=1, max_length=8000)
+
+
+@router.get("/messages", dependencies=[Depends(require_console_auth)])
+async def list_messages(
+    request: Request,
+    limit: int = 80,
+) -> dict[str, list[dict[str, str]]]:
+    rows = await request.app.state.memory.list_messages_for_day(
+        limit=min(max(limit, 1), 200)
+    )
+    return {"messages": [{"role": role, "content": content} for role, content in rows]}
+
+
+@router.post("/chat", dependencies=[Depends(require_console_auth)])
+async def chat(request: Request, body: ChatBody) -> dict[str, str]:
+    text = body.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="empty text")
+    llm = getattr(request.app.state, "llm", None)
+    if llm is None:
+        raise HTTPException(status_code=503, detail="llm not ready")
+    reply = await llm.ask(text)
+    return {"reply": reply}
