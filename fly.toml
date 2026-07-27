@@ -9,8 +9,8 @@ primary_region = 'fra'
 [env]
   STORAGE_DB_PATH = "/data/kore.db"
   ASSISTANT_NAME = "Jone"
-  OPENROUTER_MODEL = "anthropic/claude-sonnet-4.6"
-  OPENROUTER_MODEL_STRONG = "anthropic/claude-opus-4.8"
+  OPENROUTER_MODEL = "deepseek/deepseek-v4-pro"
+  OPENROUTER_MODEL_STRONG = "anthropic/claude-sonnet-4.6"
   LLM_MAX_TOKENS = "4096"
 
 [build]

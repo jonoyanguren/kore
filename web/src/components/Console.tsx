@@ -16,6 +16,7 @@ import { DayStrip } from './DayStrip'
 import { DocsDrawer, type DocsSectionId } from './DocsDrawer'
 import { MemoryDrawer } from './MemoryDrawer'
 import { TaskBoard, type TaskBoardHandle } from './TaskBoard'
+import { UsageChip } from './UsageChip'
 import type { Task } from '../types'
 
 export type LayoutMode = 'day' | 'focus' | 'operate'
@@ -181,6 +182,7 @@ export function Console({ onLogout }: Props) {
           ))}
         </nav>
         <div className="console__bar-actions">
+          <UsageChip />
           <button
             type="button"
             className="ghost"

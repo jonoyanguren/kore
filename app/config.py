@@ -17,12 +17,14 @@ class Settings(BaseSettings):
     # LLM (OpenRouter — OpenAI-compatible endpoint proxying many providers)
     openrouter_api_key: str
     # Daily driver (tools + chat). Override via OPENROUTER_MODEL.
-    openrouter_model: str = "anthropic/claude-sonnet-4.6"
-    # Optional heavier model for mega-asks. Empty = same as openrouter_model.
-    openrouter_model_strong: str = "anthropic/claude-opus-4.8"
+    openrouter_model: str = "deepseek/deepseek-v4-pro"
+    # Heavier Claude for mega-asks (coach / research). Empty = same as daily.
+    openrouter_model_strong: str = "anthropic/claude-sonnet-4.6"
     # Speech-to-text (console mic). Same OpenRouter key.
     openrouter_stt_model: str = "openai/whisper-1"
     openrouter_stt_language: str = "es"
+    # Optional USD budget for % if /credits fails and the key has no limit.
+    openrouter_budget_usd: float = 0.0
     llm_max_tokens: int = 4096
     timezone: str = "Europe/Madrid"
 

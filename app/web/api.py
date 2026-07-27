@@ -23,6 +23,7 @@ from pydantic import BaseModel, Field
 
 from app.config import settings
 from app.kernel.briefing import build_day_briefing
+from app.llm.openrouter_credits import fetch_usage
 from app.llm.transcribe import MAX_AUDIO_BYTES, transcribe_audio
 from app.storage.memory import TaskRow, VALID_TASK_STATUSES, format_tasks_message
 from app.storage.task_tools import purge_done_tasks_archiving, sync_tasks_vault
@@ -126,6 +127,15 @@ async def logout(response: Response) -> dict[str, bool]:
 @router.get("/me", dependencies=[Depends(require_console_auth)])
 async def me() -> dict[str, bool]:
     return {"ok": True}
+
+
+@router.get("/usage", dependencies=[Depends(require_console_auth)])
+async def usage(force: bool = False) -> dict[str, Any]:
+    """OpenRouter spend: usage_usd, total_usd, pct_used (cached ~60s)."""
+    snap = await fetch_usage(force=force)
+    if snap is None:
+        return {"ok": False, "usage": None}
+    return {"ok": True, "usage": snap.as_dict()}
 
 
 class MemoryBody(BaseModel):

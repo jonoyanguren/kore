@@ -65,7 +65,7 @@ def wants_strong_model(user_text: str) -> bool:
 
 
 def resolve_model(*, strong: bool = False) -> str:
-    primary = (settings.openrouter_model or "").strip() or "anthropic/claude-sonnet-4.6"
+    primary = (settings.openrouter_model or "").strip() or "deepseek/deepseek-v4-pro"
     heavy = (settings.openrouter_model_strong or "").strip()
     if strong and heavy:
         return heavy

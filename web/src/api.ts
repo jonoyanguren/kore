@@ -35,6 +35,21 @@ export async function apiLogout(): Promise<void> {
   await req('/api/logout', { method: 'POST' })
 }
 
+export type UsageInfo = {
+  usage_usd: number
+  total_usd: number
+  remaining_usd: number
+  pct_used: number
+  source: string
+}
+
+export async function apiUsage(force = false): Promise<UsageInfo | null> {
+  const qs = force ? '?force=true' : ''
+  const r = await req<{ ok: boolean; usage: UsageInfo | null }>(`/api/usage${qs}`)
+  if (!r.ok || !r.data.ok || !r.data.usage) return null
+  return r.data.usage
+}
+
 export type MemoryItem = { id: number; category: string; text: string }
 export type DiaryEntry = { id: number; text: string }
 

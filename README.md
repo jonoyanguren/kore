@@ -19,8 +19,8 @@ Telegram --webhook (HTTPS)--> Fly.io (TLS automático) --> FastAPI (app) --> Ope
 - **Canal**: Telegram Bot API vía webhook.
 - **Backend**: FastAPI + Python 3.12, gestionado con `uv`.
 - **Modelo**: vía **OpenRouter** — diario `OPENROUTER_MODEL`
-  (`anthropic/claude-sonnet-4.6`); asks gordas `OPENROUTER_MODEL_STRONG`
-  (`anthropic/claude-opus-4.8`). Alt barato/multimodal: `xiaomi/mimo-v2.5`.
+  (`deepseek/deepseek-v4-pro`); asks gordas `OPENROUTER_MODEL_STRONG`
+  (`anthropic/claude-sonnet-4.6`). Alt: Opus / MiMo multimodal.
   Sin streaming — las respuestas son mensajes
   de chat cortos, no documentos largos.
 - **Tool use**: `LLMAssistant` corre un loop de llamada→tool_calls→resultado
