@@ -709,6 +709,11 @@ button.ghost:hover {
   min-width: 12rem;
 }
 
+.board-panel__purge:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .board-panel__bar h2 {
   font-size: 1rem;
   font-weight: 500;

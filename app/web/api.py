@@ -267,6 +267,14 @@ async def patch_task(
     return {"task": _task_dict(task)}
 
 
+@router.delete("/tasks/completed", dependencies=[Depends(require_console_auth)])
+async def purge_completed_tasks(request: Request) -> dict[str, Any]:
+    """Hard-delete every task with status=done."""
+    deleted = await request.app.state.memory.purge_done_tasks()
+    await sync_tasks_vault(request.app.state.memory, request.app.state.vault)
+    return {"ok": True, "deleted": deleted}
+
+
 @router.post("/tasks/{task_id}/complete", dependencies=[Depends(require_console_auth)])
 async def complete_task(request: Request, task_id: int) -> dict[str, Any]:
     ok = await request.app.state.memory.complete_task(task_id)

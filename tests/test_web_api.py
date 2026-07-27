@@ -104,6 +104,25 @@ async def _run():
             assert deleted.status_code == 200
             assert (await store.get_task(tid2)).status == "cancelled"
 
+            tid_done = (
+                await ac.post(
+                    "/api/tasks",
+                    headers={"Authorization": f"Bearer {secret}"},
+                    json={"title": "ya hecha"},
+                )
+            ).json()["task"]["id"]
+            await ac.post(
+                f"/api/tasks/{tid_done}/complete",
+                headers={"Authorization": f"Bearer {secret}"},
+            )
+            purged = await ac.delete(
+                "/api/tasks/completed",
+                headers={"Authorization": f"Bearer {secret}"},
+            )
+            assert purged.status_code == 200
+            assert purged.json()["deleted"] >= 1
+            assert await store.get_task(tid_done) is None
+
             open_md = (vault.root / "tasks" / "open.md").read_text(encoding="utf-8")
             assert open_md.strip()
 

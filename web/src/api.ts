@@ -143,6 +143,14 @@ export async function apiDeleteTask(id: number): Promise<void> {
   if (!r.ok) throw new Error(`delete task ${r.status}`)
 }
 
+export async function apiPurgeCompletedTasks(): Promise<number> {
+  const r = await req<{ ok: boolean; deleted: number }>('/api/tasks/completed', {
+    method: 'DELETE',
+  })
+  if (!r.ok) throw new Error(`purge completed ${r.status}`)
+  return r.data.deleted
+}
+
 export type DayBriefing = {
   day: string | null
   has_dream: boolean

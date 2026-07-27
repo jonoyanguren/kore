@@ -638,6 +638,13 @@ class MemoryStore:
         """Soft-delete: status=cancelled."""
         return await self.update_task(task_id, status="cancelled")
 
+    async def purge_done_tasks(self) -> int:
+        """Hard-delete all tasks with status=done. Returns rows removed."""
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute("DELETE FROM tasks WHERE status = 'done'")
+            await db.commit()
+            return int(cursor.rowcount or 0)
+
     # --- Agenda -------------------------------------------------------------
 
     async def add_agenda_item(

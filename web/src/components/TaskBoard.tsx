@@ -27,6 +27,7 @@ import {
   apiDeleteTask,
   apiListTasks,
   apiPatchTask,
+  apiPurgeCompletedTasks,
 } from '../api'
 import type { BoardColumnId, Task } from '../types'
 import { BoardColumn } from './BoardColumn'
@@ -258,6 +259,37 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
     }
   }
 
+  async function onPurgeCompleted() {
+    const n = tasks.filter((t) => t.status === 'done').length
+    if (n === 0) {
+      toast.ok('No hay completadas')
+      return
+    }
+    if (
+      !window.confirm(
+        `¿Borrar ${n} completada${n === 1 ? '' : 's'} de la base de datos? No se pueden recuperar.`,
+      )
+    ) {
+      return
+    }
+    const prev = tasks
+    setTasks((rows) => rows.filter((row) => row.status !== 'done'))
+    if (editing?.status === 'done') setEditing(null)
+    try {
+      const deleted = await apiPurgeCompletedTasks()
+      toast.ok(
+        deleted === 0
+          ? 'Nada que borrar'
+          : `Borradas ${deleted} completada${deleted === 1 ? '' : 's'}`,
+      )
+    } catch (err) {
+      setTasks(prev)
+      const msg = String(err)
+      setError(msg)
+      toast.err(msg)
+    }
+  }
+
   /** Persist status/priority for a set of tasks; merge into local state. */
   async function persistTasks(
     nextSlice: Task[],
@@ -417,6 +449,11 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
     )
   }
 
+  const doneCount = useMemo(
+    () => tasks.filter((t) => t.status === 'done').length,
+    [tasks],
+  )
+
   return (
     <section className="board-panel">
       <header className="board-panel__bar">
@@ -446,6 +483,20 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
           />
           <button type="submit">Añadir</button>
         </form>
+        <button
+          type="button"
+          className="ghost board-panel__purge"
+          disabled={doneCount === 0}
+          title={
+            doneCount === 0
+              ? 'No hay completadas'
+              : `Borrar ${doneCount} completada${doneCount === 1 ? '' : 's'} de la BD`
+          }
+          onClick={() => void onPurgeCompleted()}
+        >
+          Borrar completadas
+          {doneCount > 0 ? ` (${doneCount})` : ''}
+        </button>
       </header>
 
       <div className="board-panel__filters">
