@@ -2,7 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { apiChat, apiListMessages, type ChatMessage } from '../api'
 
 type Props = {
-  onAfterChat?: () => void
+  onAfterChat?: (info: { tasksChanged: boolean }) => void
+}
+
+function looksLikeTaskClaim(text: string): boolean {
+  return /\b(cread|añadid|agregad|hecha|apuntd|list[oa])\b/i.test(text)
 }
 
 export function ChatPanel({ onAfterChat }: Props) {
@@ -13,7 +17,7 @@ export function ChatPanel({ onAfterChat }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   async function load() {
-    const rows = await apiListMessages()
+    const rows = await apiListMessages(100)
     setMessages(rows.filter((m) => m.role === 'user' || m.role === 'assistant'))
   }
 
@@ -43,9 +47,23 @@ export function ChatPanel({ onAfterChat }: Props) {
     setError(null)
     setMessages((prev) => [...prev, { role: 'user', content: t }])
     try {
-      const reply = await apiChat(t)
+      const result = await apiChat(t)
+      let reply = result.reply
+      if (
+        looksLikeTaskClaim(reply) &&
+        result.tasks_created.length === 0 &&
+        !result.tasks_changed
+      ) {
+        reply +=
+          '\n\n(Ojo: no quedó registrada en SQLite — la tool no corrió. Prueba otra vez o añádela en el board.)'
+      }
       setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
-      onAfterChat?.()
+      try {
+        await load()
+      } catch {
+        /* keep optimistic bubbles */
+      }
+      onAfterChat?.({ tasksChanged: result.tasks_changed })
     } catch (err) {
       setError(String(err))
       setMessages((prev) => [
@@ -61,7 +79,7 @@ export function ChatPanel({ onAfterChat }: Props) {
     <section className="chat">
       <header className="chat__head">
         <h2>Chat</h2>
-        <span className="muted">texto · mismo Jone que Telegram</span>
+        <span className="muted">últimos 100 · mismo Jone</span>
       </header>
       <div className="chat__log" aria-live="polite">
         {messages.length === 0 && !busy ? (

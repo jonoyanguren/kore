@@ -192,7 +192,7 @@ class ChatBody(BaseModel):
 @router.get("/messages", dependencies=[Depends(require_console_auth)])
 async def list_messages(
     request: Request,
-    limit: int = 80,
+    limit: int = 100,
 ) -> dict[str, list[dict[str, str]]]:
     rows = await request.app.state.memory.list_messages_for_day(
         limit=min(max(limit, 1), 200)
@@ -201,12 +201,23 @@ async def list_messages(
 
 
 @router.post("/chat", dependencies=[Depends(require_console_auth)])
-async def chat(request: Request, body: ChatBody) -> dict[str, str]:
+async def chat(request: Request, body: ChatBody) -> dict[str, Any]:
     text = body.text.strip()
     if not text:
         raise HTTPException(status_code=400, detail="empty text")
     llm = getattr(request.app.state, "llm", None)
     if llm is None:
         raise HTTPException(status_code=503, detail="llm not ready")
+
+    memory = request.app.state.memory
+    before = {t.id for t in await memory.list_tasks(status="open", limit=100)}
     reply = await llm.ask(text)
-    return {"reply": reply}
+    after_rows = await memory.list_tasks(status="open", limit=100)
+    after = {t.id for t in after_rows}
+    created = [ _task_dict(t) for t in after_rows if t.id in (after - before) ]
+
+    return {
+        "reply": reply,
+        "tasks_created": created,
+        "tasks_changed": bool(created) or before != after,
+    }

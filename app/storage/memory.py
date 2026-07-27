@@ -360,15 +360,21 @@ class MemoryStore:
     async def list_messages_for_day(
         self, day: str | None = None, limit: int = 500
     ) -> list[tuple[str, str]]:
-        """All session messages for a Madrid day, oldest→newest (capped)."""
+        """Session messages for a Madrid day, oldest→newest.
+
+        When capped by `limit`, keeps the **most recent** N (not the oldest).
+        """
         day = day or session_date_str()
         async with aiosqlite.connect(self._db_path) as db:
             cursor = await db.execute(
                 """
-                SELECT role, content FROM messages
-                WHERE session_date = ?
+                SELECT role, content FROM (
+                    SELECT id, role, content FROM messages
+                    WHERE session_date = ?
+                    ORDER BY id DESC
+                    LIMIT ?
+                ) AS recent
                 ORDER BY id ASC
-                LIMIT ?
                 """,
                 (day, limit),
             )

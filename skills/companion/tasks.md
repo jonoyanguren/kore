@@ -22,7 +22,7 @@ No es `docs/TODO.md` (eso es backlog de desarrollo Kore en git).
 - notes: contexto extra
 
 ## How
-1. Crear → `add_task`. Si hay URL en el mensaje, **siempre** `url=…`. No pierdas el link.
+1. Crear → `add_task` **obligatorio** antes de decir "creada/añadida". Sin tool = no digas que está hecha.
 2. "en curso" / "importante" → `status=in_progress` o `priority` alta; proyecto si se deduce.
 3. Listar → `list_tasks` (open incluye in_progress). Detalle → `get_task`.
 4. Editar link/nota/estado → `update_task`. Borrar → `delete_task`. Hecha → `complete_task`.

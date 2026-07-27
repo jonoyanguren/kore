@@ -8,8 +8,8 @@
 | Repo | `jonoyanguren/kore` |
 | Producto | **Kore** (deploy/código) · hablado **Jone** (`ASSISTANT_NAME`) |
 | Arquitectura | Companion kernel (Approach B) |
-| Fase actual | **Phase 1** (vault + dream + tasks) → **1.5 web** siguiente |
-| Canal | Telegram (captura móvil) + **consola web** (chat básico + tareas) |
+| Fase actual | **Phase 1.5** hecha (consola chat+board) → **1.6 UX personal** siguiente |
+| Canal | Telegram (móvil) + consola web (operar / día) |
 | Deploy | Fly.io · volumen `/data` |
 | LLM | **OpenRouter** (`OPENROUTER_API_KEY` + `OPENROUTER_MODEL`) |
 | Modelo default | `xiaomi/mimo-v2.5` |
@@ -27,11 +27,12 @@
 - [x] Phase 0 (parcial): tools `save_memory` / `add_diary_entry` + comandos `/skills` `/hora` `/diario`
 - [x] Phase 0: imágenes Telegram → MIMO (download + content multimodal)
 - [x] Phase 1 (MVP): vault + dream 9am/`/dream` + tasks/agenda locales
-- [ ] Phase 1.5: consola web (chat texto básico + tareas)
+- [x] Phase 1.5: consola web (chat texto + board tareas) — MVP
+- [ ] Phase 1.6: UX personal premium (day strip, chat vivo, tareas ricas, voz…)
 - [ ] Phase 2: Gmail OAuth + digest 9am
 - [ ] Phase 3: misiones background
 - [ ] Phase 4: git/código (este repo → multi-repo)
-- [ ] Phase 5+: calendar, voz, PDF, media web…
+- [ ] Phase 5+: calendar, PDF, media web…
 
 ## Decisiones (cerradas)
 
@@ -50,6 +51,7 @@
 | D11 | Orden | Kernel por fases; rename no bloquea |
 | D12 | UI web | Phase **1.5** antes de Gmail: chat **texto** + tareas; sin media en web v1; Telegram sigue |
 | D13 | Frontend | **Vite + React + TypeScript** desde el inicio (voz/transcripción = slices posteriores, misma SPA) |
+| D14 | UX 1.6 | Super-herramienta **personal** con barra UX alta; multi-user/venta = más adelante, fuera de 1.6 |
 
 ## Roadmap
 
@@ -82,26 +84,38 @@ Pendiente Phase 1:
 - Dogfood dream/tasks unos días
 - (opcional) fusionar duplicados de memoria más agresivo; briefing aún más rico
 
-### Phase 1.5 — Consola web *(siguiente, acelera dogfood)*
+### Phase 1.5 — Consola web *(MVP hecho)*
 
-> Diseño de implementación: [`docs/web-console-plan.md`](./web-console-plan.md)
+> Diseño: [`docs/web-console-plan.md`](./web-console-plan.md)
 
-Objetivo: UI propia para operar más rápido que Telegram (listas, checks, botones), sin matar el bot.
+Hecho: auth `CONSOLE_SECRET`, Vite+React board (DnD) + chat texto (`/api/chat`), Docker multi-stage, Fly.
 
-Alcance v1:
-- Auth mínima (`CONSOLE_SECRET` → cookie/Bearer)
-- Frontend **Vite + React + TS** (SPA en `web/dist`)
-- **Chat texto** → `LLMAssistant.ask` (voz/transcripción = post-v1, misma app)
-- **Tareas**: En curso / Pendientes, completar, editar, links
-- Docker multi-stage (node build + python)
-- Cortes: A scaffold+API tasks → B UI tareas → C chat → D deploy → E+ voz
+### Phase 1.6 — UX personal premium *(siguiente)*
 
-Fuera de v1: media, streaming, multi-usuario, agenda/dream UI. Voz prevista en la misma SPA.
+Objetivo: **super-herramienta para Jon** con UX/UI de producto caro. No multi-usuario ni venta ahora; la barra alta es para que la herramienta no se sienta “admin interno”.
+
+Fuera de alcance 1.6: otros usuarios, onboarding comercial, billing, colab, OAuth multi-tenant.
+
+Alcance (orden de ataque):
+
+1. **Day strip** — fecha Madrid + briefing/dream + próximas agenda arriba de chat/board
+2. **Chat vivo** — “pensando / usando tools…” (y streaming si cabe); acciones en respuesta (abrir/completar tarea)
+3. **Tarjeta de tarea rica** — editar inline (proyecto, url, notas, due); filtros por proyecto; buscar
+4. **Voz one-tap** — mic → transcripción → enviar (misma SPA)
+5. **⌘K / command palette** — dream, hora, nueva tarea, saltar a proyecto
+6. **Layouts** — Focus (chat) / Operate (board) / Day (briefing+agenda)
+7. **Drawer memoria/diario** — por categoría + meter en diario
+8. **Feedback de sistema** — guardado, error LLM recuperable, tip “sync con Telegram”
+9. **Design system** — tokens, empty states, mobile pulido (marca propia, no genérico AI)
+10. **Proyectos como espacios** — color + contexto (Kimay / Kore / personal…)
+11. **Privacidad personal** — export vault, ver qué sabe, borrar categoría
+12. **Inbox del día** — cuando exista Gmail (Phase 2): cola unificada mail + tareas + capturas
 
 ### Phase 2 — Gmail
 
 - OAuth + triage + digest 09:00 + `/inbox`
 - Hechos del mail → memoria / agenda
+- UI: alimentar **Inbox del día** (1.6.12)
 
 ### Phase 3 — Misiones
 
@@ -115,7 +129,7 @@ Fuera de v1: media, streaming, multi-usuario, agenda/dream UI. Voz prevista en l
 
 ### Phase 5+
 
-- Calendar externo, voz, PDF, media en web si hace falta
+- Calendar externo, PDF, media en web si hace falta
 
 ## Success criteria
 
@@ -125,7 +139,10 @@ Fuera de v1: media, streaming, multi-usuario, agenda/dream UI. Voz prevista en l
 - [x] Agenda / tasks locales usables (MVP)
 - [x] Imagen Telegram vía MIMO
 - [x] Dream 9am consolida chat + memoria (tools + briefing)
-- [ ] Consola web: chat texto + completar/editar tarea en <2 clics
+- [x] Consola web MVP: chat texto + board tareas (DnD)
+- [ ] Day strip + chat con feedback “pensando/tools”
+- [ ] Tarea editable inline + filtro por proyecto
+- [ ] Voz one-tap en consola
 - [ ] Gmail OAuth + digest 9am
 - [ ] Una misión background completada
 - [ ] Git en este repo con confirmación
@@ -134,15 +151,14 @@ Fuera de v1: media, streaming, multi-usuario, agenda/dream UI. Voz prevista en l
 
 ## Open questions
 
-1. Tras Phase 1.5: ¿prioridad Gmail o Misiones? — *aplazado*
-2. Auth web v1: `CONSOLE_SECRET` + cookie (recomendado en web-console-plan); Telegram Login = no v1
+1. Tras Phase 1.6 (o en paralelo): ¿prioridad Gmail o Misiones? — *aplazado*
+2. Auth web: sigue `CONSOLE_SECRET` (1 usuario); sin Telegram Login por ahora
 
 ## Next steps
 
-1. Dogfood companion: `/dream`, tareas/agenda; verificar briefing ~09:00
-2. **Phase 1.5**: API + chat texto mínimo + panel tareas (antes de Gmail)
+1. Dogfood consola + Telegram; verificar briefing ~09:00
+2. **Phase 1.6**: Day strip + chat vivo + task cards ricas (antes de Gmail salvo que digas lo contrario)
 3. En Cursor: `open` / `close` (`docs/closes/`)
-
 ## Changelog del plan
 
 | Fecha | Cambio |
@@ -177,3 +193,4 @@ Fuera de v1: media, streaming, multi-usuario, agenda/dream UI. Voz prevista en l
 | 2026-07-27 | D13: frontend Vite+React+TS desde el inicio; voz = post-v1 |
 | 2026-07-27 | Phase 1.5 slice A: `/api` auth+tasks + scaffold `web/` |
 | 2026-07-27 | Phase 1.5 slice C: `/api/chat` + `/api/messages` + panel chat en consola |
+| 2026-07-27 | Phase **1.6** UX personal premium (day strip, chat vivo, tareas, voz…); sin multi-user |

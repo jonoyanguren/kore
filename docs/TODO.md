@@ -44,29 +44,44 @@ Convención: `- [ ]` pendiente · `- [x]` hecho. Añade fecha o contexto breve s
 
 ## Tareas
 
-- [ ] Meter comandos por voz
 - [x] Estados en tareas (`open` / `in_progress` / `done` / `cancelled`) + proyecto + links
-- [ ] Que las tareas se autorrellenen más en chat (seguir dogfood)
 - [x] Links/notas visibles en `/tareas` (2026-07-27)
 - [x] `/tareas` agrupado En curso → Pendientes, sin pie SQLite (2026-07-27)
-- [ ] Mensajes de 'pensando' o 'esto llevará un ratillo'
-- [ ] Meter contexto de proyectos que estoy haciendo (lol, kimay, ...)
-- [ ] Conexión con Gmail (Phase 2; después de 1.5)
+- [ ] Que las tareas se autorrellenen más en chat (seguir dogfood)
+- [ ] Mensajes de 'pensando'… → Phase 1.6 chat vivo
+- [ ] Contexto proyectos (lol, kimay, …) → Phase 1.6 espacios
+- [ ] Voz → Phase 1.6 voz one-tap
+- [ ] Gmail → Phase 2 (después de 1.6 salvo que digas lo contrario)
 
 
 
-## Consola web (Phase 1.5)
+## Consola web (Phase 1.5) — MVP
 
-Plan: `[docs/web-console-plan.md](./web-console-plan.md)`
+Plan: [`docs/web-console-plan.md`](./web-console-plan.md)
 
 - [x] **A** Scaffold Vite+React+TS + auth + API tasks + tests (2026-07-27)
 - [x] **B** UI React board Trello (DnD En curso / Pendientes / Hechas) (2026-07-27)
 - [x] **C** `POST /api/chat` + UI chat texto (2026-07-27)
 - [x] **D** Docker multi-stage + `CONSOLE_SECRET` Fly (2026-07-27)
-- [ ] **E+** Voz / transcripción (misma SPA)
-- [x] Servir `web/dist` desde FastAPI (montado si existe `web/dist`)
+- [x] Servir `web/dist` desde FastAPI
 
+## UX personal premium (Phase 1.6)
 
+Super-herramienta para Jon; barra UX alta. **No** multi-user / venta / billing.
+
+Orden:
+1. [ ] Day strip (fecha Madrid + briefing/dream + agenda próxima)
+2. [ ] Chat vivo (“pensando / tools…”, streaming si cabe; acciones en respuesta)
+3. [ ] Tarjeta tarea editable (proyecto, url, notas, due) + filtros + buscar
+4. [ ] Voz one-tap (mic → transcripción → enviar)
+5. [ ] ⌘K / command palette (dream, hora, nueva tarea, proyecto)
+6. [ ] Layouts Focus / Operate / Day
+7. [ ] Drawer memoria/diario (categorías + meter en diario)
+8. [ ] Feedback sistema (guardado, error LLM, sync Telegram)
+9. [ ] Design system (tokens, empty states, mobile)
+10. [ ] Proyectos como espacios (color + contexto Kimay/Kore/…)
+11. [ ] Privacidad personal (export vault, qué sabe, borrar categoría)
+12. [ ] Inbox del día (cuando Gmail / Phase 2)
 
 ## Notas
 

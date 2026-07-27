@@ -121,7 +121,9 @@ async def _run():
                 json={"text": "hola web"},
             )
             assert chat.status_code == 200
-            assert chat.json()["reply"] == "eco:hola web"
+            body = chat.json()
+            assert body["reply"] == "eco:hola web"
+            assert body.get("tasks_created") == []
             msgs = await ac.get(
                 "/api/messages",
                 headers={"Authorization": f"Bearer {secret}"},
@@ -130,6 +132,14 @@ async def _run():
             contents = [m["content"] for m in msgs.json()["messages"]]
             assert "hola web" in contents
             assert "eco:hola web" in contents
+
+            # last-N: seed more than limit, expect newest kept
+            for i in range(12):
+                await store.add_message("user", f"m{i}")
+            capped = await store.list_messages_for_day(limit=5)
+            assert len(capped) == 5
+            assert capped[0][1] == "m7"
+            assert capped[-1][1] == "m11"
 
 
 def test_web_api_auth_and_tasks():

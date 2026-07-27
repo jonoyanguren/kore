@@ -24,7 +24,9 @@ export function Console({ onLogout }: Props) {
         </button>
       </header>
       <div className="console__body">
-        <ChatPanel onAfterChat={() => setBoardToken((n) => n + 1)} />
+        <ChatPanel
+          onAfterChat={() => setBoardToken((n) => n + 1)}
+        />
         <TaskBoard refreshToken={boardToken} />
       </div>
     </div>

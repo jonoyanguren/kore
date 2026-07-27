@@ -77,7 +77,7 @@ export async function apiCompleteTask(id: number): Promise<Task> {
 
 export type ChatMessage = { role: string; content: string }
 
-export async function apiListMessages(limit = 80): Promise<ChatMessage[]> {
+export async function apiListMessages(limit = 100): Promise<ChatMessage[]> {
   const r = await req<{ messages: ChatMessage[] }>(
     `/api/messages?limit=${limit}`,
   )
@@ -85,17 +85,27 @@ export async function apiListMessages(limit = 80): Promise<ChatMessage[]> {
   return r.data.messages
 }
 
-export async function apiChat(text: string): Promise<string> {
+export type ChatResult = {
+  reply: string
+  tasks_created: Task[]
+  tasks_changed: boolean
+}
+
+export async function apiChat(text: string): Promise<ChatResult> {
   const controller = new AbortController()
   const timer = window.setTimeout(() => controller.abort(), 180_000)
   try {
-    const r = await req<{ reply: string }>('/api/chat', {
+    const r = await req<ChatResult>('/api/chat', {
       method: 'POST',
       body: JSON.stringify({ text }),
       signal: controller.signal,
     })
     if (!r.ok) throw new Error(`chat ${r.status}`)
-    return r.data.reply
+    return {
+      reply: r.data.reply,
+      tasks_created: r.data.tasks_created ?? [],
+      tasks_changed: Boolean(r.data.tasks_changed),
+    }
   } finally {
     window.clearTimeout(timer)
   }
