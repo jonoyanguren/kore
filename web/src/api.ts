@@ -72,6 +72,79 @@ export async function apiDeleteMemory(id: number): Promise<void> {
   if (!r.ok) throw new Error(`delete memory ${r.status}`)
 }
 
+export async function apiDeleteMemoryCategory(category: string): Promise<number> {
+  const r = await req<{ deleted: number }>(
+    `/api/memory/category/${encodeURIComponent(category)}`,
+    { method: 'DELETE' },
+  )
+  if (!r.ok) throw new Error(`delete category ${r.status}`)
+  return r.data.deleted
+}
+
+export type PrivacyOverview = {
+  memory_categories: { category: string; count: number }[]
+  memory_total: number
+  diary_today: number
+  tasks_open: number
+  vault_root: string
+}
+
+export async function apiPrivacyOverview(): Promise<PrivacyOverview> {
+  const r = await req<PrivacyOverview>('/api/privacy/overview')
+  if (!r.ok) throw new Error(`privacy ${r.status}`)
+  return r.data
+}
+
+/** Download vault zip (cookie auth). Triggers browser save. */
+export async function apiVaultExport(): Promise<void> {
+  const res = await fetch('/api/vault/export', { credentials: 'include' })
+  if (!res.ok) throw new Error(`export ${res.status}`)
+  const blob = await res.blob()
+  const cd = res.headers.get('Content-Disposition') || ''
+  const m = /filename="([^"]+)"/.exec(cd)
+  const name = m?.[1] ?? 'kore-vault.zip'
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+export async function apiTranscribe(blob: Blob): Promise<string> {
+  const fd = new FormData()
+  const ext = blob.type.includes('ogg')
+    ? 'ogg'
+    : blob.type.includes('mp4')
+      ? 'm4a'
+      : 'webm'
+  fd.append('file', blob, `voice.${ext}`)
+  const controller = new AbortController()
+  const timer = window.setTimeout(() => controller.abort(), 90_000)
+  try {
+    const res = await fetch('/api/transcribe', {
+      method: 'POST',
+      credentials: 'include',
+      body: fd,
+      signal: controller.signal,
+    })
+    if (!res.ok) {
+      let detail = `transcribe ${res.status}`
+      try {
+        const j = (await res.json()) as { detail?: string }
+        if (j.detail) detail = String(j.detail)
+      } catch {
+        /* ignore */
+      }
+      throw new Error(detail)
+    }
+    const data = (await res.json()) as { text: string }
+    return (data.text || '').trim()
+  } finally {
+    window.clearTimeout(timer)
+  }
+}
+
 export async function apiListDiary(
   day?: string,
 ): Promise<{ day: string; entries: DiaryEntry[] }> {
@@ -237,13 +310,13 @@ export type ChatResult = {
   tasks_changed: boolean
 }
 
-export async function apiChat(text: string): Promise<ChatResult> {
+export async function apiChat(text: string, space?: string | null): Promise<ChatResult> {
   const controller = new AbortController()
   const timer = window.setTimeout(() => controller.abort(), 180_000)
   try {
     const r = await req<ChatResult>('/api/chat', {
       method: 'POST',
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, space: space || undefined }),
       signal: controller.signal,
     })
     if (!r.ok) throw new Error(`chat ${r.status}`)
@@ -266,6 +339,7 @@ export type ChatStreamHandlers = {
 export async function apiChatLive(
   text: string,
   handlers: ChatStreamHandlers = {},
+  space?: string | null,
 ): Promise<ChatResult> {
   const controller = new AbortController()
   const timer = window.setTimeout(() => controller.abort(), 180_000)
@@ -274,11 +348,11 @@ export async function apiChatLive(
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, space: space || undefined }),
       signal: controller.signal,
     })
     if (!res.ok || !res.body) {
-      return apiChat(text)
+      return apiChat(text, space)
     }
     const reader = res.body.getReader()
     const decoder = new TextDecoder()
@@ -330,7 +404,7 @@ export async function apiChatLive(
     }
     if (err) throw new Error(err)
     if (result) return result
-    return apiChat(text)
+    return apiChat(text, space)
   } finally {
     window.clearTimeout(timer)
   }

@@ -9,9 +9,11 @@ from app.paths import ROOT_DIR
 # Fixed docs whitelist (prompts/ and skills/ are discovered from disk).
 STATIC_DOCS: dict[str, str] = {
     "docs/PLAN.md": "Plan vivo (fase, next steps, decisiones)",
-    "docs/TODO.md": "Backlog de tareas sueltas",
+    "docs/TODO.md": "Backlog abierto (corto)",
+    "docs/milestones.md": "Hitos / histórico de lo hecho",
     "docs/QA.md": "Plan de pruebas",
     "docs/companion-plan.md": "Diseño detallado del companion",
+    "docs/web-console-plan.md": "Plan consola web 1.5",
     "docs/agent-rules.md": "Reglas de comportamiento del agente (estilo Cursor rules)",
 }
 

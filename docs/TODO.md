@@ -1,86 +1,32 @@
 # Kore — TODO
 
-Backlog de tareas sueltas. El plan vivo (`docs/PLAN.md`) marca fase/alcance; aquí van cosas concretas para no olvidar.
+Backlog **abierto**. Histórico: [`milestones.md`](./milestones.md) · Plan: [`PLAN.md`](./PLAN.md)
 
-Convención: `- [ ]` pendiente · `- [x]` hecho. Añade fecha o contexto breve si ayuda.
+Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 
-## Prompting & skills
+## P0 — Esta semana (dogfood)
 
-- [x] Mejorar los prompts y skills — baseline sólido en `prompts/` + `skills/` (2026-07-26)
-- [x] Personalizar `prompts/personality.md` con voz de Jon (tuteo, directo, humor chorra, plan-first)
-- [x] Rellenar `prompts/kimay.md` — baseline (software, full stack, emprendedor/inversor, datafineai; farma = no inventar)
-- [x] Ampliar Datafine desde web pública (hiperpersonalización ecommerce)
-- [x] Prompt `slow-project.md` — Citrus Designer + YaY Experiences + HomePrive (Slow Project SL)
-- [x] Prompt `investing.md` — faceta inversor (azValor: ~60k + 18k aportados → ~107k actual)
-- [ ] Ampliar investing más adelante si quiere (horizonte, otras gestoras, recordatorios)
-- [ ] Confirmar rol de Jon en Slow Project / relación con Andrea
-- [ ] Confirmar/corregir Datafine + About si hace falta
-- [ ] Decidir agresividad de captura (proactiva vs solo con “recuerda/captura”)
-- [ ] Meter varios modelos, uno para imagenes, otro para code...
+- [ ] **Mañana ~09:00:** abrir vista Día en https://kore.fly.dev/ y validar briefing
+- [ ] **3–5 días:** operar desde consola (chat / mic / espacios / board)
+- [ ] Anotar fricciones reales
 
-## Kernel / producto
+## P1 — Phase 1.6 (producto)
 
-- [x] Cablear imágenes Telegram → MIMO (Phase 0)
-- [x] Skill/tool hora Madrid bien (`get_madrid_time` + skill time-madrid)
-- [x] Fechas: /hora legible ES; guardar ISO; hablar natural (`resolve_madrid_date`)
-- [x] Plan de pruebas repetible: `docs/QA.md` + `pytest` + `scripts/qa_local.sh`
-- [x] Jone lee contexto de proyecto (PLAN/TODO/agent-rules inyectados + `read_project_doc`)
-- [x] Skills/prompts completos cada turno + whitelist dinámica
-- [x] Convención documentada: commit → push → deploy
-- [x] Phase 1 MVP: vault + tasks/agenda + dream 3am/`/dream`
-- [x] Sueño vía **cron in-process** 09:00 Madrid (asyncio) + `POST /internal/cron/dream` manual (2026-07-27)
-- [x] Dream a tope: transcript del día + tools (huecos) + resumen Telegram + prep día siguiente
-- [x] Separar `skills/companion/` (Telegram) vs `skills/dev/` (Cursor); `dev/close` → `docs/closes/YYYY-MM-DD.md`
-- [x] Skill `dev/open` — arranque leyendo último close + PLAN (PM senior)
-- [x] Regla Cursor `dev-session`: auto-open en chat nuevo o frío
-- [x] `CRON_SECRET` en Fly (trigger manual HTTP opcional)
-- [ ] Verificar briefing 09:00 en **vista Día** (consola; Telegram opcional)
-- [ ] Dogfood dream/tasks en Telegram unos días
-- [x] Gate ship: QA local (uvicorn + pytest + qa_local) antes de commit/push/deploy
+- [x] **Voz one-tap** — mic → OpenRouter Whisper → input del chat
+- [x] **Mobile / empty states** — bar + mic + empties
+- [x] **Proyectos como espacios** — Todo / Personal / Kimay / Kore
+- [x] **Privacidad** — overview, export vault zip, borrar categoría
 
-## Tareas
+## P2 — Phase 2+
 
-- [x] Estados en tareas (`open` / `in_progress` / `done` / `cancelled`) + proyecto + links
-- [x] Links/notas visibles en `/tareas` (2026-07-27)
-- [x] `/tareas` agrupado En curso → Pendientes, sin pie SQLite (2026-07-27)
-- [ ] Que las tareas se autorrellenen más en chat (seguir dogfood)
-- [ ] Mensajes de 'pensando'… → Phase 1.6 chat vivo
-- [ ] Contexto proyectos (lol, kimay, …) → Phase 1.6 espacios
-- [ ] Voz → Phase 1.6 voz one-tap
-- [ ] Gmail → Phase 2 (después de 1.6 salvo que digas lo contrario)
-- [x] Que en Tareas haya modo lista con checks (check - done - not done) y modo board + borrar/editar (2026-07-27)
-- [x] Hacer una documentación en la UI web para entender como funciona kore (Jone en mi caso) (2026-07-27)
+- [ ] Gmail OAuth + digest + Inbox del día
+- [ ] Misiones background
+- [ ] Git/código con confirmación
+- [ ] Calendar / PDF / …
 
-## Consola web (Phase 1.5) — MVP
+## Parking
 
-Plan: `[docs/web-console-plan.md](./web-console-plan.md)`
-
-- [x] **A** Scaffold Vite+React+TS + auth + API tasks + tests (2026-07-27)
-- [x] **B** UI React board Trello (DnD En curso / Pendientes / Hechas) (2026-07-27)
-- [x] **C** `POST /api/chat` + UI chat texto (2026-07-27)
-- [x] **D** Docker multi-stage + `CONSOLE_SECRET` Fly (2026-07-27)
-- [x] Servir `web/dist` desde FastAPI
-
-## UX personal premium (Phase 1.6)
-
-Super-herramienta para Jon; barra UX alta. **No** multi-user / venta / billing.
-
-Orden:
-
-1. [x] Day strip (fecha Madrid + briefing/dream + agenda próxima) (2026-07-27)
-2. [x] Chat vivo (status SSE + acciones Abrir/En curso/Hecha) (2026-07-27)
-3. [x] Tarjeta tarea editable (proyecto, url, notas, due) + filtros + buscar (2026-07-27)
-4. [ ] Voz one-tap (mic → transcripción → enviar)
-5. [x] ⌘K / command palette (dream, hora, nueva tarea, proyecto)
-6. [x] Layouts Focus / Operate / Day + look Momentum (aire, Outfit) (2026-07-27)
-7. [x] Drawer memoria/diario (categorías + meter en diario) (2026-07-27)
-8. [x] Feedback sistema (toasts guardado / error / tip sync) (2026-07-27)
-9. [ ] Design system (tokens, empty states, mobile)
-10. [ ] Proyectos como espacios (color + contexto Kimay/Kore/…)
-11. [ ] Privacidad personal (export vault, qué sabe, borrar categoría)
-12. [ ] Inbox del día (cuando Gmail / Phase 2)
-
-## Notas
-
-- Kimay merece su propio prompt (ya cableado en PromptAssembler). No meter todo en personality.
-
+- Ampliar investing / Slow Project–Andrea / Datafine About
+- Agresividad de captura
+- Multi-modelo (imagen / code)
+- Autorrelleno tareas en chat (sale del dogfood)

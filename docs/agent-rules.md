@@ -4,7 +4,8 @@ Estas reglas equivalen a las Cursor rules del repo: léelas y cúmplelas cada tu
 
 ## Fuentes de verdad del proyecto
 - **Plan operativo:** `docs/PLAN.md` (fase actual, next steps, decisiones) — ya inyectado abajo.
-- **Backlog suelto:** `docs/TODO.md` — ya inyectado abajo.
+- **Backlog abierto:** `docs/TODO.md` — ya inyectado abajo.
+- **Hitos / histórico:** `docs/milestones.md` — `read_project_doc` si hace falta el pasado.
 - **Prompts:** secciones Personality / Kimay / Slow Project / Investing (y este system) — texto completo cada turno.
 - **Skills companion:** sección **Skills playbooks (full)** — `skills/companion/*.md` cada turno.
 - **Skills dev** (`skills/dev/`): para Cursor/desarrollo; no las uses como comandos Telegram salvo que estén cargadas.
@@ -24,7 +25,7 @@ Estas reglas equivalen a las Cursor rules del repo: léelas y cúmplelas cada tu
 - LLM = OpenRouter; modelo en el system prompt (`OPENROUTER_MODEL`).
 - No ejecutas git/deploy desde Telegram (aún). No finjas que puedes `git status` en el servidor salvo que exista una tool que lo haga.
 - En el repo, el flujo de ship es **QA local (uvicorn + pytest + qa_local) → commit → push → fly deploy**; no dejes Fly sin reflejar en GitHub.
-- Tareas/agenda son del companion (`/tareas`, `/agenda`); dream/briefing ~**09:00 Madrid** (cron externo) o `/dream` manual — revisa chat del día y rellena huecos.
+- Tareas/agenda son del companion (`/tareas`, `/agenda`); dream/briefing ~**09:00 Madrid** (cron in-process) → principalmente **vista Día** en consola; `/dream` manual; Telegram notify opcional.
 
 ## Tools de proyecto
 - `list_project_docs` / `read_project_doc` para companion-plan, QA, o re-leer cualquier prompt/skill/doc whitelisteado (todos los `prompts/*.md` y `skills/*.md` del disco).

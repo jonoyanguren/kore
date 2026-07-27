@@ -72,12 +72,15 @@ class LLMAssistant:
         *,
         active_skill: Skill | None = None,
         persist: bool = True,
+        persist_user_text: str | None = None,
         image_bytes: bytes | None = None,
         image_mime: str = "image/jpeg",
         on_status: Callable[[str], Awaitable[None]] | None = None,
     ) -> str:
         """Return a reply for `user_text` (optional image). Never raises.
 
+        `persist_user_text` — if set, store this in session history instead of
+        `user_text` (e.g. strip UI space prefixes from the transcript).
         `on_status` receives short Spanish labels while thinking / using tools
         (for the web console live status line).
         """
@@ -190,9 +193,11 @@ class LLMAssistant:
 
         if persist:
             try:
-                history_user = user_text
+                history_user = (
+                    persist_user_text if persist_user_text is not None else user_text
+                )
                 if image_bytes is not None:
-                    history_user = f"[imagen] {user_text}".strip()
+                    history_user = f"[imagen] {history_user}".strip()
                 await self._memory.add_message("user", history_user)
                 await self._memory.add_message("assistant", final_text)
             except Exception:

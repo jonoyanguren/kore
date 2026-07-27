@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { apiLogout } from '../api'
+import {
+  readSpace,
+  writeSpace,
+  SPACES,
+  type SpaceId,
+  spaceDef,
+} from '../spaces'
 import { ChatPanel, type ChatPanelHandle } from './ChatPanel'
 import {
   CommandPalette,
@@ -35,10 +42,13 @@ export function Console({ onLogout }: Props) {
   const [boardToken, setBoardToken] = useState(0)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [memoryOpen, setMemoryOpen] = useState(false)
-  const [memoryTab, setMemoryTab] = useState<'diary' | 'memory'>('diary')
+  const [memoryTab, setMemoryTab] = useState<'diary' | 'memory' | 'privacy'>(
+    'diary',
+  )
   const [docsOpen, setDocsOpen] = useState(false)
   const [docsSection, setDocsSection] = useState<DocsSectionId>('que-es')
   const [layout, setLayout] = useState<LayoutMode>(() => readLayout())
+  const [space, setSpace] = useState<SpaceId>(() => readSpace())
   const chatRef = useRef<ChatPanelHandle>(null)
   const boardRef = useRef<TaskBoardHandle>(null)
 
@@ -56,7 +66,18 @@ export function Console({ onLogout }: Props) {
     localStorage.setItem(STORAGE_KEY, next)
   }
 
-  function openMemory(tab: 'diary' | 'memory' = 'diary') {
+  function setSpacePersist(next: SpaceId) {
+    setSpace(next)
+    writeSpace(next)
+    const project = spaceDef(next).project
+    if (project) {
+      window.setTimeout(() => boardRef.current?.filterProject(project), 0)
+    } else {
+      boardRef.current?.clearFilters()
+    }
+  }
+
+  function openMemory(tab: 'diary' | 'memory' | 'privacy' = 'diary') {
     setMemoryTab(tab)
     setMemoryOpen(true)
   }
@@ -107,13 +128,19 @@ export function Console({ onLogout }: Props) {
         break
       case 'filter_project':
         setLayoutPersist('operate')
-        window.setTimeout(
-          () => boardRef.current?.filterProject(action.project),
-          0,
-        )
+        {
+          const match = SPACES.find((s) => s.project === action.project)
+          if (match) setSpacePersist(match.id)
+          else {
+            window.setTimeout(
+              () => boardRef.current?.filterProject(action.project),
+              0,
+            )
+          }
+        }
         break
       case 'clear_filters':
-        boardRef.current?.clearFilters()
+        setSpacePersist('all')
         break
       case 'layout':
         setLayoutPersist(action.mode)
@@ -130,8 +157,13 @@ export function Console({ onLogout }: Props) {
     }
   }
 
+  const accent = spaceDef(space).color
+
   return (
-    <div className={`console console--${layout}`}>
+    <div
+      className={`console console--${layout} console--space-${space}`}
+      style={{ ['--space-accent' as string]: accent }}
+    >
       <header className="console__bar">
         <div className="console__brand">
           <span className="console__mark">Kore</span>
@@ -177,6 +209,20 @@ export function Console({ onLogout }: Props) {
             Salir
           </button>
         </div>
+        <nav className="console__spaces" aria-label="Espacio">
+          {SPACES.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              className={`console__space${space === s.id ? ' is-active' : ''}`}
+              style={{ ['--chip' as string]: s.color }}
+              onClick={() => setSpacePersist(s.id)}
+              title={`Espacio ${s.label}`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </nav>
       </header>
 
       <DayStrip
@@ -190,10 +236,16 @@ export function Console({ onLogout }: Props) {
       <div className="console__body">
         <ChatPanel
           ref={chatRef}
+          space={space}
           onAfterChat={() => bump()}
           onOpenTask={onOpenTask}
         />
-        <TaskBoard ref={boardRef} refreshToken={boardToken} />
+        <TaskBoard
+          ref={boardRef}
+          refreshToken={boardToken}
+          defaultProject={spaceDef(space).project}
+          spaceFilter={spaceDef(space).project}
+        />
       </div>
 
       <CommandPalette

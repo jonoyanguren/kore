@@ -12,9 +12,12 @@ import {
   apiCompleteTask,
   apiListMessages,
   apiPatchTask,
+  apiTranscribe,
   type ChatMessage,
 } from '../api'
 import { formatRelativeEs } from '../relativeTime'
+import type { SpaceId } from '../spaces'
+import { spaceDef } from '../spaces'
 import type { Task } from '../types'
 import { ChatTaskCard } from './ChatTaskCard'
 import { useToast } from './Toasts'
@@ -26,6 +29,7 @@ export type ChatPanelHandle = {
 type Props = {
   onAfterChat?: (info: { tasksChanged: boolean }) => void
   onOpenTask?: (task: Task) => void
+  space?: SpaceId
 }
 
 const PAGE = 10
@@ -81,8 +85,10 @@ function firstPersistedId(messages: ChatMessage[]): number | undefined {
   return undefined
 }
 
+type MicState = 'idle' | 'recording' | 'transcribing'
+
 export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
-  { onAfterChat, onOpenTask },
+  { onAfterChat, onOpenTask, space = 'all' },
   ref,
 ) {
   const toast = useToast()
@@ -95,16 +101,78 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const [thinking, setThinking] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [tick, setTick] = useState(0)
+  const [mic, setMic] = useState<MicState>('idle')
+  const [levels, setLevels] = useState<number[]>(() => Array(28).fill(0.08))
+  const [recSecs, setRecSecs] = useState(0)
   const bottomRef = useRef<HTMLDivElement>(null)
   const logRef = useRef<HTMLDivElement>(null)
   const busyRef = useRef(false)
   const stickBottomRef = useRef(true)
   const loadingOlderRef = useRef(false)
   const skipStickOnceRef = useRef(false)
+  const mediaRecRef = useRef<MediaRecorder | null>(null)
+  const chunksRef = useRef<BlobPart[]>([])
+  const audioCtxRef = useRef<AudioContext | null>(null)
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const rafRef = useRef<number>(0)
+  const recStartedAtRef = useRef(0)
+  const spaceProject = spaceDef(space).project
 
   useEffect(() => {
     busyRef.current = busy
   }, [busy])
+
+  const stopMeter = useCallback(() => {
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = 0
+    }
+    analyserRef.current = null
+    const ctx = audioCtxRef.current
+    audioCtxRef.current = null
+    if (ctx) {
+      void ctx.close().catch(() => undefined)
+    }
+    setLevels(Array(28).fill(0.08))
+    setRecSecs(0)
+  }, [])
+
+  const startMeter = useCallback((stream: MediaStream) => {
+    stopMeter()
+    const AC =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext
+    const ctx = new AC()
+    const source = ctx.createMediaStreamSource(stream)
+    const analyser = ctx.createAnalyser()
+    analyser.fftSize = 64
+    analyser.smoothingTimeConstant = 0.72
+    source.connect(analyser)
+    audioCtxRef.current = ctx
+    analyserRef.current = analyser
+    recStartedAtRef.current = Date.now()
+    const data = new Uint8Array(analyser.frequencyBinCount)
+
+    const tickMeter = () => {
+      const a = analyserRef.current
+      if (!a) return
+      a.getByteFrequencyData(data)
+      const bars = 28
+      const step = Math.max(1, Math.floor(data.length / bars))
+      const next: number[] = []
+      for (let i = 0; i < bars; i++) {
+        let sum = 0
+        for (let j = 0; j < step; j++) sum += data[i * step + j] ?? 0
+        const v = sum / step / 255
+        next.push(Math.max(0.06, Math.min(1, v * 1.35)))
+      }
+      setLevels(next)
+      setRecSecs(Math.floor((Date.now() - recStartedAtRef.current) / 1000))
+      rafRef.current = requestAnimationFrame(tickMeter)
+    }
+    rafRef.current = requestAnimationFrame(tickMeter)
+  }, [stopMeter])
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
     const log = logRef.current
@@ -133,6 +201,22 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   useEffect(() => {
     const id = window.setInterval(() => setTick((n) => n + 1), 30_000)
     return () => window.clearInterval(id)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      const rec = mediaRecRef.current
+      if (rec && rec.state !== 'inactive') {
+        try {
+          rec.stop()
+        } catch {
+          /* ignore */
+        }
+      }
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      const ctx = audioCtxRef.current
+      if (ctx) void ctx.close().catch(() => undefined)
+    }
   }, [])
 
   useLayoutEffect(() => {
@@ -199,12 +283,16 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       { role: 'user', content: t, relative: 'hace un momento', tasks: [] },
     ])
     try {
-      const result = await apiChatLive(t, {
-        onStatus: (label) => {
-          stickBottomRef.current = true
-          setThinking(label)
+      const result = await apiChatLive(
+        t,
+        {
+          onStatus: (label) => {
+            stickBottomRef.current = true
+            setThinking(label)
+          },
         },
-      })
+        spaceProject,
+      )
       setThinking(null)
       let reply = result.reply
       if (
@@ -226,7 +314,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           tasks: dedupeTasks(result.tasks_listed),
         },
       ])
-      // Sync ids from server without wiping older pages
       try {
         const page = await apiListMessages(PAGE)
         setMessages((prev) => {
@@ -276,6 +363,76 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     },
   }))
 
+  async function finishRecording(blob: Blob) {
+    stopMeter()
+    setMic('transcribing')
+    try {
+      const transcribed = await apiTranscribe(blob)
+      if (!transcribed) {
+        toast.err('No se oyó nada')
+        return
+      }
+      setText((prev) => (prev.trim() ? `${prev.trim()} ${transcribed}` : transcribed))
+      toast.ok('Transcrito — edita o Envía')
+    } catch (e) {
+      const msg = String(e)
+      setError(msg)
+      toast.err(msg.includes('abort') ? 'Transcripción lenta' : msg)
+    } finally {
+      setMic('idle')
+    }
+  }
+
+  async function toggleMic() {
+    if (busy || mic === 'transcribing') return
+    if (mic === 'recording') {
+      const rec = mediaRecRef.current
+      if (rec && rec.state !== 'inactive') rec.stop()
+      return
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast.err('Micrófono no disponible en este navegador')
+      return
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm')
+          ? 'audio/webm'
+          : ''
+      const rec = mime
+        ? new MediaRecorder(stream, { mimeType: mime })
+        : new MediaRecorder(stream)
+      chunksRef.current = []
+      mediaRecRef.current = rec
+      rec.ondataavailable = (ev) => {
+        if (ev.data.size > 0) chunksRef.current.push(ev.data)
+      }
+      rec.onstop = () => {
+        stopMeter()
+        stream.getTracks().forEach((t) => t.stop())
+        const type = rec.mimeType || 'audio/webm'
+        const blob = new Blob(chunksRef.current, { type })
+        chunksRef.current = []
+        mediaRecRef.current = null
+        if (blob.size < 200) {
+          setMic('idle')
+          toast.err('Grabación demasiado corta')
+          return
+        }
+        void finishRecording(blob)
+      }
+      rec.start()
+      startMeter(stream)
+      setMic('recording')
+    } catch {
+      stopMeter()
+      toast.err('No se pudo acceder al micrófono')
+      setMic('idle')
+    }
+  }
+
   async function onCompleteTask(id: number) {
     try {
       await apiCompleteTask(id)
@@ -306,12 +463,17 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
 
   const now = new Date()
   void tick
+  const spaceLabel = spaceDef(space).label
+  const recClock = `${String(Math.floor(recSecs / 60)).padStart(2, '0')}:${String(recSecs % 60).padStart(2, '0')}`
 
   return (
     <section className="chat">
       <header className="chat__head">
         <h2>Chat</h2>
-        <span className="muted">Jone</span>
+        <span className="muted">
+          Jone
+          {space !== 'all' ? ` · ${spaceLabel}` : ''}
+        </span>
       </header>
       <div className="chat__quick" aria-label="Acciones rápidas">
         {QUICK.map((q) => (
@@ -338,7 +500,12 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           <p className="muted chat__load-older">↑ más arriba</p>
         ) : null}
         {messages.length === 0 && !busy ? (
-          <p className="muted chat__empty">Escribe algo o pulsa ⌘K…</p>
+          <div className="chat__empty empty-state">
+            <p className="empty-state__title">Habla con Jone</p>
+            <p className="muted">
+              Escribe, usa el micrófono o pulsa ⌘K. Captura, tareas, memoria.
+            </p>
+          </div>
         ) : null}
         {messages.map((m, i) => (
           <div
@@ -381,28 +548,78 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       </div>
       {error ? <p className="error">{error}</p> : null}
       <form
-        className="chat__form"
+        className={`chat__form${mic === 'recording' ? ' chat__form--rec' : ''}${mic === 'transcribing' ? ' chat__form--busy' : ''}`}
         onSubmit={(e) => {
           e.preventDefault()
           void sendText(text)
         }}
       >
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Mensaje o ⌘K…"
-          rows={2}
-          disabled={busy}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              void sendText(text)
+        {mic === 'recording' || mic === 'transcribing' ? (
+          <div
+            className={`chat__rec${mic === 'transcribing' ? ' is-transcribing' : ''}`}
+            role="status"
+            aria-live="polite"
+          >
+            <div className="chat__rec-meta">
+              <span className="chat__rec-dot" aria-hidden />
+              <span className="chat__rec-label">
+                {mic === 'transcribing' ? 'Transcribiendo…' : 'Grabando'}
+              </span>
+              {mic === 'recording' ? (
+                <time className="chat__rec-time">{recClock}</time>
+              ) : null}
+            </div>
+            <div className="chat__wave" aria-hidden>
+              {levels.map((v, i) => (
+                <span
+                  key={i}
+                  className="chat__wave-bar"
+                  style={{ transform: `scaleY(${v})` }}
+                />
+              ))}
+            </div>
+            <p className="chat__rec-hint muted">
+              {mic === 'transcribing'
+                ? 'Un momento…'
+                : 'Habla — toca Stop para parar'}
+            </p>
+          </div>
+        ) : (
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Mensaje, mic o ⌘K…"
+            rows={2}
+            disabled={busy}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                void sendText(text)
+              }
+            }}
+          />
+        )}
+        <div className="chat__actions">
+          <button
+            type="button"
+            className={`chat__mic${mic === 'recording' ? ' is-recording' : ''}${mic === 'transcribing' ? ' is-busy' : ''}`}
+            disabled={busy || mic === 'transcribing'}
+            onClick={() => void toggleMic()}
+            title={
+              mic === 'recording'
+                ? 'Parar grabación'
+                : mic === 'transcribing'
+                  ? 'Transcribiendo…'
+                  : 'Voz one-tap'
             }
-          }}
-        />
-        <button type="submit" disabled={busy || !text.trim()}>
-          Enviar
-        </button>
+            aria-label="Micrófono"
+          >
+            {mic === 'recording' ? 'Stop' : mic === 'transcribing' ? '…' : 'Mic'}
+          </button>
+          <button type="submit" disabled={busy || mic !== 'idle' || !text.trim()}>
+            Enviar
+          </button>
+        </div>
       </form>
     </section>
   )

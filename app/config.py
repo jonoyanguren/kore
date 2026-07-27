@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     openrouter_api_key: str
     # Default: Xiaomi MiMo multimodal (images later). Override via OPENROUTER_MODEL.
     openrouter_model: str = "xiaomi/mimo-v2.5"
+    # Speech-to-text (console mic). Same OpenRouter key.
+    openrouter_stt_model: str = "openai/whisper-1"
+    openrouter_stt_language: str = "es"
     llm_max_tokens: int = 2048
     timezone: str = "Europe/Madrid"
 

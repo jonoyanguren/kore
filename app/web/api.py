@@ -2,15 +2,28 @@
 
 from __future__ import annotations
 
+import io
 import re
+import zipfile
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.config import settings
 from app.kernel.briefing import build_day_briefing
+from app.llm.transcribe import MAX_AUDIO_BYTES, transcribe_audio
 from app.storage.memory import TaskRow, VALID_TASK_STATUSES, format_tasks_message
 from app.storage.task_tools import purge_done_tasks_archiving, sync_tasks_vault
 from app.timeutil import (
@@ -173,6 +186,77 @@ async def delete_memory_item(request: Request, item_id: int) -> dict[str, bool]:
     return {"ok": True}
 
 
+@router.delete(
+    "/memory/category/{category}",
+    dependencies=[Depends(require_console_auth)],
+)
+async def delete_memory_category(request: Request, category: str) -> dict[str, Any]:
+    cat = category.strip().lower()
+    if not cat or len(cat) > 64:
+        raise HTTPException(status_code=400, detail="invalid category")
+    deleted = await request.app.state.memory.delete_memory_category(cat)
+    request.app.state.vault.rewrite_memory_category(cat, [])
+    return {"ok": True, "category": cat, "deleted": deleted}
+
+
+@router.get("/privacy/overview", dependencies=[Depends(require_console_auth)])
+async def privacy_overview(request: Request) -> dict[str, Any]:
+    memory = request.app.state.memory
+    counts = await memory.memory_category_counts()
+    diary_today = await memory.list_diary_for_day(session_date_str())
+    open_tasks = await memory.list_tasks(status="open", limit=100)
+    return {
+        "memory_categories": [
+            {"category": cat, "count": n} for cat, n in counts
+        ],
+        "memory_total": sum(n for _c, n in counts),
+        "diary_today": len(diary_today),
+        "tasks_open": len(open_tasks),
+        "vault_root": str(request.app.state.vault.root),
+    }
+
+
+@router.get("/vault/export", dependencies=[Depends(require_console_auth)])
+async def vault_export(request: Request) -> StreamingResponse:
+    """Zip of markdown vault (memory/diary/agenda/dreams/tasks)."""
+    root = request.app.state.vault.root
+    request.app.state.vault.ensure()
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for path in sorted(root.rglob("*")):
+            if not path.is_file():
+                continue
+            zf.write(path, arcname=str(path.relative_to(root)))
+    buf.seek(0)
+    day = session_date_str()
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="kore-vault-{day}.zip"',
+        },
+    )
+
+
+@router.post("/transcribe", dependencies=[Depends(require_console_auth)])
+async def transcribe(
+    file: UploadFile = File(...),
+) -> dict[str, str]:
+    """Mic blob → text (OpenRouter Whisper). Does not send to chat."""
+    data = await file.read()
+    if len(data) > MAX_AUDIO_BYTES:
+        raise HTTPException(status_code=413, detail="audio too large")
+    try:
+        text = await transcribe_audio(data, mime=file.content_type)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=502, detail=f"transcription failed: {e}"
+        ) from e
+    return {"text": text}
+
+
 @router.get("/diary", dependencies=[Depends(require_console_auth)])
 async def list_diary(
     request: Request,
@@ -299,6 +383,8 @@ async def delete_task(request: Request, task_id: int) -> dict[str, Any]:
 
 class ChatBody(BaseModel):
     text: str = Field(min_length=1, max_length=8000)
+    # Optional project space (kimay / kore / personal) — hints the model.
+    space: str | None = Field(default=None, max_length=32)
 
 
 @router.get("/day", dependencies=[Depends(require_console_auth)])
@@ -404,6 +490,7 @@ async def _run_chat(
     request: Request,
     text: str,
     *,
+    space: str | None = None,
     on_status: Any | None = None,
 ) -> dict[str, Any]:
     """Shared chat handler for JSON and SSE endpoints."""
@@ -415,11 +502,21 @@ async def _run_chat(
 
     memory = request.app.state.memory
     cmd = text.split()[0].lower() if text.startswith("/") else ""
+    space_key = (space or "").strip().lower() or None
+    ask_text = text
+    if space_key and not text.startswith("/"):
+        ask_text = (
+            f"[Espacio activo: {space_key}. Si creas o listes tareas, "
+            f"prioriza project={space_key} salvo que diga lo contrario.]\n\n{text}"
+        )
 
     if cmd in ("/tareas", "/tasks"):
         await status("Listando tareas…")
-        rows = await memory.list_tasks(status="open", limit=40)
-        reply = format_tasks_message(rows, heading="Tareas")
+        rows = await memory.list_tasks(
+            status="open", limit=40, project=space_key
+        )
+        heading = f"Tareas ({space_key})" if space_key else "Tareas"
+        reply = format_tasks_message(rows, heading=heading)
         await _persist_exchange(memory, text, reply)
         return {
             "reply": reply,
@@ -476,7 +573,11 @@ async def _run_chat(
         raise HTTPException(status_code=503, detail="llm not ready")
 
     before = {t.id for t in await memory.list_tasks(status="open", limit=100)}
-    reply = await llm.ask(text, on_status=on_status)
+    reply = await llm.ask(
+        ask_text,
+        on_status=on_status,
+        persist_user_text=text if ask_text != text else None,
+    )
     after_rows = await memory.list_tasks(status="open", limit=100)
     after = {t.id for t in after_rows}
     created = [_task_dict(t) for t in after_rows if t.id in (after - before)]
@@ -509,7 +610,7 @@ async def chat(request: Request, body: ChatBody) -> dict[str, Any]:
     text = body.text.strip()
     if not text:
         raise HTTPException(status_code=400, detail="empty text")
-    return await _run_chat(request, text)
+    return await _run_chat(request, text, space=body.space)
 
 
 @router.post("/chat/stream", dependencies=[Depends(require_console_auth)])
@@ -529,7 +630,9 @@ async def chat_stream(request: Request, body: ChatBody) -> StreamingResponse:
 
     async def worker() -> None:
         try:
-            result = await _run_chat(request, text, on_status=on_status)
+            result = await _run_chat(
+                request, text, space=body.space, on_status=on_status
+            )
             await queue.put({"type": "done", **result})
         except HTTPException as e:
             await queue.put(

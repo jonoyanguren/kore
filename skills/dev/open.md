@@ -20,7 +20,7 @@ Entrar en contexto en &lt;2 minutos: estado real, foco del día, riesgos, y 2–
 
 1. **Último close:** el `docs/closes/YYYY-MM-DD.md` más reciente (por nombre de fecha). Si hay close de hoy, úsalo.
 2. `docs/PLAN.md` — Fase actual, Next steps, Success criteria abiertos, Changelog reciente.
-3. `docs/TODO.md` — ítems abiertos relevantes (no regurgites todo el backlog).
+3. `docs/TODO.md` — ítems abiertos (corto). Histórico en `docs/milestones.md` si hace falta.
 4. Si hace falta detalle de diseño: `docs/companion-plan.md` (solo el trozo de la fase).
 5. `git status` / commits recientes si hay trabajo local sucio o duda de ship.
 

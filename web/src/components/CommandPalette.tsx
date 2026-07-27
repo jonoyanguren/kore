@@ -9,7 +9,7 @@ export type CommandAction =
   | { kind: 'filter_project'; project: string }
   | { kind: 'clear_filters' }
   | { kind: 'layout'; mode: 'day' | 'focus' | 'operate' }
-  | { kind: 'open_memory'; tab?: 'diary' | 'memory' }
+  | { kind: 'open_memory'; tab?: 'diary' | 'memory' | 'privacy' }
   | { kind: 'open_docs'; section?: DocsSectionId }
   | { kind: 'logout' }
 
@@ -62,6 +62,13 @@ const STATIC: Item[] = [
     hint: 'drawer',
     keywords: 'categorías memory hechos',
     action: { kind: 'open_memory', tab: 'memory' },
+  },
+  {
+    id: 'privacy',
+    label: 'Privacidad / export vault',
+    hint: 'drawer',
+    keywords: 'privacidad privacy export vault borrar',
+    action: { kind: 'open_memory', tab: 'privacy' },
   },
   {
     id: 'docs',

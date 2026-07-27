@@ -43,6 +43,10 @@ class Vault:
         self.ensure()
         category = (category or "general").strip().lower() or "general"
         path = self.root / "memory" / f"{category}.md"
+        if not items:
+            if path.is_file():
+                path.unlink()
+            return path
         lines = [f"# memory / {category}", ""]
         for item_id, text in items:
             lines.append(f"- (id {item_id}) {text.strip()}")

@@ -130,8 +130,12 @@ async def _run():
             assert open_md.strip()
 
             class _FakeLLM:
-                async def ask(self, user_text: str, **_kwargs: object) -> str:
-                    await store.add_message("user", user_text)
+                async def ask(self, user_text: str, **kwargs: object) -> str:
+                    history = kwargs.get("persist_user_text")
+                    stored = (
+                        history if isinstance(history, str) and history else user_text
+                    )
+                    await store.add_message("user", stored)
                     reply = f"eco:{user_text}"
                     await store.add_message("assistant", reply)
                     return reply
@@ -257,6 +261,57 @@ async def _run():
                 )
             ).status_code == 200
 
+            # Privacy: category wipe + overview + vault zip
+            await ac.post(
+                "/api/memory",
+                headers={"Authorization": f"Bearer {secret}"},
+                json={"category": "tmpwipe", "text": "borrar todo"},
+            )
+            await ac.post(
+                "/api/memory",
+                headers={"Authorization": f"Bearer {secret}"},
+                json={"category": "tmpwipe", "text": "también esto"},
+            )
+            ov = await ac.get(
+                "/api/privacy/overview",
+                headers={"Authorization": f"Bearer {secret}"},
+            )
+            assert ov.status_code == 200
+            assert ov.json()["memory_total"] >= 2
+            wiped = await ac.delete(
+                "/api/memory/category/tmpwipe",
+                headers={"Authorization": f"Bearer {secret}"},
+            )
+            assert wiped.status_code == 200
+            assert wiped.json()["deleted"] == 2
+            assert not (vault.root / "memory" / "tmpwipe.md").exists()
+
+            z = await ac.get(
+                "/api/vault/export",
+                headers={"Authorization": f"Bearer {secret}"},
+            )
+            assert z.status_code == 200
+            assert z.headers["content-type"].startswith("application/zip")
+            assert len(z.content) > 20
+
+            # Space hint on chat (ask receives prefix; history stores clean text)
+            space_chat = await ac.post(
+                "/api/chat",
+                headers={"Authorization": f"Bearer {secret}"},
+                json={"text": "qué toca", "space": "kimay"},
+            )
+            assert space_chat.status_code == 200
+            assert "Espacio activo: kimay" in space_chat.json()["reply"]
+            assert "qué toca" in space_chat.json()["reply"]
+
 
 def test_web_api_auth_and_tasks():
     asyncio.run(_run())
+
+
+def test_audio_format_from_mime():
+    from app.llm.transcribe import audio_format_from_mime
+
+    assert audio_format_from_mime("audio/webm;codecs=opus") == "webm"
+    assert audio_format_from_mime("audio/ogg") == "ogg"
+    assert audio_format_from_mime(None) == "webm"

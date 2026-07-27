@@ -5,15 +5,19 @@ import {
   apiCreateMemory,
   apiDeleteDiary,
   apiDeleteMemory,
+  apiDeleteMemoryCategory,
   apiListDiary,
   apiListMemory,
   apiMemoryCategories,
+  apiPrivacyOverview,
+  apiVaultExport,
   type DiaryEntry,
   type MemoryItem,
+  type PrivacyOverview,
 } from '../api'
 import { useToast } from './Toasts'
 
-type Tab = 'diary' | 'memory'
+type Tab = 'diary' | 'memory' | 'privacy'
 
 type Props = {
   open: boolean
@@ -32,6 +36,7 @@ export function MemoryDrawer({ open, onClose, initialTab = 'diary' }: Props) {
   const [text, setText] = useState('')
   const [memCategory, setMemCategory] = useState('general')
   const [busy, setBusy] = useState(false)
+  const [overview, setOverview] = useState<PrivacyOverview | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -49,13 +54,17 @@ export function MemoryDrawer({ open, onClose, initialTab = 'diary' }: Props) {
           if (cancelled) return
           setDiaryDay(d.day)
           setEntries(d.entries)
-        } else {
+        } else if (tab === 'memory') {
           const cats = await apiMemoryCategories()
           if (cancelled) return
           setCategories(cats)
           const rows = await apiListMemory(category || undefined)
           if (cancelled) return
           setItems(rows)
+        } else {
+          const ov = await apiPrivacyOverview()
+          if (cancelled) return
+          setOverview(ov)
         }
       } catch (e) {
         if (!cancelled) toast.err(String(e))
@@ -88,7 +97,7 @@ export function MemoryDrawer({ open, onClose, initialTab = 'diary' }: Props) {
         const entry = await apiCreateDiary({ text: t })
         setEntries((prev) => [...prev, { id: entry.id, text: entry.text }])
         toast.ok('En diario')
-      } else {
+      } else if (tab === 'memory') {
         const item = await apiCreateMemory({
           text: t,
           category: memCategory.trim() || 'general',
@@ -127,6 +136,33 @@ export function MemoryDrawer({ open, onClose, initialTab = 'diary' }: Props) {
     }
   }
 
+  async function wipeCategory(cat: string) {
+    if (
+      !window.confirm(
+        `¿Borrar toda la categoría «${cat}» (${overview?.memory_categories.find((c) => c.category === cat)?.count ?? '?'} ítems)? No se puede deshacer.`,
+      )
+    ) {
+      return
+    }
+    try {
+      const n = await apiDeleteMemoryCategory(cat)
+      toast.ok(`Borrados ${n} de «${cat}»`)
+      const ov = await apiPrivacyOverview()
+      setOverview(ov)
+    } catch (err) {
+      toast.err(String(err))
+    }
+  }
+
+  async function onExport() {
+    try {
+      await apiVaultExport()
+      toast.ok('Vault descargado')
+    } catch (err) {
+      toast.err(String(err))
+    }
+  }
+
   return (
     <div className="drawer" role="dialog" aria-modal="true" aria-label="Memoria">
       <button
@@ -158,91 +194,159 @@ export function MemoryDrawer({ open, onClose, initialTab = 'diary' }: Props) {
           >
             Categorías
           </button>
+          <button
+            type="button"
+            className={tab === 'privacy' ? 'is-active' : ''}
+            onClick={() => setTab('privacy')}
+          >
+            Privacidad
+          </button>
         </div>
 
-        {tab === 'memory' ? (
-          <div className="drawer__filters">
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              aria-label="Categoría"
-            >
-              <option value="">Todas</option>
-              {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+        {tab === 'privacy' ? (
+          <div className="drawer__privacy">
+            <p className="muted">
+              Qué sabe Kore de ti (SQLite + vault markdown). Exporta o borra por
+              categoría.
+            </p>
+            {overview ? (
+              <>
+                <ul className="drawer__privacy-stats">
+                  <li>
+                    <strong>{overview.memory_total}</strong> hechos en memoria
+                  </li>
+                  <li>
+                    <strong>{overview.diary_today}</strong> en diario hoy
+                  </li>
+                  <li>
+                    <strong>{overview.tasks_open}</strong> tareas abiertas
+                  </li>
+                </ul>
+                <button type="button" onClick={() => void onExport()}>
+                  Descargar vault (.zip)
+                </button>
+                <h3 className="drawer__privacy-h">Categorías</h3>
+                {overview.memory_categories.length === 0 ? (
+                  <p className="muted">Sin memoria guardada</p>
+                ) : (
+                  <ul className="drawer__privacy-cats">
+                    {overview.memory_categories.map((c) => (
+                      <li key={c.category}>
+                        <span>
+                          <span className="drawer__cat">{c.category}</span>
+                          <span className="muted"> · {c.count}</span>
+                        </span>
+                        <button
+                          type="button"
+                          className="ghost drawer__del"
+                          onClick={() => void wipeCategory(c.category)}
+                        >
+                          Borrar
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            ) : (
+              <p className="muted">Cargando…</p>
+            )}
           </div>
         ) : (
-          <p className="drawer__day muted">{diaryDay || 'hoy'}</p>
-        )}
-
-        <div className="drawer__list">
-          {tab === 'diary' ? (
-            entries.length === 0 ? (
-              <p className="muted">Sin entradas hoy</p>
+          <>
+            {tab === 'memory' ? (
+              <div className="drawer__filters">
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  aria-label="Categoría"
+                >
+                  <option value="">Todas</option>
+                  {categories.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
             ) : (
-              <ul>
-                {entries.map((en) => (
-                  <li key={en.id}>
-                    <span>{en.text}</span>
-                    <button
-                      type="button"
-                      className="ghost drawer__del"
-                      onClick={() => void removeDiary(en.id)}
-                    >
-                      ×
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )
-          ) : items.length === 0 ? (
-            <p className="muted">Sin memoria aún</p>
-          ) : (
-            <ul>
-              {items.map((it) => (
-                <li key={it.id}>
-                  <div>
-                    <span className="drawer__cat">{it.category}</span>
-                    <span>{it.text}</span>
-                  </div>
-                  <button
-                    type="button"
-                    className="ghost drawer__del"
-                    onClick={() => void removeMemory(it.id)}
-                  >
-                    ×
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+              <p className="drawer__day muted">{diaryDay || 'hoy'}</p>
+            )}
 
-        <form className="drawer__form" onSubmit={(e) => void onAdd(e)}>
-          {tab === 'memory' ? (
-            <input
-              value={memCategory}
-              onChange={(e) => setMemCategory(e.target.value)}
-              placeholder="categoría"
-              aria-label="Categoría nueva"
-            />
-          ) : null}
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder={
-              tab === 'diary' ? 'Meter en el diario…' : 'Hecho durable…'
-            }
-            rows={3}
-          />
-          <button type="submit" disabled={busy || !text.trim()}>
-            {tab === 'diary' ? 'Añadir al diario' : 'Guardar memoria'}
-          </button>
-        </form>
+            <div className="drawer__list">
+              {tab === 'diary' ? (
+                entries.length === 0 ? (
+                  <div className="empty-state">
+                    <p className="empty-state__title">Diario vacío hoy</p>
+                    <p className="muted">Añade una línea abajo o habla con Jone.</p>
+                  </div>
+                ) : (
+                  <ul>
+                    {entries.map((en) => (
+                      <li key={en.id}>
+                        <span>{en.text}</span>
+                        <button
+                          type="button"
+                          className="ghost drawer__del"
+                          onClick={() => void removeDiary(en.id)}
+                        >
+                          ×
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )
+              ) : items.length === 0 ? (
+                <div className="empty-state">
+                  <p className="empty-state__title">Sin memoria aún</p>
+                  <p className="muted">
+                    Hechos durables por categoría (trabajo, gente, proyectos…).
+                  </p>
+                </div>
+              ) : (
+                <ul>
+                  {items.map((it) => (
+                    <li key={it.id}>
+                      <div>
+                        <span className="drawer__cat">{it.category}</span>
+                        <span>{it.text}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="ghost drawer__del"
+                        onClick={() => void removeMemory(it.id)}
+                      >
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <form className="drawer__form" onSubmit={(e) => void onAdd(e)}>
+              {tab === 'memory' ? (
+                <input
+                  value={memCategory}
+                  onChange={(e) => setMemCategory(e.target.value)}
+                  placeholder="categoría"
+                  aria-label="Categoría nueva"
+                />
+              ) : null}
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder={
+                  tab === 'diary' ? 'Meter en el diario…' : 'Hecho durable…'
+                }
+                rows={3}
+              />
+              <button type="submit" disabled={busy || !text.trim()}>
+                {tab === 'diary' ? 'Añadir al diario' : 'Guardar memoria'}
+              </button>
+            </form>
+          </>
+        )}
       </aside>
     </div>
   )

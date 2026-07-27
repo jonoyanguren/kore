@@ -76,10 +76,14 @@ export type TaskBoardHandle = {
 
 type Props = {
   refreshToken?: number
+  /** Default project when creating tasks from the quick-add. */
+  defaultProject?: string | null
+  /** When set (space ≠ Todo), force board filter to this project. */
+  spaceFilter?: string | null
 }
 
 export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
-  { refreshToken = 0 },
+  { refreshToken = 0, defaultProject = null, spaceFilter = null },
   ref,
 ) {
   const toast = useToast()
@@ -93,6 +97,11 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
   const [projectFilter, setProjectFilter] = useState('')
   const [view, setView] = useState<ViewMode>(loadView)
   const addInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (spaceFilter) setProjectFilter(spaceFilter)
+    else setProjectFilter('')
+  }, [spaceFilter])
 
   useImperativeHandle(ref, () => ({
     focusNewTask: () => {
@@ -199,7 +208,11 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
     if (!t) return
     setTitle('')
     try {
-      const task = await apiCreateTask({ title: t, status: 'open' })
+      const task = await apiCreateTask({
+        title: t,
+        status: 'open',
+        project: defaultProject || projectFilter || undefined,
+      })
       setTasks((prev) => [...prev, task])
       toast.ok('Tarea añadida')
     } catch (err) {
@@ -480,7 +493,11 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
             ref={addInputRef}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Nueva tarea…"
+            placeholder={
+              defaultProject
+                ? `Nueva tarea (${defaultProject})…`
+                : 'Nueva tarea…'
+            }
           />
           <button type="submit">Añadir</button>
         </form>
@@ -559,7 +576,14 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
                 />
               ))}
               {!loading && listOrdered.length === 0 ? (
-                <li className="task-list__empty muted">Sin tareas</li>
+                <li className="task-list__empty muted empty-state">
+                  <span className="empty-state__title">Sin tareas aquí</span>
+                  <span>
+                    {projectFilter
+                      ? `Nada en «${projectFilter}». Cambia de espacio o añade una.`
+                      : 'Añade una arriba o pide a Jone en el chat.'}
+                  </span>
+                </li>
               ) : null}
             </ul>
           </SortableContext>

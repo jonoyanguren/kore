@@ -296,6 +296,31 @@ class MemoryStore:
             await db.commit()
             return cursor.rowcount > 0
 
+    async def delete_memory_category(self, category: str) -> int:
+        """Hard-delete all memory items in category. Returns rows deleted."""
+        category = (category or "").strip().lower()
+        if not category:
+            return 0
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                "DELETE FROM memory_items WHERE category = ?",
+                (category,),
+            )
+            await db.commit()
+            return int(cursor.rowcount or 0)
+
+    async def memory_category_counts(self) -> list[tuple[str, int]]:
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                """
+                SELECT category, COUNT(*) FROM memory_items
+                GROUP BY category
+                ORDER BY category
+                """
+            )
+            rows = await cursor.fetchall()
+            return [(str(row[0]), int(row[1])) for row in rows]
+
     async def get_memory(self, item_id: int) -> tuple[int, str, str] | None:
         async with aiosqlite.connect(self._db_path) as db:
             cursor = await db.execute(

@@ -28,7 +28,8 @@ Opcional: si ya existe un close del mismo día, **actualízalo** (no borres hist
 
 1. Mira el trabajo de la sesión (diff, commits recientes, conversación).
 2. Actualiza en el **mismo cambio** si aplica:
-   - `docs/TODO.md` — marca hechos / añade pendientes concretos
+   - `docs/TODO.md` — quita hechos / añade pendientes concretos
+   - Si cierras un hito gordo → una entrada en `docs/milestones.md` (no hinchar PLAN)
    - `docs/PLAN.md` — next steps + changelog breve si cambió fase/alcance
 3. **Escribe** `docs/closes/YYYY-MM-DD.md` con la estructura A–D (abajo).
 4. Responde a Jon con el mismo A–D (puede ser el contenido del archivo).
