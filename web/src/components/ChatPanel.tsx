@@ -1,7 +1,9 @@
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react'
@@ -24,6 +26,10 @@ type Props = {
   onAfterChat?: (info: { tasksChanged: boolean }) => void
   onOpenTask?: (task: Task) => void
 }
+
+const PAGE = 10
+const TOP_LOAD_PX = 72
+const BOTTOM_STICK_PX = 80
 
 const QUICK: { label: string; send: string }[] = [
   { label: '/tareas', send: '/tareas' },
@@ -67,11 +73,20 @@ function patchTasksInMessages(
   })
 }
 
+function firstPersistedId(messages: ChatMessage[]): number | undefined {
+  for (const m of messages) {
+    if (typeof m.id === 'number') return m.id
+  }
+  return undefined
+}
+
 export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   { onAfterChat, onOpenTask },
   ref,
 ) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingOlder, setLoadingOlder] = useState(false)
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [thinking, setThinking] = useState<string | null>(null)
@@ -80,18 +95,36 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const bottomRef = useRef<HTMLDivElement>(null)
   const logRef = useRef<HTMLDivElement>(null)
   const busyRef = useRef(false)
+  const stickBottomRef = useRef(true)
+  const loadingOlderRef = useRef(false)
+  const skipStickOnceRef = useRef(false)
 
   useEffect(() => {
     busyRef.current = busy
   }, [busy])
 
-  async function load() {
-    const rows = await apiListMessages(100)
-    setMessages(rows)
-  }
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
+    const log = logRef.current
+    if (!log) return
+    log.scrollTo({ top: log.scrollHeight, behavior })
+  }, [])
 
   useEffect(() => {
-    void load().catch((e) => setError(String(e)))
+    let cancelled = false
+    ;(async () => {
+      try {
+        const page = await apiListMessages(PAGE)
+        if (cancelled) return
+        setMessages(page.messages)
+        setHasMore(page.has_more)
+        stickBottomRef.current = true
+      } catch (e) {
+        if (!cancelled) setError(String(e))
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
@@ -99,17 +132,63 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     return () => window.clearInterval(id)
   }, [])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (skipStickOnceRef.current) {
+      skipStickOnceRef.current = false
+      return
+    }
+    if (stickBottomRef.current) {
+      scrollToBottom('auto')
+    }
+  }, [messages, busy, thinking, scrollToBottom])
+
+  const loadOlder = useCallback(async () => {
+    if (loadingOlderRef.current || !hasMore) return
+    const before = firstPersistedId(messages)
+    if (before == null) return
+    const log = logRef.current
+    const prevHeight = log?.scrollHeight ?? 0
+    const prevTop = log?.scrollTop ?? 0
+    loadingOlderRef.current = true
+    setLoadingOlder(true)
+    try {
+      const page = await apiListMessages(PAGE, before)
+      skipStickOnceRef.current = true
+      setMessages((prev) => {
+        const seen = new Set(prev.map((m) => m.id).filter(Boolean))
+        const older = page.messages.filter((m) => m.id && !seen.has(m.id))
+        return [...older, ...prev]
+      })
+      setHasMore(page.has_more)
+      requestAnimationFrame(() => {
+        const el = logRef.current
+        if (!el) return
+        el.scrollTop = el.scrollHeight - prevHeight + prevTop
+      })
+    } catch (e) {
+      setError(String(e))
+    } finally {
+      loadingOlderRef.current = false
+      setLoadingOlder(false)
+    }
+  }, [hasMore, messages])
+
+  function onLogScroll() {
     const log = logRef.current
     if (!log) return
-    log.scrollTop = log.scrollHeight
-  }, [messages, busy, thinking])
+    const distBottom = log.scrollHeight - log.scrollTop - log.clientHeight
+    stickBottomRef.current = distBottom < BOTTOM_STICK_PX
+    if (log.scrollTop < TOP_LOAD_PX) {
+      void loadOlder()
+    }
+  }
 
   async function sendText(raw: string) {
     const t = raw.trim()
     if (!t || busyRef.current) return
     setText('')
     setBusy(true)
+    stickBottomRef.current = true
     setThinking(t.startsWith('/') ? 'Ejecutando…' : 'Pensando…')
     setError(null)
     setMessages((prev) => [
@@ -118,7 +197,10 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     ])
     try {
       const result = await apiChatLive(t, {
-        onStatus: (label) => setThinking(label),
+        onStatus: (label) => {
+          stickBottomRef.current = true
+          setThinking(label)
+        },
       })
       setThinking(null)
       let reply = result.reply
@@ -131,6 +213,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         reply +=
           '\n\n(Ojo: no quedó registrada en SQLite — la tool no corrió. Prueba otra vez o añádela en el board.)'
       }
+      stickBottomRef.current = true
       setMessages((prev) => [
         ...prev,
         {
@@ -140,11 +223,23 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           tasks: dedupeTasks(result.tasks_listed),
         },
       ])
+      // Sync ids from server without wiping older pages
       try {
-        await load()
+        const page = await apiListMessages(PAGE)
+        setMessages((prev) => {
+          const firstNew = page.messages[0]?.id
+          if (firstNew == null) return prev
+          const older = prev.filter(
+            (m) => typeof m.id === 'number' && m.id < firstNew,
+          )
+          return [...older, ...page.messages]
+        })
+        setHasMore(page.has_more)
       } catch {
         /* keep optimistic */
       }
+      stickBottomRef.current = true
+      requestAnimationFrame(() => scrollToBottom('smooth'))
       onAfterChat?.({
         tasksChanged: result.tasks_changed || result.tasks_listed.length > 0,
       })
@@ -158,6 +253,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     } finally {
       setBusy(false)
       setThinking(null)
+      stickBottomRef.current = true
+      requestAnimationFrame(() => scrollToBottom('smooth'))
     }
   }
 
@@ -196,7 +293,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     <section className="chat">
       <header className="chat__head">
         <h2>Chat</h2>
-        <span className="muted">últimos 100 · Jone</span>
+        <span className="muted">Jone</span>
       </header>
       <div className="chat__quick" aria-label="Acciones rápidas">
         {QUICK.map((q) => (
@@ -211,13 +308,23 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           </button>
         ))}
       </div>
-      <div className="chat__log" ref={logRef} aria-live="polite">
+      <div
+        className="chat__log"
+        ref={logRef}
+        aria-live="polite"
+        onScroll={onLogScroll}
+      >
+        {loadingOlder ? (
+          <p className="muted chat__load-older">Cargando…</p>
+        ) : hasMore ? (
+          <p className="muted chat__load-older">↑ más arriba</p>
+        ) : null}
         {messages.length === 0 && !busy ? (
           <p className="muted chat__empty">Escribe algo o pulsa ⌘K…</p>
         ) : null}
         {messages.map((m, i) => (
           <div
-            key={m.id ?? `${i}-${m.role}`}
+            key={m.id ?? `tmp-${i}-${m.role}-${m.content.slice(0, 24)}`}
             className={`chat__bubble chat__bubble--${m.role}`}
           >
             <div className="chat__meta">

@@ -480,6 +480,14 @@ button.ghost:hover {
   font-weight: 300;
 }
 
+.chat__load-older {
+  margin: 0;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 300;
+  padding: 0.25rem 0 0.5rem;
+}
+
 .chat__bubble {
   max-width: 88%;
   padding: 0.7rem 0.85rem;

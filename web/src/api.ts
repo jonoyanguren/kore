@@ -100,12 +100,23 @@ export type ChatMessage = {
   tasks?: Task[]
 }
 
-export async function apiListMessages(limit = 100): Promise<ChatMessage[]> {
-  const r = await req<{ messages: ChatMessage[] }>(
-    `/api/messages?limit=${limit}`,
-  )
+export type MessagesPage = {
+  messages: ChatMessage[]
+  has_more: boolean
+}
+
+export async function apiListMessages(
+  limit = 10,
+  before?: number,
+): Promise<MessagesPage> {
+  const qs = new URLSearchParams({ limit: String(limit) })
+  if (before != null) qs.set('before', String(before))
+  const r = await req<MessagesPage>(`/api/messages?${qs}`)
   if (!r.ok) throw new Error(`list messages ${r.status}`)
-  return r.data.messages
+  return {
+    messages: r.data.messages,
+    has_more: Boolean(r.data.has_more),
+  }
 }
 
 export type ChatResult = {

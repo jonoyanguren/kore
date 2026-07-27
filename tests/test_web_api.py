@@ -131,6 +131,7 @@ async def _run():
             )
             assert msgs.status_code == 200
             payload = msgs.json()["messages"]
+            assert "has_more" in msgs.json()
             contents = [m["content"] for m in payload]
             assert "hola web" in contents
             assert "eco:hola web" in contents
@@ -147,6 +148,20 @@ async def _run():
             recent = await store.list_recent_messages(limit=3)
             assert len(recent) == 3
             assert recent[-1][2] == "m11"
+
+            page = await ac.get(
+                "/api/messages?limit=3",
+                headers={"Authorization": f"Bearer {secret}"},
+            )
+            assert page.status_code == 200
+            assert page.json()["has_more"] is True
+            oldest = page.json()["messages"][0]["id"]
+            older = await ac.get(
+                f"/api/messages?limit=3&before={oldest}",
+                headers={"Authorization": f"Bearer {secret}"},
+            )
+            assert older.status_code == 200
+            assert all(m["id"] < oldest for m in older.json()["messages"])
 
             tareas = await ac.post(
                 "/api/chat",

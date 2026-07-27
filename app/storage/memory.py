@@ -382,23 +382,55 @@ class MemoryStore:
             return [(row[0], row[1]) for row in rows]
 
     async def list_recent_messages(
-        self, limit: int = 100
+        self, limit: int = 100, *, before_id: int | None = None
     ) -> list[tuple[int, str, str, str]]:
-        """Last N messages across days: (id, role, content, created_at) oldest→newest."""
+        """Last N messages across days: (id, role, content, created_at) oldest→newest.
+
+        If `before_id` is set, return the N messages immediately older than that id.
+        """
         async with aiosqlite.connect(self._db_path) as db:
-            cursor = await db.execute(
-                """
-                SELECT id, role, content, created_at FROM (
-                    SELECT id, role, content, created_at FROM messages
-                    ORDER BY id DESC
-                    LIMIT ?
-                ) AS recent
-                ORDER BY id ASC
-                """,
-                (limit,),
-            )
+            if before_id is None:
+                cursor = await db.execute(
+                    """
+                    SELECT id, role, content, created_at FROM (
+                        SELECT id, role, content, created_at FROM messages
+                        ORDER BY id DESC
+                        LIMIT ?
+                    ) AS recent
+                    ORDER BY id ASC
+                    """,
+                    (limit,),
+                )
+            else:
+                cursor = await db.execute(
+                    """
+                    SELECT id, role, content, created_at FROM (
+                        SELECT id, role, content, created_at FROM messages
+                        WHERE id < ?
+                        ORDER BY id DESC
+                        LIMIT ?
+                    ) AS older
+                    ORDER BY id ASC
+                    """,
+                    (before_id, limit),
+                )
             rows = await cursor.fetchall()
             return [(int(row[0]), row[1], row[2], row[3]) for row in rows]
+
+    async def count_messages_before(self, before_id: int) -> int:
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                "SELECT COUNT(*) FROM messages WHERE id < ?",
+                (before_id,),
+            )
+            row = await cursor.fetchone()
+            return int(row[0]) if row else 0
+
+    async def count_messages(self) -> int:
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute("SELECT COUNT(*) FROM messages")
+            row = await cursor.fetchone()
+            return int(row[0]) if row else 0
 
     # --- Legacy notes API (kept for migration / forget_note compat) ---------
 

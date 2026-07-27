@@ -264,11 +264,21 @@ async def day_snapshot(request: Request) -> dict[str, Any]:
 @router.get("/messages", dependencies=[Depends(require_console_auth)])
 async def list_messages(
     request: Request,
-    limit: int = 100,
-) -> dict[str, list[dict[str, Any]]]:
-    rows = await request.app.state.memory.list_recent_messages(
-        limit=min(max(limit, 1), 200)
-    )
+    limit: int = 10,
+    before: int | None = None,
+) -> dict[str, Any]:
+    page = min(max(limit, 1), 50)
+    memory = request.app.state.memory
+    rows = await memory.list_recent_messages(limit=page, before_id=before)
+
+    if before is not None:
+        has_more = (
+            bool(rows) and (await memory.count_messages_before(rows[0][0])) > 0
+        )
+    else:
+        total = await memory.count_messages()
+        has_more = total > len(rows)
+
     # Resolve task ids mentioned in content for rich cards
     task_ids: set[int] = set()
 
@@ -283,7 +293,7 @@ async def list_messages(
                     task_ids.add(int(g))
     tasks_by_id: dict[int, dict[str, Any]] = {}
     for tid in task_ids:
-        row = await request.app.state.memory.get_task(tid)
+        row = await memory.get_task(tid)
         if row is not None:
             tasks_by_id[tid] = _task_dict(row)
 
@@ -306,7 +316,7 @@ async def list_messages(
                 "tasks": mentioned,
             }
         )
-    return {"messages": out}
+    return {"messages": out, "has_more": has_more}
 
 
 async def _persist_exchange(memory: Any, user: str, assistant: str) -> None:
