@@ -7,8 +7,9 @@ from typing import Annotated, Any, Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel, Field
 
-from app.storage.memory import TaskRow, VALID_TASK_STATUSES
+from app.storage.memory import TaskRow, VALID_TASK_STATUSES, format_tasks_message
 from app.storage.task_tools import sync_tasks_vault
+from app.timeutil import format_madrid_clock, format_relative_es, session_date_str
 from app.web.auth import (
     COOKIE_NAME,
     console_secret_configured,
@@ -193,11 +194,54 @@ class ChatBody(BaseModel):
 async def list_messages(
     request: Request,
     limit: int = 100,
-) -> dict[str, list[dict[str, str]]]:
-    rows = await request.app.state.memory.list_messages_for_day(
+) -> dict[str, list[dict[str, Any]]]:
+    rows = await request.app.state.memory.list_recent_messages(
         limit=min(max(limit, 1), 200)
     )
-    return {"messages": [{"role": role, "content": content} for role, content in rows]}
+    # Resolve task ids mentioned in content for rich cards
+    task_ids: set[int] = set()
+    import re
+
+    id_re = re.compile(
+        r"(?:tarea|task|id)\s*#?\s*(\d+)|\b(\d+)\.\s+\S",
+        re.IGNORECASE,
+    )
+    for _mid, _role, content, _ts in rows:
+        for m in id_re.finditer(content or ""):
+            for g in m.groups():
+                if g:
+                    task_ids.add(int(g))
+    tasks_by_id: dict[int, dict[str, Any]] = {}
+    for tid in task_ids:
+        row = await request.app.state.memory.get_task(tid)
+        if row is not None:
+            tasks_by_id[tid] = _task_dict(row)
+
+    out: list[dict[str, Any]] = []
+    for mid, role, content, created_at in rows:
+        mentioned = []
+        for m in id_re.finditer(content or ""):
+            for g in m.groups():
+                if g and int(g) in tasks_by_id:
+                    t = tasks_by_id[int(g)]
+                    if t not in mentioned:
+                        mentioned.append(t)
+        out.append(
+            {
+                "id": mid,
+                "role": role,
+                "content": content,
+                "created_at": created_at,
+                "relative": format_relative_es(created_at),
+                "tasks": mentioned,
+            }
+        )
+    return {"messages": out}
+
+
+async def _persist_exchange(memory: Any, user: str, assistant: str) -> None:
+    await memory.add_message("user", user)
+    await memory.add_message("assistant", assistant)
 
 
 @router.post("/chat", dependencies=[Depends(require_console_auth)])
@@ -205,19 +249,75 @@ async def chat(request: Request, body: ChatBody) -> dict[str, Any]:
     text = body.text.strip()
     if not text:
         raise HTTPException(status_code=400, detail="empty text")
+
+    memory = request.app.state.memory
+    cmd = text.split()[0].lower() if text.startswith("/") else ""
+
+    # Fast-path skills (same idea as Telegram CommandRouter)
+    if cmd in ("/tareas", "/tasks"):
+        rows = await memory.list_tasks(status="open", limit=40)
+        reply = format_tasks_message(rows, heading="Tareas")
+        await _persist_exchange(memory, text, reply)
+        return {
+            "reply": reply,
+            "tasks_created": [],
+            "tasks_listed": [_task_dict(t) for t in rows],
+            "tasks_changed": False,
+        }
+    if cmd == "/hora":
+        reply = format_madrid_clock()
+        await _persist_exchange(memory, text, reply)
+        return {
+            "reply": reply,
+            "tasks_created": [],
+            "tasks_listed": [],
+            "tasks_changed": False,
+        }
+    if cmd == "/agenda":
+        agenda = await memory.list_agenda_upcoming(limit=20)
+        if not agenda:
+            reply = "Agenda vacía."
+            listed: list[dict[str, Any]] = []
+        else:
+            lines = [f"- {starts} — {title}" for _i, starts, title, _st in agenda]
+            reply = "Agenda:\n" + "\n".join(lines)
+            listed = []
+        await _persist_exchange(memory, text, reply)
+        return {
+            "reply": reply,
+            "tasks_created": [],
+            "tasks_listed": listed,
+            "tasks_changed": False,
+        }
+    if cmd == "/diario":
+        day = session_date_str()
+        entries = await memory.list_diary_for_day(day)
+        if not entries:
+            reply = f"Diario vacío para {day}."
+        else:
+            lines = [f"- {entry}" for _id, entry in entries]
+            reply = f"Diario {day}:\n" + "\n".join(lines)
+        await _persist_exchange(memory, text, reply)
+        return {
+            "reply": reply,
+            "tasks_created": [],
+            "tasks_listed": [],
+            "tasks_changed": False,
+        }
+
     llm = getattr(request.app.state, "llm", None)
     if llm is None:
         raise HTTPException(status_code=503, detail="llm not ready")
 
-    memory = request.app.state.memory
     before = {t.id for t in await memory.list_tasks(status="open", limit=100)}
     reply = await llm.ask(text)
     after_rows = await memory.list_tasks(status="open", limit=100)
     after = {t.id for t in after_rows}
-    created = [ _task_dict(t) for t in after_rows if t.id in (after - before) ]
+    created = [_task_dict(t) for t in after_rows if t.id in (after - before)]
 
     return {
         "reply": reply,
         "tasks_created": created,
+        "tasks_listed": created,
         "tasks_changed": bool(created) or before != after,
     }

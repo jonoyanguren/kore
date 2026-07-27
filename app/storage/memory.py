@@ -381,6 +381,25 @@ class MemoryStore:
             rows = await cursor.fetchall()
             return [(row[0], row[1]) for row in rows]
 
+    async def list_recent_messages(
+        self, limit: int = 100
+    ) -> list[tuple[int, str, str, str]]:
+        """Last N messages across days: (id, role, content, created_at) oldest→newest."""
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                """
+                SELECT id, role, content, created_at FROM (
+                    SELECT id, role, content, created_at FROM messages
+                    ORDER BY id DESC
+                    LIMIT ?
+                ) AS recent
+                ORDER BY id ASC
+                """,
+                (limit,),
+            )
+            rows = await cursor.fetchall()
+            return [(int(row[0]), row[1], row[2], row[3]) for row in rows]
+
     # --- Legacy notes API (kept for migration / forget_note compat) ---------
 
     async def add_note(self, text: str) -> int:

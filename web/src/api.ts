@@ -75,7 +75,14 @@ export async function apiCompleteTask(id: number): Promise<Task> {
   return r.data.task
 }
 
-export type ChatMessage = { role: string; content: string }
+export type ChatMessage = {
+  id?: number
+  role: string
+  content: string
+  created_at?: string
+  relative?: string
+  tasks?: Task[]
+}
 
 export async function apiListMessages(limit = 100): Promise<ChatMessage[]> {
   const r = await req<{ messages: ChatMessage[] }>(
@@ -88,6 +95,7 @@ export async function apiListMessages(limit = 100): Promise<ChatMessage[]> {
 export type ChatResult = {
   reply: string
   tasks_created: Task[]
+  tasks_listed: Task[]
   tasks_changed: boolean
 }
 
@@ -104,6 +112,7 @@ export async function apiChat(text: string): Promise<ChatResult> {
     return {
       reply: r.data.reply,
       tasks_created: r.data.tasks_created ?? [],
+      tasks_listed: r.data.tasks_listed ?? r.data.tasks_created ?? [],
       tasks_changed: Boolean(r.data.tasks_changed),
     }
   } finally {

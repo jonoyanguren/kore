@@ -74,6 +74,60 @@ def format_madrid_clock() -> str:
     )
 
 
+def format_relative_es(
+    created_at: str, *, now: datetime | None = None
+) -> str:
+    """Human relative time in Spanish for chat bubbles.
+
+    Buckets: hace un momento → hace X min → hace una hora / X horas →
+    ayer → weekday or "D de mes" further back.
+    """
+    now = now or now_madrid()
+    raw = (created_at or "").strip()
+    if not raw:
+        return ""
+    # SQLite datetime('now') is UTC-naive; accept ISO with Z/offset too.
+    try:
+        if raw.endswith("Z"):
+            then = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        else:
+            then = datetime.fromisoformat(raw)
+        if then.tzinfo is None:
+            then = then.replace(tzinfo=ZoneInfo("UTC")).astimezone(MADRID)
+        else:
+            then = then.astimezone(MADRID)
+    except ValueError:
+        return raw[:16]
+
+    delta = now - then
+    secs = int(delta.total_seconds())
+    if secs < 0:
+        secs = 0
+    if secs < 90:
+        return "hace un momento"
+    mins = secs // 60
+    if mins < 50:
+        if mins == 1:
+            return "hace un minuto"
+        return f"hace {mins} minutos"
+    hours = secs // 3600
+    if hours < 24 and then.date() == now.date():
+        if hours <= 1:
+            return "hace una hora"
+        return f"hace {hours} horas"
+    days = (now.date() - then.date()).days
+    if days == 1:
+        return "ayer"
+    if days == 2:
+        return "hace un día"
+    if days < 7:
+        return f"el {_WEEKDAYS_ES[then.weekday()]}"
+    month = _MONTHS_ES[then.month - 1]
+    if then.year == now.year:
+        return f"{then.day} de {month}"
+    return f"{then.day} de {month} de {then.year}"
+
+
 def _week_monday(d: date) -> date:
     return d - timedelta(days=d.weekday())
 

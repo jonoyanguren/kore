@@ -124,14 +124,17 @@ async def _run():
             body = chat.json()
             assert body["reply"] == "eco:hola web"
             assert body.get("tasks_created") == []
+            assert body.get("tasks_listed") == []
             msgs = await ac.get(
                 "/api/messages",
                 headers={"Authorization": f"Bearer {secret}"},
             )
             assert msgs.status_code == 200
-            contents = [m["content"] for m in msgs.json()["messages"]]
+            payload = msgs.json()["messages"]
+            contents = [m["content"] for m in payload]
             assert "hola web" in contents
             assert "eco:hola web" in contents
+            assert all("relative" in m or "created_at" in m for m in payload)
 
             # last-N: seed more than limit, expect newest kept
             for i in range(12):
@@ -140,6 +143,19 @@ async def _run():
             assert len(capped) == 5
             assert capped[0][1] == "m7"
             assert capped[-1][1] == "m11"
+
+            recent = await store.list_recent_messages(limit=3)
+            assert len(recent) == 3
+            assert recent[-1][2] == "m11"
+
+            tareas = await ac.post(
+                "/api/chat",
+                headers={"Authorization": f"Bearer {secret}"},
+                json={"text": "/tareas"},
+            )
+            assert tareas.status_code == 200
+            assert "Tareas" in tareas.json()["reply"]
+            assert isinstance(tareas.json().get("tasks_listed"), list)
 
 
 def test_web_api_auth_and_tasks():
