@@ -315,6 +315,13 @@ button.ghost:hover {
   line-height: 1.15;
 }
 
+.day-strip__hero-date {
+  margin: 0.15rem 0 0;
+  color: var(--muted);
+  font-weight: 300;
+  font-size: 1rem;
+}
+
 .day-strip__hero-clock {
   margin: 0.35rem 0 0.5rem;
   font-size: clamp(4.5rem, 14vw, 7.5rem);

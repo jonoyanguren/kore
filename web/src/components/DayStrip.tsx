@@ -87,6 +87,8 @@ export function DayStrip({
   const important = briefing?.important_tasks ?? []
   const meetings = briefing?.meetings ?? day.agenda ?? []
   const help = briefing?.help ?? []
+  // "lunes 27 de julio de 2026" → weekday + date once (not repeated)
+  const dateLine = rest || day.headline || ''
 
   if (variant === 'rail') {
     const nextMeeting = meetings[0]
@@ -115,10 +117,10 @@ export function DayStrip({
 
   return (
     <section className="day-strip day-strip--hero" aria-label="Hoy">
-      <p className="day-strip__eyebrow">{rest || day.headline}</p>
       <h2 className="day-strip__hero-title">
         {day.greeting || `Hola, ${day.owner_name || 'Jon'}`}
       </h2>
+      {dateLine ? <p className="day-strip__hero-date">{dateLine}</p> : null}
       {time ? <p className="day-strip__hero-clock">{time}</p> : null}
 
       <div className="day-strip__hero-counts">
@@ -177,12 +179,7 @@ export function DayStrip({
         </div>
 
         <div className="day-strip__block">
-          <h3>
-            Ayuda
-            {briefing?.day ? (
-              <span className="muted"> · {briefing.day}</span>
-            ) : null}
-          </h3>
+          <h3>Ayuda</h3>
           {help.length === 0 ? (
             <p className="muted">
               {briefing?.has_dream
