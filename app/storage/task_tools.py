@@ -10,8 +10,6 @@ from app.timeutil import session_date_str
 
 ToolHandler = Callable[[dict[str, Any]], Awaitable[str]]
 
-_STORAGE_HINT = "SQLite · /data/kore.db"
-
 
 async def _sync_tasks_vault(store: MemoryStore, vault: Vault) -> None:
     rows = await store.list_tasks(status="open", limit=100)
@@ -51,7 +49,7 @@ def build_task_tools(
         )
         heading = "Tareas"
         if status == "open":
-            heading = "Tareas abiertas"
+            heading = "Tareas"
         elif status and status != "all":
             heading = f"Tareas ({status})"
         return format_tasks_message(rows, heading=heading)

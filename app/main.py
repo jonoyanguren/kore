@@ -260,7 +260,7 @@ async def handle_text_message(
         from app.storage.memory import format_tasks_message
 
         await telegram.send_message(
-            chat_id, format_tasks_message(rows, heading="Tareas abiertas")
+            chat_id, format_tasks_message(rows, heading="Tareas")
         )
         return
 

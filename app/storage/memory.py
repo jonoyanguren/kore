@@ -74,22 +74,36 @@ def format_task_lines(tasks: list[TaskRow], *, detailed: bool = True) -> list[st
 def format_tasks_message(
     tasks: list[TaskRow],
     *,
-    heading: str = "Tareas abiertas",
+    heading: str = "Tareas",
     detailed: bool = True,
 ) -> str:
-    """Full Telegram message: heading, list, soft footer."""
+    """Full Telegram message: en curso first, then pendientes (open)."""
     if not tasks:
-        return (
-            f"{heading}\n\n"
-            "Ninguna por ahora.\n\n"
-            "Se guardan en SQLite (/data/kore.db en Fly)."
-        )
-    body = "\n".join(format_task_lines(tasks, detailed=detailed))
-    return (
-        f"{heading} · {len(tasks)}\n\n"
-        f"{body}\n\n"
-        "SQLite · /data/kore.db"
-    )
+        return f"{heading}\n\nNinguna por ahora."
+
+    in_progress = [t for t in tasks if t.status == "in_progress"]
+    pending = [t for t in tasks if t.status == "open"]
+    other = [t for t in tasks if t.status not in ("in_progress", "open")]
+
+    parts: list[str] = [heading]
+    if in_progress:
+        parts.append("")
+        parts.append("En curso")
+        parts.append("\n".join(format_task_lines(in_progress, detailed=detailed)))
+    if pending:
+        parts.append("")
+        parts.append("Pendientes")
+        parts.append("\n".join(format_task_lines(pending, detailed=detailed)))
+    if other:
+        parts.append("")
+        parts.append("Otras")
+        parts.append("\n".join(format_task_lines(other, detailed=detailed)))
+
+    if not in_progress and not pending and not other:
+        parts.append("")
+        parts.append("Ninguna por ahora.")
+
+    return "\n".join(parts).strip() + "\n"
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS notes (
