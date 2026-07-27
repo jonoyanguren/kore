@@ -19,7 +19,7 @@ import type { BoardColumnId, Task } from '../types'
 import { BoardColumn } from './BoardColumn'
 import { TaskCard } from './TaskCard'
 
-const COLUMNS: BoardColumnId[] = ['in_progress', 'open', 'done']
+const COLUMNS: BoardColumnId[] = ['open', 'in_progress', 'done']
 
 function columnOf(status: string): BoardColumnId | null {
   if (status === 'in_progress' || status === 'open' || status === 'done') {
