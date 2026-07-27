@@ -25,25 +25,71 @@ class TaskRow:
 ACTIVE_TASK_STATUSES = ("open", "in_progress")
 VALID_TASK_STATUSES = ("open", "in_progress", "done", "cancelled")
 
+_STATUS_ES = {
+    "open": "abierta",
+    "in_progress": "en curso",
+    "done": "hecha",
+    "cancelled": "cancelada",
+}
+
+
+def format_task_block(task: TaskRow) -> list[str]:
+    """One task as readable plain-text block (Telegram-friendly)."""
+    lines = [f"{task.id}. {task.title}"]
+    meta: list[str] = [_STATUS_ES.get(task.status, task.status)]
+    if task.project:
+        meta.append(task.project)
+    if task.due_at:
+        meta.append(task.due_at)
+    if task.priority and task.priority > 0:
+        meta.append(f"prio {task.priority}")
+    lines.append("   " + " · ".join(meta))
+    if task.url:
+        lines.append(f"   {task.url}")
+    if task.notes:
+        note = task.notes.strip()
+        if len(note) > 160:
+            note = note[:157] + "…"
+        lines.append(f"   {note}")
+    return lines
+
 
 def format_task_lines(tasks: list[TaskRow], *, detailed: bool = True) -> list[str]:
-    """Plain-text lines for Telegram / tools."""
+    """Plain-text lines for Telegram / tools (blank line between tasks)."""
+    if not tasks:
+        return []
     lines: list[str] = []
-    for t in tasks:
-        bits = [f"(id {t.id})", f"[{t.status}]", t.title]
-        if t.project:
-            bits.append(f"#{t.project}")
-        if t.due_at:
-            bits.append(f"due {t.due_at}")
-        if t.priority:
-            bits.append(f"p{t.priority}")
-        lines.append("- " + " ".join(bits))
-        if detailed:
-            if t.url:
-                lines.append(f"  link: {t.url}")
-            if t.notes:
-                lines.append(f"  nota: {t.notes}")
+    for i, task in enumerate(tasks):
+        if i:
+            lines.append("")
+        block = format_task_block(task)
+        if not detailed:
+            # title + meta only
+            lines.extend(block[:2])
+        else:
+            lines.extend(block)
     return lines
+
+
+def format_tasks_message(
+    tasks: list[TaskRow],
+    *,
+    heading: str = "Tareas abiertas",
+    detailed: bool = True,
+) -> str:
+    """Full Telegram message: heading, list, soft footer."""
+    if not tasks:
+        return (
+            f"{heading}\n\n"
+            "Ninguna por ahora.\n\n"
+            "Se guardan en SQLite (/data/kore.db en Fly)."
+        )
+    body = "\n".join(format_task_lines(tasks, detailed=detailed))
+    return (
+        f"{heading} · {len(tasks)}\n\n"
+        f"{body}\n\n"
+        "SQLite · /data/kore.db"
+    )
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS notes (

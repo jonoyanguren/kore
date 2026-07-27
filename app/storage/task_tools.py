@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from typing import Any, Awaitable, Callable
 
-from app.storage.memory import MemoryStore, format_task_lines
+from app.storage.memory import MemoryStore, format_task_lines, format_tasks_message
 from app.storage.vault import Vault
 from app.timeutil import session_date_str
 
 ToolHandler = Callable[[dict[str, Any]], Awaitable[str]]
 
-_STORAGE_HINT = "Guardado en SQLite (Fly: /data/kore.db · local: data/kore.db)."
+_STORAGE_HINT = "SQLite · /data/kore.db"
 
 
 async def _sync_tasks_vault(store: MemoryStore, vault: Vault) -> None:
@@ -38,7 +38,7 @@ def build_task_tools(
         task = await store.get_task(task_id)
         assert task is not None
         body = "\n".join(format_task_lines([task], detailed=True))
-        return f"Tarea creada.\n{body}\n{_STORAGE_HINT}"
+        return f"Creada.\n\n{body}"
 
     async def _list_tasks(args: dict[str, Any]) -> str:
         status = args.get("status", "open")
@@ -49,20 +49,18 @@ def build_task_tools(
             limit=int(args.get("limit") or 30),
             project=args.get("project"),
         )
-        if not rows:
-            return (
-                "No hay tareas"
-                + (f" (status={args.get('status', 'open')})." if status else ".")
-                + f"\n{_STORAGE_HINT}"
-            )
-        lines = format_task_lines(rows, detailed=True)
-        return "Tareas:\n" + "\n".join(lines) + f"\n{_STORAGE_HINT}"
+        heading = "Tareas"
+        if status == "open":
+            heading = "Tareas abiertas"
+        elif status and status != "all":
+            heading = f"Tareas ({status})"
+        return format_tasks_message(rows, heading=heading)
 
     async def _get_task(args: dict[str, Any]) -> str:
         task = await store.get_task(int(args["task_id"]))
         if task is None:
             return "No encontré esa tarea."
-        return "\n".join(format_task_lines([task], detailed=True)) + f"\n{_STORAGE_HINT}"
+        return "\n".join(format_task_lines([task], detailed=True))
 
     async def _update_task(args: dict[str, Any]) -> str:
         ok = await store.update_task(
@@ -84,7 +82,7 @@ def build_task_tools(
         await _sync_tasks_vault(store, vault)
         task = await store.get_task(int(args["task_id"]))
         assert task is not None
-        return "Tarea actualizada.\n" + "\n".join(
+        return "Actualizada.\n\n" + "\n".join(
             format_task_lines([task], detailed=True)
         )
 

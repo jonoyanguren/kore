@@ -50,6 +50,21 @@ async def _run():
         assert await store.delete_task(tid2)
         assert (await store.get_task(tid2)).status == "cancelled"
 
+        from app.storage.memory import format_tasks_message
+
+        sample = await store.add_task(
+            "Mirar reel",
+            url="https://instagram.com/reel/x",
+            project="personal",
+            due_at="2026-07-28",
+        )
+        msg = format_tasks_message([await store.get_task(sample)])
+        assert f"{sample}." in msg
+        assert "abierta" in msg
+        assert "personal" in msg
+        assert "instagram.com" in msg
+        assert "[open]" not in msg
+
         aid = await store.add_agenda_item("dentista", "2026-07-28T10:00")
         upcoming = await store.list_agenda_upcoming(from_day="2026-07-26")
         assert any(r[0] == aid for r in upcoming)
