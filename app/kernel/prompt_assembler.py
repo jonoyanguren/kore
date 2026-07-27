@@ -8,6 +8,7 @@ from app.config import settings
 from app.kernel.skill_registry import Skill, SkillRegistry
 from app.project_docs import load_always_inject
 from app.storage.memory import MemoryStore
+from app.storage.vault import Vault
 from app.timeutil import format_now_for_prompt
 
 
@@ -17,10 +18,12 @@ class PromptAssembler:
         prompts_dir: str | Path,
         skills: SkillRegistry,
         memory: MemoryStore,
+        vault: Vault | None = None,
     ) -> None:
         self._prompts_dir = Path(prompts_dir)
         self._skills = skills
         self._memory = memory
+        self._vault = vault
 
     def _read_prompt(self, name: str) -> str:
         path = self._prompts_dir / name
@@ -98,6 +101,14 @@ class PromptAssembler:
             parts.append(
                 "## Open tasks\n" + "\n".join(format_task_lines(open_tasks, detailed=True))
             )
+
+        if self._vault is not None:
+            done_excerpt = self._vault.read_done_tasks_excerpt(max_chars=2200)
+            if done_excerpt:
+                parts.append(
+                    "## Completed tasks archive (cleared from UI; use as context)\n"
+                    + done_excerpt
+                )
 
         agenda = await self._memory.list_agenda_upcoming(limit=10)
         if agenda:

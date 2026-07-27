@@ -98,7 +98,9 @@ async def lifespan(app: FastAPI):
     else:
         skill_registry = SkillRegistry(SKILLS_DIR)
     skill_registry.load()
-    prompt_assembler = PromptAssembler(PROMPTS_DIR, skill_registry, memory_store)
+    prompt_assembler = PromptAssembler(
+        PROMPTS_DIR, skill_registry, memory_store, vault
+    )
     command_router = CommandRouter(skill_registry)
 
     clickup_client = ClickUpClient(settings.clickup_api_token, http_client)

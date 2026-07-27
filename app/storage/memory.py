@@ -645,6 +645,14 @@ class MemoryStore:
             await db.commit()
             return int(cursor.rowcount or 0)
 
+    async def list_and_purge_done_tasks(self) -> list[TaskRow]:
+        """Return done tasks then hard-delete them (for vault archive)."""
+        rows = await self.list_tasks(status="done", limit=200)
+        if not rows:
+            return []
+        await self.purge_done_tasks()
+        return rows
+
     # --- Agenda -------------------------------------------------------------
 
     async def add_agenda_item(

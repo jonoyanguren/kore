@@ -121,7 +121,10 @@ async def _run():
             )
             assert purged.status_code == 200
             assert purged.json()["deleted"] >= 1
+            assert purged.json().get("archived") is True
             assert await store.get_task(tid_done) is None
+            done_md = (vault.root / "tasks" / "done.md").read_text(encoding="utf-8")
+            assert "ya hecha" in done_md
 
             open_md = (vault.root / "tasks" / "open.md").read_text(encoding="utf-8")
             assert open_md.strip()

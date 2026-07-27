@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 from app.config import settings
 from app.kernel.briefing import build_day_briefing
 from app.storage.memory import TaskRow, VALID_TASK_STATUSES, format_tasks_message
-from app.storage.task_tools import sync_tasks_vault
+from app.storage.task_tools import purge_done_tasks_archiving, sync_tasks_vault
 from app.timeutil import (
     format_madrid_clock,
     format_relative_es,
@@ -269,10 +269,12 @@ async def patch_task(
 
 @router.delete("/tasks/completed", dependencies=[Depends(require_console_auth)])
 async def purge_completed_tasks(request: Request) -> dict[str, Any]:
-    """Hard-delete every task with status=done."""
-    deleted = await request.app.state.memory.purge_done_tasks()
-    await sync_tasks_vault(request.app.state.memory, request.app.state.vault)
-    return {"ok": True, "deleted": deleted}
+    """Archive done tasks to vault/tasks/done.md, then hard-delete from DB."""
+    deleted = await purge_done_tasks_archiving(
+        request.app.state.memory,
+        request.app.state.vault,
+    )
+    return {"ok": True, "deleted": deleted, "archived": deleted > 0}
 
 
 @router.post("/tasks/{task_id}/complete", dependencies=[Depends(require_console_auth)])

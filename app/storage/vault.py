@@ -85,3 +85,33 @@ class Vault:
         body = "\n".join(lines_body)
         path.write_text(f"# tasks / open\n\n{body}\n", encoding="utf-8")
         return path
+
+    def append_done_tasks(self, day: str, lines_body: list[str]) -> Path:
+        """Append a dated batch of completed tasks cleared from the UI/DB."""
+        self.ensure()
+        path = self.root / "tasks" / "done.md"
+        block = "\n".join(lines_body).strip() or "(vacío)"
+        section = f"## {day}\n\n{block}\n\n"
+        if not path.exists():
+            path.write_text(
+                "# tasks / done (archivo)\n\n"
+                "Tareas completadas sacadas de la UI; quedan aquí como contexto.\n\n"
+                + section,
+                encoding="utf-8",
+            )
+        else:
+            with path.open("a", encoding="utf-8") as fh:
+                fh.write(section)
+        return path
+
+    def read_done_tasks_excerpt(self, *, max_chars: int = 2500) -> str | None:
+        """Tail of done.md for system prompt (recent archived completions)."""
+        path = self.root / "tasks" / "done.md"
+        if not path.is_file():
+            return None
+        text = path.read_text(encoding="utf-8").strip()
+        if not text:
+            return None
+        if len(text) <= max_chars:
+            return text
+        return "…\n" + text[-max_chars:]

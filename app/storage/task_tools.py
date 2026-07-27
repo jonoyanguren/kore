@@ -20,6 +20,19 @@ async def sync_tasks_vault(store: MemoryStore, vault: Vault) -> None:
     )
 
 
+async def purge_done_tasks_archiving(store: MemoryStore, vault: Vault) -> int:
+    """Archive done tasks to vault/tasks/done.md, then hard-delete from SQLite."""
+    rows = await store.list_and_purge_done_tasks()
+    if not rows:
+        return 0
+    vault.append_done_tasks(
+        session_date_str(),
+        format_task_lines(rows, detailed=True),
+    )
+    await sync_tasks_vault(store, vault)
+    return len(rows)
+
+
 def build_task_tools(
     store: MemoryStore, vault: Vault
 ) -> tuple[list[dict], dict[str, ToolHandler]]:

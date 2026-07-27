@@ -200,8 +200,8 @@ const SECTIONS: Section[] = [
       },
       {
         type: 'callout',
-        tone: 'warn',
-        text: '«Borrar completadas» hace hard-delete en la BD — no se recuperan.',
+        tone: 'info',
+        text: '«Archivar completadas» las quita de la UI/BD y las guarda en `vault/tasks/done.md` para contexto de Jone.',
       },
       {
         type: 'p',

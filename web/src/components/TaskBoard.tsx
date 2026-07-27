@@ -267,7 +267,8 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
     }
     if (
       !window.confirm(
-        `¿Borrar ${n} completada${n === 1 ? '' : 's'} de la base de datos? No se pueden recuperar.`,
+        `¿Archivar y quitar ${n} completada${n === 1 ? '' : 's'} de la UI?\n` +
+          `Quedan en vault/tasks/done.md para contexto de Jone; se borran de la BD.`,
       )
     ) {
       return
@@ -280,7 +281,7 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
       toast.ok(
         deleted === 0
           ? 'Nada que borrar'
-          : `Borradas ${deleted} completada${deleted === 1 ? '' : 's'}`,
+          : `Archivadas ${deleted} · fuera de la UI`,
       )
     } catch (err) {
       setTasks(prev)
@@ -490,11 +491,11 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
           title={
             doneCount === 0
               ? 'No hay completadas'
-              : `Borrar ${doneCount} completada${doneCount === 1 ? '' : 's'} de la BD`
+              : `Archivar ${doneCount} completada${doneCount === 1 ? '' : 's'} (vault + fuera UI)`
           }
           onClick={() => void onPurgeCompleted()}
         >
-          Borrar completadas
+          Archivar completadas
           {doneCount > 0 ? ` (${doneCount})` : ''}
         </button>
       </header>
