@@ -60,4 +60,11 @@ async def call_lol_tool(name: str, arguments: dict[str, Any]) -> str:
         logger.warning("OP.GG tool %s returned an error: %s", name, result.content)
         return f"El servidor de LoL devolvió un error al llamar a {name}."
 
-    return "\n".join(block.text for block in result.content if hasattr(block, "text"))
+    parts: list[str] = []
+    for block in result.content or []:
+        text = getattr(block, "text", None)
+        if text:
+            parts.append(text)
+    if not parts:
+        return f"{name} no devolvió texto."
+    return "\n".join(parts)

@@ -77,8 +77,9 @@ async def _ddg_search(query: str, *, limit: int) -> list[dict[str, str]]:
             from urllib.parse import parse_qs, unquote, urlparse as up
 
             qs = parse_qs(up(href).query)
-            if "uddg" in qs:
-                href = unquote(qs["uddg"][0])
+            uddg = qs.get("uddg") or []
+            if uddg and uddg[0]:
+                href = unquote(uddg[0])
         if not href.startswith("http"):
             continue
         results.append({"title": title, "url": href, "snippet": ""})
