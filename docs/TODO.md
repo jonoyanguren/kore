@@ -7,18 +7,20 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 ## TODO
 
 - [x] Fecha bien en pantalla Board
-- [ ] Limpiar la UI mucho
+- [x] Limpiar la UI (pasada 1: menos chrome Chat/Board/Día; chips; CSS muerto)
+- [ ] UI viva — rediseño aparte (Jon)
 - [x] Vista Día: una columna de lectura (no grid 3 cols)
 - [x] Chrome limpio: Chat/Board sin rail; LLM/Docs/Memoria en drawer «Más»
 - [x] Día sin CTAs duplicados; Board sin buscar/filtro; chips de proyecto
 - [x] Toast móvil arriba (no encima del mic)
 
-## P0 — Esta semana (dogfood)
+## P0 — Dogfood
 
-- [ ] **Mañana ~09:00:** abrir vista Día en [https://kore.fly.dev/](https://kore.fly.dev/) y validar briefing
-- [ ] **3–5 días:** operar desde consola (chat limpio / mic / board)
-- [ ] Dogfood: fricciones (síntesis tools, DeepSeek, gasto LLM, captura sin chips)
+- [x] Briefing en vista Día (cron / catch-up) — en uso
+- [x] Operar desde consola (chat / mic / board) — dogfood continuo
 - [x] Dream no debe resucitar tareas archivadas (`add_task` fuera del dream + dedupe)
+
+Fricciones nuevas → ítems sueltos arriba o Parking.
 
 ## P1 — Phase 1.6 (producto)
 

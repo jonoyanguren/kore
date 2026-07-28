@@ -439,7 +439,6 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
   return (
     <section className="board-panel">
       <header className="board-panel__bar">
-        <h2>Tareas</h2>
         <div className="view-toggle" role="group" aria-label="Vista">
           <button
             type="button"
@@ -453,7 +452,7 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
             className={view === 'board' ? 'is-active' : ''}
             onClick={() => setViewMode('board')}
           >
-            Board
+            Columnas
           </button>
         </div>
         <form className="console__add" onSubmit={onAdd}>
@@ -461,7 +460,8 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
             ref={addInputRef}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-              placeholder="Nueva tarea…"
+            placeholder="Nueva tarea…"
+            aria-label="Nueva tarea"
           />
           <button type="submit">Añadir</button>
         </form>
@@ -476,7 +476,7 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
           }
           onClick={() => void onPurgeCompleted()}
         >
-          Archivar completadas
+          Archivar
           {doneCount > 0 ? ` (${doneCount})` : ''}
         </button>
       </header>

@@ -7,7 +7,7 @@
 |-------|--------|
 | Repo | `jonoyanguren/kore` |
 | Producto | **Kore** · hablado **Jone** (`ASSISTANT_NAME`) |
-| Fase actual | **1.6 UX personal** (código P1 hecho; falta dogfood) |
+| Fase actual | **1.6 UX personal** (P1 + dogfood en curso; pulir UI / Phase 2) |
 | Canal | Consola web = operar / día · Telegram = captura móvil opcional |
 | Deploy | Fly.io · `/data` |
 | LLM | OpenRouter · diario `deepseek/deepseek-v4-pro` · strong `claude-sonnet-4.6` (asks gordas + **dream**) |
@@ -43,7 +43,7 @@
 
 ## Roadmap (lean)
 
-**1.6 restante:** dogfood (vista Día 09:00 + consola como canal).
+**1.6 restante:** pulir UI; fricciones del dogfood. Luego Phase 2 Gmail.
 
 **2+:** Gmail digest · misiones · git confirmado · calendar/PDF.
 
@@ -54,14 +54,14 @@ Detalle de lo ya shipped → [`milestones.md`](./milestones.md).
 - [x] Kernel, tasks, dream 09:00, consola MVP
 - [x] Day strip + chat vivo + tareas ricas + layouts + memoria drawer
 - [x] Voz one-tap · privacidad · mobile · gasto LLM en barra · proyecto inferido (sin chips)
-- [ ] Dogfood: briefing en Día + consola como canal principal
+- [x] Dogfood: briefing en Día + consola como canal principal
 - [ ] Gmail · misión · git (más adelante)
 
 ## Next steps
 
-1. **Hoy:** `/dream` o catch-up post-deploy → validar briefing en vista Día (P0)
-2. **Dogfood** consola (chat limpio + mic + board + Memoria)
-3. Phase 2: Gmail cuando el loop diario esté asentado
+1. Elegir gorda siguiente: **Gmail** o **Misiones** (independientes)
+2. Fricciones dogfood → miguitas en `TODO.md`
+3. UI viva = rediseño aparte (no bloquea)
 
 No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
@@ -69,6 +69,8 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-28 | UI polish pass 1: menos cabeceras; Board Lista/Columnas; Día chips |
+| 2026-07-28 | Dogfood marcado hecho (Jon usa consola a diario) |
 | 2026-07-28 | Dream sin `add_task` + dedupe vs done.md (no resucitar archivadas) |
 | 2026-07-28 | Dream → modelo strong (Sonnet); vacío ≠ ok; catch-up si vault `(vacío)` |
 | 2026-07-27 | Close noche: DeepSeek diario, chip gasto, sin espacios UI |

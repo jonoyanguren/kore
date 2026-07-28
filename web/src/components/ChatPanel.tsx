@@ -458,10 +458,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
 
   return (
     <section className="chat">
-      <header className="chat__head">
-        <h2>Chat</h2>
-        <span className="muted">Jone</span>
-      </header>
       <div className="chat__quick" aria-label="Acciones rápidas">
         {QUICK.map((q) => (
           <button

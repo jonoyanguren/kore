@@ -52,7 +52,13 @@ Hecho en consola:
 - **Privacidad** — overview, export vault `.zip`, borrar categoría de memoria
 - Mobile polish + empty states en chat/board/drawer
 
-Pendiente 1.6 → dogfood (P0 en `TODO.md`).
+Pendiente 1.6 → pulir UI / fricciones; Phase 2 Gmail.
+
+## 2026-07-28 — Dogfood consola
+
+- Jon opera Día / Chat / Board a diario en Fly
+- Dream strong (Sonnet); sin `add_task` (no resucitar archivadas)
+- Chrome limpio: una vista, Más drawer, chips proyecto, fechas humanas
 
 ## Prompting (baseline cerrado)
 

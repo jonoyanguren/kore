@@ -1,0 +1,24 @@
+---
+description: En rachas rápidas de UI/polish, ship sin preguntar deploy
+alwaysApply: true
+---
+
+# Ship rápido (UI / polish)
+
+Cuando Jon pide un cambio **pequeño de UI/consola** (layout, CSS, copy, drawers, toasts, chips…) y el flujo va rápido:
+
+1. Implementa
+2. QA local verde (`pytest` + `qa_local.sh` si toca backend; al menos build web si solo `web/`)
+3. **commit + push + `fly deploy`** sin preguntar «¿Deploy?»
+
+No hace falta que diga «deploy» / «sube» / «ship» en cada turno.
+
+## Excepciones (sí preguntar o esperar)
+
+- Cambio gordo (Gmail, misiones, schema, secrets nuevos)
+- Docs-only sin código (salvo que diga ship)
+- Dice explícitamente «solo local» / «sin deploy»
+- QA rojo
+
+Sigue la regla `ship-deploy` (orden commit → push → deploy; nunca `.env`).
+Tras ship de tarea cerrada: `next-step-after-ship` (mini-plan + ¿seguimos?).

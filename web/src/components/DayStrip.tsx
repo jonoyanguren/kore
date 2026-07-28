@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { apiDay, type DaySnapshot } from '../api'
 import { formatWhen } from '../dates'
+import { ProjectChip } from './ProjectChip'
 
 type Props = {
   refreshToken?: number
@@ -15,11 +16,6 @@ function clockParts(clock: string): { time: string; rest: string } {
     time: m[1],
     rest: clock.replace(`, ${m[1]}`, '').replace(m[1], '').trim(),
   }
-}
-
-const STATUS_SHORT: Record<string, string> = {
-  in_progress: 'en curso',
-  open: 'pendiente',
 }
 
 export function DayStrip({
@@ -177,10 +173,16 @@ export function DayStrip({
                     {t.title}
                   </button>
                   <span className="day-strip__tag">
-                    {t.project ? t.project : 'en curso'}
+                    <ProjectChip project={t.project} />
                     {t.due_at
-                      ? ` · ${formatWhen(t.due_at.length === 10 ? `${t.due_at}T00:00` : t.due_at)}`
-                      : ''}
+                      ? formatWhen(
+                          t.due_at.length === 10
+                            ? `${t.due_at}T00:00`
+                            : t.due_at,
+                        )
+                      : !t.project
+                        ? 'en curso'
+                        : ''}
                   </span>
                 </li>
               ))}
@@ -204,11 +206,14 @@ export function DayStrip({
                     {t.title}
                   </button>
                   <span className="day-strip__tag">
-                    {STATUS_SHORT[t.status] ?? t.status}
-                    {t.project ? ` · ${t.project}` : ''}
+                    <ProjectChip project={t.project} />
                     {t.due_at
-                      ? ` · ${formatWhen(t.due_at.length === 10 ? `${t.due_at}T00:00` : t.due_at)}`
-                      : ''}
+                      ? formatWhen(
+                          t.due_at.length === 10
+                            ? `${t.due_at}T00:00`
+                            : t.due_at,
+                        )
+                      : null}
                   </span>
                 </li>
               ))}
