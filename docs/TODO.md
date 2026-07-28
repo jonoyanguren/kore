@@ -8,9 +8,12 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 
 - [ ] UI viva — rediseño aparte (Jon)
 
-## P0 — Dogfood
+## P0 — Dogfood (estos días)
 
-Fricciones nuevas → ítems sueltos arriba o Parking.
+- [ ] **Gmail reply (D17):** Resp. → editar borrador → Enviar; anotar tono/calidad y fallos de scope/OAuth
+- [ ] Inbox Día: Resp. / Tarea / Leído en uso real
+
+Fricciones → ítems sueltos arriba o Parking. Misiones pausadas hasta que esto asiente.
 
 ## P3 — Phase 3 Misiones (siguiente)
 

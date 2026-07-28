@@ -70,8 +70,8 @@ Detalle de lo ya shipped → [`milestones.md`](./milestones.md).
 
 ## Next steps
 
-1. **Phase 3 — Misiones** (diseño mínimo + primer loop)
-2. Fricciones dogfood → miguitas en `TODO.md`
+1. **Dogfood Gmail reply** (estos días) — fricciones → `TODO.md`
+2. Luego **Phase 3 — Misiones** (diseño mínimo + primer loop)
 3. UI viva = rediseño aparte (no bloquea)
 
 No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
@@ -80,6 +80,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-28 | Dogfood focus: Gmail reply (D17) estos días; misiones después |
 | 2026-07-28 | D17 shipped: Responder en Día (borrador editable + gmail.send) |
 | 2026-07-28 | D17: Gmail send = reply/answer (borrador editable), no compose frío |
 | 2026-07-28 | **Phase 2 Gmail MVP cerrado** → siguiente = Misiones |
