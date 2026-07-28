@@ -1,5 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { formatWhen } from '../dates'
 import type { Task } from '../types'
 import { ProjectChip } from './ProjectChip'
 
@@ -78,7 +79,7 @@ export function TaskListRow({
       <span className="task-list__meta">
         <ProjectChip project={task.project} />
         {task.due_at ? (
-          <span className="muted task-list__due">{task.due_at}</span>
+          <span className="muted task-list__due">{formatWhen(task.due_at)}</span>
         ) : null}
       </span>
       <button

@@ -1,5 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { formatWhen } from '../dates'
 import type { Task } from '../types'
 import { ProjectChip } from './ProjectChip'
 
@@ -115,7 +116,7 @@ export function TaskCard({
       </header>
       <div className="task-card__meta">
         <ProjectChip project={task.project} />
-        {task.due_at ? <span>{task.due_at}</span> : null}
+        {task.due_at ? <span>{formatWhen(task.due_at)}</span> : null}
       </div>
       {task.url ? (
         <a

@@ -1,49 +1,11 @@
 import { useEffect, useState } from 'react'
 import { apiDay, type DaySnapshot } from '../api'
+import { formatWhen } from '../dates'
 
 type Props = {
   refreshToken?: number
   variant?: 'hero' | 'rail'
   onOpenBoard?: () => void
-}
-
-const MONTHS_ES_SHORT = [
-  'Ene',
-  'Feb',
-  'Mar',
-  'Abr',
-  'May',
-  'Jun',
-  'Jul',
-  'Ago',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dic',
-]
-
-function formatAgendaWhen(startsAt: string): string {
-  const m = startsAt.match(/T(\d{2}:\d{2})/)
-  const day = startsAt.slice(0, 10)
-  const today = new Date().toLocaleDateString('en-CA', {
-    timeZone: 'Europe/Madrid',
-  })
-  // All-day / date-only dues often land as T00:00 — don't show midnight.
-  const time = m && m[1] !== '00:00' ? m[1] : ''
-  if (day === today) return time ? `hoy ${time}` : 'hoy'
-
-  // Compare calendar days in Madrid, not local browser TZ +1 day
-  const tomDate = new Date(`${today}T12:00:00`)
-  tomDate.setDate(tomDate.getDate() + 1)
-  const tom = tomDate.toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' })
-  if (day === tom) return time ? `mañana ${time}` : 'mañana'
-
-  const y = Number(day.slice(0, 4))
-  const mo = Number(day.slice(5, 7))
-  const d = Number(day.slice(8, 10))
-  if (!y || !mo || !d) return day
-  const label = `${String(d).padStart(2, '0')}-${MONTHS_ES_SHORT[mo - 1]}`
-  return time ? `${label} ${time}` : label
 }
 
 function clockParts(clock: string): { time: string; rest: string } {
@@ -131,7 +93,7 @@ export function DayStrip({
         </div>
         <p className="day-strip__rail-next muted">
           {nextMeeting
-            ? `Reunión: ${formatAgendaWhen(nextMeeting.starts_at)} — ${nextMeeting.title}`
+            ? `Reunión: ${formatWhen(nextMeeting.starts_at)} — ${nextMeeting.title}`
             : focusTask
               ? `Foco: ${focusTask.title}`
               : summary[0]
@@ -190,7 +152,7 @@ export function DayStrip({
               {meetings.map((a) => (
                 <li key={a.id}>
                   <span className="day-strip__ag-when">
-                    {formatAgendaWhen(a.starts_at)}
+                    {formatWhen(a.starts_at)}
                   </span>
                   {a.title}
                 </li>
@@ -217,7 +179,7 @@ export function DayStrip({
                   <span className="day-strip__tag">
                     {t.project ? t.project : 'en curso'}
                     {t.due_at
-                      ? ` · ${formatAgendaWhen(t.due_at.length === 10 ? `${t.due_at}T00:00` : t.due_at)}`
+                      ? ` · ${formatWhen(t.due_at.length === 10 ? `${t.due_at}T00:00` : t.due_at)}`
                       : ''}
                   </span>
                 </li>
@@ -245,7 +207,7 @@ export function DayStrip({
                     {STATUS_SHORT[t.status] ?? t.status}
                     {t.project ? ` · ${t.project}` : ''}
                     {t.due_at
-                      ? ` · ${formatAgendaWhen(t.due_at.length === 10 ? `${t.due_at}T00:00` : t.due_at)}`
+                      ? ` · ${formatWhen(t.due_at.length === 10 ? `${t.due_at}T00:00` : t.due_at)}`
                       : ''}
                   </span>
                 </li>

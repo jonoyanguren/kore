@@ -1,3 +1,4 @@
+import { formatWhen } from '../dates'
 import type { Task } from '../types'
 import { ProjectChip } from './ProjectChip'
 
@@ -28,7 +29,7 @@ export function ChatTaskCard({ task, onOpen, onComplete, onStart }: Props) {
       <div className="chat-task__meta">
         <span>{STATUS_ES[task.status] ?? task.status}</span>
         <ProjectChip project={task.project} />
-        {task.due_at ? <span>{task.due_at}</span> : null}
+        {task.due_at ? <span>{formatWhen(task.due_at)}</span> : null}
       </div>
       {task.url ? (
         <a href={task.url} target="_blank" rel="noreferrer">
