@@ -1868,27 +1868,38 @@ a.more-drawer__btn {
   align-self: center;
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
-  gap: 0.1rem;
+  gap: 0.2rem;
+  max-width: 11.5rem;
 }
 
-.day-strip__inbox-icon {
-  width: 1.85rem;
-  height: 1.85rem;
-  padding: 0;
+.day-strip__inbox-btn {
+  height: 1.7rem;
+  padding: 0 0.4rem;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 0.4rem;
-  opacity: 0.72;
+  gap: 0.25rem;
+  border-radius: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1;
+  opacity: 0.85;
 }
 
-.day-strip__inbox-icon:hover:not(:disabled) {
+.day-strip__inbox-btn svg {
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+}
+
+.day-strip__inbox-btn:hover:not(:disabled) {
   opacity: 1;
   background: rgba(21, 32, 43, 0.06);
 }
 
-.day-strip__inbox-icon:disabled {
+.day-strip__inbox-btn:disabled {
   opacity: 0.4;
   cursor: wait;
 }

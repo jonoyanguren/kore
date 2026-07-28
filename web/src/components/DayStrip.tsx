@@ -49,8 +49,9 @@ function InboxIcon({ children, ...rest }: SVGProps<SVGSVGElement> & { children: 
 function IconReply() {
   return (
     <InboxIcon>
-      <path d="M9 17l-5-5 5-5" />
-      <path d="M4 12h10a5 5 0 0 1 5 5v1" />
+      {/* reply arrow */}
+      <polyline points="9 17 4 12 9 7" />
+      <path d="M20 18v-2a4 4 0 0 0-4-4H4" />
     </InboxIcon>
   )
 }
@@ -58,8 +59,8 @@ function IconReply() {
 function IconTask() {
   return (
     <InboxIcon>
-      <path d="M9 11l3 3L22 4" />
-      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+      <path d="M8 12l3 3 5-6" />
     </InboxIcon>
   )
 }
@@ -67,8 +68,7 @@ function IconTask() {
 function IconRead() {
   return (
     <InboxIcon>
-      <path d="M4 8l8 5 8-5" />
-      <rect x="4" y="6" width="16" height="12" rx="2" />
+      <path d="M20 6L9 17l-5-5" />
     </InboxIcon>
   )
 }
@@ -479,33 +479,40 @@ export function DayStrip({
                   <div className="day-strip__inbox-actions">
                     <button
                       type="button"
-                      className="ghost day-strip__inbox-icon"
+                      className="ghost day-strip__inbox-btn"
                       title="Responder"
                       aria-label="Responder"
                       disabled={busyId === m.id || replyBusy}
                       onClick={() => void openReply(m.id)}
                     >
-                      {busyId === m.id && busyKind === 'reply' ? '…' : <IconReply />}
+                      <IconReply />
+                      <span>
+                        {busyId === m.id && busyKind === 'reply' ? '…' : 'Resp.'}
+                      </span>
                     </button>
                     <button
                       type="button"
-                      className="ghost day-strip__inbox-icon"
+                      className="ghost day-strip__inbox-btn"
                       title="Pasar a tarea"
                       aria-label="Pasar a tarea"
                       disabled={busyId === m.id || replyBusy}
                       onClick={() => void toTask(m.id)}
                     >
-                      {busyId === m.id && busyKind === 'task' ? '…' : <IconTask />}
+                      <IconTask />
+                      <span>
+                        {busyId === m.id && busyKind === 'task' ? '…' : 'Tarea'}
+                      </span>
                     </button>
                     <button
                       type="button"
-                      className="ghost day-strip__inbox-icon"
+                      className="ghost day-strip__inbox-btn"
                       title="Marcar leído"
                       aria-label="Marcar leído"
                       disabled={busyId === m.id || replyBusy}
                       onClick={() => void markRead(m.id)}
                     >
                       <IconRead />
+                      <span>Leído</span>
                     </button>
                   </div>
                 </li>
