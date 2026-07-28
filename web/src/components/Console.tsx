@@ -198,6 +198,7 @@ export function Console({ onLogout }: Props) {
       <div className="console__body">
         <ChatPanel
           ref={chatRef}
+          active={layout === 'focus'}
           onAfterChat={() => bump()}
           onOpenTask={onOpenTask}
         />

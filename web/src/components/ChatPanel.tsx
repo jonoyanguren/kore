@@ -25,6 +25,8 @@ export type ChatPanelHandle = {
 }
 
 type Props = {
+  /** True when Chat layout is visible (not Day/Board). */
+  active?: boolean
   onAfterChat?: (info: { tasksChanged: boolean }) => void
   onOpenTask?: (task: Task) => void
 }
@@ -84,7 +86,7 @@ function firstPersistedId(messages: ChatMessage[]): number | undefined {
 type MicState = 'idle' | 'recording' | 'transcribing'
 
 export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
-  { onAfterChat, onOpenTask },
+  { active = true, onAfterChat, onOpenTask },
   ref,
 ) {
   const toast = useToast()
@@ -174,6 +176,19 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     if (!log) return
     log.scrollTo({ top: log.scrollHeight, behavior })
   }, [])
+
+  // Chat stays mounted under Day/Board (display:none). Re-stick to latest
+  // when the Chat layout becomes visible again.
+  useLayoutEffect(() => {
+    if (!active) return
+    stickBottomRef.current = true
+    scrollToBottom('auto')
+    const id = window.requestAnimationFrame(() => {
+      scrollToBottom('auto')
+      window.requestAnimationFrame(() => scrollToBottom('auto'))
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [active, scrollToBottom])
 
   useEffect(() => {
     let cancelled = false
