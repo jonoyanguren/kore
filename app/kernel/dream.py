@@ -8,6 +8,7 @@ from datetime import date, timedelta
 import openai
 
 from app.kernel.review_common import (
+    DREAM_CAPTURE_TOOL_NAMES,
     build_capture_tools,
     is_blank_report,
     run_tool_loop,
@@ -26,8 +27,10 @@ Trabajas en silencio: revisas el día y autogestionas la memoria.
 
 Objetivo:
 1) Leer TODO el chat del día a consolidar + diario/memoria/tareas/agenda ya guardados.
-2) Rellenar huecos con tools: hechos durables → save_memory; eventos del día → add_diary_entry;
-   pendientes claros → add_task; citas → add_agenda_item. No inventes. No dupliques lo ya listado.
+2) Rellenar huecos SOLO con: hechos durables → save_memory; eventos del día → add_diary_entry;
+   citas → add_agenda_item. Puedes listar/actualizar/completar tareas YA existentes.
+   NO crees tareas nuevas (no tienes add_task): si el chat menciona pendientes, menciónalos
+   en el briefing; no reabras cosas de vault/tasks/done.md ni dupliques las abiertas.
 3) Cuando hayas terminado de usar tools (o no haga falta ninguna), responde SOLO el mensaje
    final para Jon en español, texto plano (sin markdown, sin ** ni #).
 
@@ -51,7 +54,7 @@ Cierre
 (una frase corta, tono directo)
 
 Reglas: no digas que eres un modelo; no upsell; no pidas permiso; fechas naturales en el chat.
-ISO solo dentro de las tools."""
+ISO solo dentro de las tools. Nunca inventes tareas nuevas en tools."""
 
 
 async def run_dream(
@@ -101,6 +104,7 @@ async def run_dream(
         if agenda
         else "(nada)"
     )
+    done_excerpt = vault.read_done_tasks_excerpt(max_chars=3500) or "(sin archivo)"
 
     spoken_target = format_date_spoken(target_date)
     spoken_next = format_date_spoken(date.fromisoformat(next_day))
@@ -112,13 +116,17 @@ async def run_dream(
         f"=== DIARIO YA GUARDADO ===\n{diary_block}\n\n"
         f"=== MEMORIA (digests) ===\n{mem_block}\n\n"
         f"=== TAREAS ABIERTAS ===\n{tasks_block}\n\n"
+        f"=== TAREAS ARCHIVADAS (done.md — NO reabrir) ===\n{done_excerpt}\n\n"
         f"=== AGENDA PRÓXIMA ===\n{agenda_block}\n\n"
-        "Usa tools para huecos del chat que no estén ya en diario/memoria/tareas. "
+        "Usa tools solo para huecos de memoria/diario/agenda. "
+        "NO crees tareas nuevas. "
         "Luego escribe el mensaje final con las secciones "
         "Resumen / Tareas importantes / Reuniones / Ayuda / Cierre."
     )
 
-    tools, handlers = build_capture_tools(store, vault)
+    tools, handlers = build_capture_tools(
+        store, vault, allow=DREAM_CAPTURE_TOOL_NAMES
+    )
     # Dream is once/day + heavy context: use strong model. DeepSeek V4 Pro
     # (thinking) has returned blank `content` on this path (~37s → "(vacío)").
     dream_model = resolve_model(strong=True)

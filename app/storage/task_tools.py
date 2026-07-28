@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Awaitable, Callable
 
+from app.kernel.briefing import titles_match
 from app.storage.memory import MemoryStore, format_task_lines, format_tasks_message
 from app.storage.vault import Vault
 from app.timeutil import session_date_str
@@ -33,12 +34,40 @@ async def purge_done_tasks_archiving(store: MemoryStore, vault: Vault) -> int:
     return len(rows)
 
 
+async def find_task_collision(
+    store: MemoryStore, vault: Vault, title: str
+) -> str | None:
+    """Return a human reason if title matches an open/cancelled task or done archive."""
+    existing = await store.list_tasks(status="all", limit=200)
+    for task in existing:
+        if task.status == "done":
+            continue
+        if titles_match(task.title, title):
+            return (
+                f"No creada: ya existe #{task.id} "
+                f"({task.status}) — {task.title}"
+            )
+    for archived in vault.list_done_task_titles():
+        if titles_match(archived, title):
+            return (
+                f"No creada: ya está en vault/tasks/done.md (archivada) — "
+                f"{archived}"
+            )
+    return None
+
+
 def build_task_tools(
     store: MemoryStore, vault: Vault
 ) -> tuple[list[dict], dict[str, ToolHandler]]:
     async def _add_task(args: dict[str, Any]) -> str:
+        title = (args.get("title") or "").strip()
+        if not title:
+            return "No pude crear la tarea: falta el título."
+        collision = await find_task_collision(store, vault, title)
+        if collision:
+            return collision
         task_id = await store.add_task(
-            title=args["title"],
+            title=title,
             due_at=args.get("due_at"),
             priority=int(args.get("priority") or 0),
             notes=args.get("notes"),

@@ -1,21 +1,22 @@
 ---
 name: dream
-description: Revisa el chat del día, rellena huecos (memoria/diario/tareas) y manda briefing + prep del día siguiente.
+description: Revisa el chat del día, rellena huecos (memoria/diario/agenda) y deja briefing en vista Día.
 commands: [/dream, /sueno]
-tools: [save_memory, add_diary_entry, add_task, complete_task, delete_task, list_tasks, get_task, update_task, add_agenda_item, list_agenda]
+tools: [save_memory, add_diary_entry, complete_task, delete_task, list_tasks, get_task, update_task, add_agenda_item, list_agenda]
 ---
 
 # Dream (briefing matutino)
 
 Cron in-process **09:00 Europe/Madrid** (Fly, asyncio). Manual `/dream` → por defecto **hoy**.
 `POST /internal/cron/dream` queda como trigger opcional.
+Modelo: **strong** (`OPENROUTER_MODEL_STRONG`, Sonnet).
 
 ## Qué hace el runner (no improvisar a mano)
-1. Carga el transcript completo de `messages` de ese día + diario/memoria/tareas/agenda.
-2. Con tools, anota lo que se le pasó en el chat.
-3. Escribe `vault/dreams/YYYY-MM-DD.md`.
-4. Envía a Jon (plantilla fija): **Resumen / Tareas importantes / Reuniones / Ayuda / Cierre**.
-5. La consola Día usa tareas+agenda vivas + sección **Ayuda** parseada del dream.
+1. Carga el transcript del día + diario/memoria/tareas abiertas + `done.md` (archivo).
+2. Con tools: memoria/diario/agenda; puede completar/actualizar tareas **ya existentes**.
+3. **No** `add_task` — no resucita archivadas ni inventa pendientes del chat.
+4. Escribe `vault/dreams/YYYY-MM-DD.md`.
+5. La consola Día usa tareas+agenda vivas + secciones parseadas del dream.
 
 ## How (si te activan la skill en chat)
 Si el comando `/dream` ya corrió el runner, no rehagas el trabajo: el mensaje ya es el informe.

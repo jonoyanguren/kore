@@ -69,6 +69,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-28 | Dream sin `add_task` + dedupe vs done.md (no resucitar archivadas) |
 | 2026-07-28 | Dream → modelo strong (Sonnet); vacío ≠ ok; catch-up si vault `(vacío)` |
 | 2026-07-27 | Close noche: DeepSeek diario, chip gasto, sin espacios UI |
 | 2026-07-27 | Close sesión tarde: P1 en Fly; next = dogfood Día |

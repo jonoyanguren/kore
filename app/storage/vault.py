@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 
@@ -119,3 +120,29 @@ class Vault:
         if len(text) <= max_chars:
             return text
         return "…\n" + text[-max_chars:]
+
+    def list_done_task_titles(self) -> list[str]:
+        """Titles from vault/tasks/done.md (archived / purged completions)."""
+        path = self.root / "tasks" / "done.md"
+        if not path.is_file():
+            return []
+        titles: list[str] = []
+        for line in path.read_text(encoding="utf-8").splitlines():
+            s = line.strip()
+            # "13. Mirar este reel…" / "- algo"
+            m = re.match(r"^(?:\d+\.|[-*•])\s+(.+)$", s)
+            if not m:
+                continue
+            title = m.group(1).strip()
+            if title and title.lower() not in {"(vacío)", "ninguna", "ninguno"}:
+                titles.append(title)
+        # newest first, unique
+        seen: set[str] = set()
+        out: list[str] = []
+        for t in reversed(titles):
+            key = t.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(t)
+        return out

@@ -30,7 +30,8 @@ function formatAgendaWhen(startsAt: string): string {
   const today = new Date().toLocaleDateString('en-CA', {
     timeZone: 'Europe/Madrid',
   })
-  const time = m ? m[1] : ''
+  // All-day / date-only dues often land as T00:00 — don't show midnight.
+  const time = m && m[1] !== '00:00' ? m[1] : ''
   if (day === today) return time ? `hoy ${time}` : 'hoy'
 
   // Compare calendar days in Madrid, not local browser TZ +1 day
@@ -176,9 +177,27 @@ export function DayStrip({
                 : 'Abre esta vista tras las 09:00 — el dream alimenta el Día (sin Telegram)'}
             </p>
           ) : (
-            <ul className="day-strip__help">
+            <div className="day-strip__summary">
               {summary.map((line) => (
-                <li key={line}>{line}</li>
+                <p key={line}>{line}</p>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="day-strip__block">
+          <h3>Reuniones</h3>
+          {meetings.length === 0 ? (
+            <p className="muted">Nada próximo</p>
+          ) : (
+            <ul>
+              {meetings.map((a) => (
+                <li key={a.id}>
+                  <span className="day-strip__ag-when">
+                    {formatAgendaWhen(a.starts_at)}
+                  </span>
+                  {a.title}
+                </li>
               ))}
             </ul>
           )}
@@ -213,9 +232,6 @@ export function DayStrip({
 
         <div className="day-strip__block">
           <h3>No se pueden escapar</h3>
-          <p className="day-strip__hint muted">
-            Las que Jone prioriza por dream, due y prioridad
-          </p>
           {mustNotMiss.length === 0 ? (
             <p className="muted">Ninguna ahora</p>
           ) : (
@@ -243,24 +259,6 @@ export function DayStrip({
         </div>
 
         <div className="day-strip__block">
-          <h3>Reuniones</h3>
-          {meetings.length === 0 ? (
-            <p className="muted">Nada próximo</p>
-          ) : (
-            <ul>
-              {meetings.map((a) => (
-                <li key={a.id}>
-                  <span className="day-strip__ag-when">
-                    {formatAgendaWhen(a.starts_at)}
-                  </span>
-                  {a.title}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <div className="day-strip__block">
           <h3>Ayuda</h3>
           {help.length === 0 ? (
             <p className="muted">
@@ -275,22 +273,24 @@ export function DayStrip({
               ))}
             </ul>
           )}
-          <button
-            type="button"
-            className="ghost day-strip__cta"
-            onClick={onOpenMemory ?? onOpenChat}
-          >
-            {onOpenMemory ? 'Memoria / diario →' : 'Hablar con Jone →'}
-          </button>
-          {onOpenMemory && onOpenChat ? (
+          <div className="day-strip__ctas">
             <button
               type="button"
               className="ghost day-strip__cta"
-              onClick={onOpenChat}
+              onClick={onOpenMemory ?? onOpenChat}
             >
-              Hablar con Jone →
+              {onOpenMemory ? 'Memoria / diario →' : 'Hablar con Jone →'}
             </button>
-          ) : null}
+            {onOpenMemory && onOpenChat ? (
+              <button
+                type="button"
+                className="ghost day-strip__cta"
+                onClick={onOpenChat}
+              >
+                Hablar con Jone →
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
     </section>

@@ -8,12 +8,14 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 
 - [ ] Fecha bien en pantalla Board
 - [ ] Limpiar la UI mucho
+- [x] Vista Día: una columna de lectura (no grid 3 cols)
 
 ## P0 — Esta semana (dogfood)
 
 - [ ] **Mañana ~09:00:** abrir vista Día en [https://kore.fly.dev/](https://kore.fly.dev/) y validar briefing
 - [ ] **3–5 días:** operar desde consola (chat limpio / mic / board)
 - [ ] Dogfood: fricciones (síntesis tools, DeepSeek, gasto LLM, captura sin chips)
+- [x] Dream no debe resucitar tareas archivadas (`add_task` fuera del dream + dedupe)
 
 ## P1 — Phase 1.6 (producto)
 

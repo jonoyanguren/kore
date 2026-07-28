@@ -152,6 +152,10 @@ def _titles_match(live: str, hint: str) -> bool:
     return len(aw & bw) >= min(2, len(aw), len(bw))
 
 
+def titles_match(live: str, hint: str) -> bool:
+    """Public alias for task dedupe / dream / briefing."""
+    return _titles_match(live, hint)
+
 def pick_must_not_miss(
     rows: list[TaskRow],
     *,

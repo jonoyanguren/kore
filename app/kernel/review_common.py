@@ -44,6 +44,9 @@ CAPTURE_TOOL_NAMES = {
     "forget_memory",
 }
 
+# Morning dream must NOT resurrect archived todos from chat chatter.
+DREAM_CAPTURE_TOOL_NAMES = CAPTURE_TOOL_NAMES - {"add_task"}
+
 
 def is_blank_report(text: str | None) -> bool:
     """True when the model produced nothing usable for a dream/briefing."""
@@ -54,19 +57,23 @@ def is_blank_report(text: str | None) -> bool:
 
 
 def build_capture_tools(
-    store: MemoryStore, vault: Vault
+    store: MemoryStore,
+    vault: Vault,
+    *,
+    allow: set[str] | None = None,
 ) -> tuple[list[dict], dict[str, Any]]:
+    allowed = allow if allow is not None else CAPTURE_TOOL_NAMES
     mem_schemas, mem_handlers = build_memory_tools(store, vault)
     task_schemas, task_handlers = build_task_tools(store, vault)
     schemas = [
         s
         for s in mem_schemas + task_schemas
-        if s["function"]["name"] in CAPTURE_TOOL_NAMES
+        if s["function"]["name"] in allowed
     ]
     handlers = {
         n: h
         for n, h in {**mem_handlers, **task_handlers}.items()
-        if n in CAPTURE_TOOL_NAMES
+        if n in allowed
     }
     return schemas, handlers
 
