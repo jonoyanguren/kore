@@ -8,8 +8,8 @@ import {
 import { DayStrip } from './DayStrip'
 import { DocsDrawer, type DocsSectionId } from './DocsDrawer'
 import { MemoryDrawer } from './MemoryDrawer'
+import { MoreDrawer } from './MoreDrawer'
 import { TaskBoard, type TaskBoardHandle } from './TaskBoard'
-import { UsageChip } from './UsageChip'
 import type { Task } from '../types'
 
 export type LayoutMode = 'day' | 'focus' | 'operate'
@@ -37,6 +37,7 @@ function readLayout(): LayoutMode {
 export function Console({ onLogout }: Props) {
   const [boardToken, setBoardToken] = useState(0)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
   const [memoryOpen, setMemoryOpen] = useState(false)
   const [memoryTab, setMemoryTab] = useState<'diary' | 'memory' | 'privacy'>(
     'diary',
@@ -90,6 +91,7 @@ export function Console({ onLogout }: Props) {
       if (e.key === '3') setLayoutPersist('operate')
       if (e.key.toLowerCase() === 'm') openMemory('diary')
       if (e.key === '?' || e.key.toLowerCase() === 'h') openDocs()
+      if (e.key === ',') setMoreOpen(true)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -158,44 +160,42 @@ export function Console({ onLogout }: Props) {
           ))}
         </nav>
         <div className="console__bar-actions">
-          <UsageChip />
           <button
             type="button"
-            className="ghost"
-            onClick={() => openDocs()}
-            title="Docs (?)"
+            className="ghost console__more-btn"
+            onClick={() => setMoreOpen(true)}
+            title="Más (,)"
+            aria-label="Más: gasto LLM, docs, memoria"
           >
-            Docs
-          </button>
-          <button
-            type="button"
-            className="ghost"
-            onClick={() => openMemory('diary')}
-            title="Memoria (M)"
-          >
-            Memoria
-          </button>
-          <button
-            type="button"
-            className="ghost console__cmdk-btn"
-            onClick={() => setPaletteOpen(true)}
-            title="⌘K"
-          >
-            ⌘K
-          </button>
-          <button type="button" className="ghost" onClick={() => void handleLogout()}>
-            Salir
+            <svg
+              className="console__more-icon"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 10.5v6" />
+              <circle cx="12" cy="7.5" r="0.9" fill="currentColor" stroke="none" />
+            </svg>
           </button>
         </div>
       </header>
 
-      <DayStrip
-        refreshToken={boardToken}
-        variant={layout === 'day' ? 'hero' : 'rail'}
-        onOpenChat={() => setLayoutPersist('focus')}
-        onOpenBoard={() => setLayoutPersist('operate')}
-        onOpenMemory={() => openMemory('diary')}
-      />
+      {layout === 'day' ? (
+        <DayStrip
+          refreshToken={boardToken}
+          variant="hero"
+          onOpenChat={() => setLayoutPersist('focus')}
+          onOpenBoard={() => setLayoutPersist('operate')}
+          onOpenMemory={() => openMemory('diary')}
+        />
+      ) : null}
 
       <div className="console__body">
         <ChatPanel
@@ -210,6 +210,14 @@ export function Console({ onLogout }: Props) {
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
         onRun={onCommand}
+      />
+      <MoreDrawer
+        open={moreOpen}
+        onClose={() => setMoreOpen(false)}
+        onOpenDocs={() => openDocs()}
+        onOpenMemory={() => openMemory('diary')}
+        onOpenPalette={() => setPaletteOpen(true)}
+        onLogout={() => void handleLogout()}
       />
       <MemoryDrawer
         open={memoryOpen}

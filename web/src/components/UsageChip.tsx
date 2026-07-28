@@ -7,7 +7,7 @@ function formatUsd(n: number): string {
   return `$${n.toFixed(2)}`
 }
 
-export function UsageChip() {
+export function UsageChip({ variant = 'chip' }: { variant?: 'chip' | 'block' }) {
   const [usage, setUsage] = useState<UsageInfo | null>(null)
 
   useEffect(() => {
@@ -28,7 +28,11 @@ export function UsageChip() {
     }
   }, [])
 
-  if (!usage) return null
+  if (!usage) {
+    return variant === 'block' ? (
+      <p className="muted more-drawer__usage-empty">Sin datos de gasto aún</p>
+    ) : null
+  }
 
   const used = formatUsd(usage.usage_usd)
   const total = formatUsd(usage.total_usd)
@@ -47,6 +51,7 @@ export function UsageChip() {
     <span
       className={
         'console__usage' +
+        (variant === 'block' ? ' console__usage--block' : '') +
         (hot ? ' is-hot' : warm ? ' is-warm' : '')
       }
       title={title}

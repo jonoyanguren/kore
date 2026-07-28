@@ -9,6 +9,7 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 - [ ] Fecha bien en pantalla Board
 - [ ] Limpiar la UI mucho
 - [x] Vista Día: una columna de lectura (no grid 3 cols)
+- [x] Chrome limpio: Chat/Board sin rail; LLM/Docs/Memoria en drawer «Más»
 
 ## P0 — Esta semana (dogfood)
 
