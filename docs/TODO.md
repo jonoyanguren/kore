@@ -13,15 +13,20 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 - [ ] Gmail reply: Resp. → editar → Enviar; anotar tono / OAuth
 - Fricciones → aquí o Parking
 
-## P3 — Phase 3 Misiones (ahora)
+## P3 — Phase 3 Misiones (diseño → build)
 
-Modelo D18: **input → loop → output** · pantalla · no bloquea chat · resultado markdown.
+**Cerrado:** input vía **Nueva** · 4º layout · SQLite lista · vault output · ticks en el tiempo · ocultar terminadas · Jon prueba la 1ª misión cuando exista el módulo.
 
-- [ ] Persistencia: tabla `missions` (+ events) + `vault/missions/{id}.md`
-- [ ] Layout consola **Misiones**: lista (activas / hechas) + detalle markdown bonito
-- [ ] Fase input: aclarar brief (chat) → lanzar `queued`
-- [ ] Runner background in-process (cola, max 1, ticks / resume)
-- [ ] Primera misión usable (stub research o perfil tono sent)
+**Abierto (pensar):**
+- [ ] Nueva: mini-chat de aclaración vs formulario
+- [ ] Presupuesto tick / misión
+- [ ] Tools del loop v1
+- [ ] Pausar / cancelar en lista
+
+**Build (después de cerrar abiertos):**
+- [ ] Tabla `missions` + `vault/missions/{id}.md`
+- [ ] Layout Misiones: lista, ocultar terminadas, detalle md, Nueva
+- [ ] Runner in-process (ticks, `next_run_at`, max 1)
 
 ## P4+ — Después
 

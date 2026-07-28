@@ -42,30 +42,36 @@
 | D15 | Briefing matutino → **vista Día**; Telegram notify off por defecto |
 | D16 | Gmail MVP = OAuth + Día/`/inbox` + dream Inbox + triage log |
 | D17 | Gmail send = **reply/answer**: leer hilo → borrador IA editable → confirmar → enviar (`gmail.send`; no compose frío en v1) |
-| D18 | Misión = **input → loop → output**; no bloquea chat; pantalla Misiones; resultado = markdown bonito en vault |
+| D18 | Misión = input → loop → output; no bloquea chat; resultado markdown en vault |
+| D19 | Misiones UI: **4º layout**; lista + «Ocultar terminadas»; **Nueva** inicia el input (no chat-first) |
+| D20 | Persistencia: **SQLite** lista/estado · **vault** `missions/{id}.md` = output |
+| D21 | Loop: ticks en el tiempo (`next_run_at`); runner in-process; max 1 activa v1 |
 
 ## Roadmap (lean)
 
-**Ahora — Phase 3 Misiones (D18):**
-
-Una misión no es “un botón mágico”: es capacidad de Kore + pantalla.
+**Ahora — Phase 3 Misiones (D18–D21):**
 
 | Fase | Qué | UI |
 |------|-----|----|
-| **Input** | Brief + preguntas hasta tener el encargo claro → se **lanza** | Chat (o formulario corto) |
-| **Loop** | Itera en background (puede retomar cada X tiempo) hasta resultado usable; **no bloquea** chat | Estado en pantalla Misiones |
-| **Output** | Resultado = markdown **bien formateado** en vault; clic en misión → lectura | Pantalla Misiones (activas / hechas) |
+| **Input** | Brief + preguntas hasta claro → **Lanzar** | Layout Misiones → **Nueva** |
+| **Loop** | Ticks cada cierto tiempo hasta resultado usable; **no bloquea** chat | Estado en la lista |
+| **Output** | Markdown bonito en vault; clic → lectura | Misma pantalla |
 
-Ejemplo: “casas en Cantabria con X” → aclara → loop research → informe `.md`.
+**Cerrado:** 4º layout · SQLite listado · vault output · Nueva (no chat-first) · ocultar terminadas · primera misión real la prueba Jon cuando exista el módulo.
 
-**MVP build (orden):**
-1. Modelo + persistencia (`missions` + `vault/missions/…`)
-2. Layout **Misiones** (lista + detalle markdown)
-3. Input: aclarar en chat → crear misión `queued`
-4. Runner in-process (cola, max 1): ticks del loop + checkpoints
-5. Primera misión real (p.ej. perfil tono desde sent, o research stub)
+**Aún abierto (antes de codear a fondo):**
+- Dentro de Nueva: ¿mini-chat de aclaración o formulario?
+- Presupuesto por tick / por misión (tokens, #ticks)
+- Tools del loop v1 (web? solo vault/gmail? stub?)
+- ¿Pausar / cancelar desde la lista?
 
-**Gmail:** cerrado (MVP + D17). Parking aparte. Dogfood reply en paralelo.
+**MVP build (cuando digamos dale):**
+1. Tabla `missions` + vault path
+2. Layout Misiones (lista, ocultar hechas, detalle md, Nueva stub)
+3. Runner ticks + `next_run_at`
+4. Jon prueba con una misión real
+
+**Gmail:** cerrado. Dogfood reply en paralelo.
 
 **1.6:** dogfood OK; UI viva = rediseño aparte; fricciones = miguitas.
 
@@ -83,9 +89,9 @@ Detalle de lo ya shipped → [`milestones.md`](./milestones.md).
 
 ## Next steps
 
-1. **Phase 3 — Misiones:** esqueleto (modelo + pantalla + runner stub)
-2. Dogfood Gmail reply en paralelo (fricciones → TODO)
-3. UI viva = rediseño aparte (no bloquea)
+1. Cerrar abiertos de Misiones (Nueva = mini-chat vs form; presupuesto; tools; cancelar)
+2. Luego esqueleto: layout + SQLite + vault + runner stub
+3. Dogfood Gmail reply en paralelo
 
 No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
@@ -93,6 +99,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-28 | D19–D21: Nueva en layout Misiones; SQLite+vault; ticks en el tiempo; ocultar terminadas |
 | 2026-07-28 | D18: misión = input → loop → output; pantalla Misiones; markdown resultado |
 | 2026-07-28 | Dogfood focus: Gmail reply (D17) estos días; misiones después |
 | 2026-07-28 | D17 shipped: Responder en Día (borrador editable + gmail.send) |
