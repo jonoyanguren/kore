@@ -8,24 +8,20 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 
 - [ ] UI viva — rediseño aparte (Jon)
 
-## P0 — Dogfood (estos días)
+## P0 — Dogfood (paralelo)
 
-- [ ] **Gmail reply (D17):** Resp. → editar borrador → Enviar; anotar tono/calidad y fallos de scope/OAuth
-- [ ] Inbox Día: Resp. / Tarea / Leído en uso real
+- [ ] Gmail reply: Resp. → editar → Enviar; anotar tono / OAuth
+- Fricciones → aquí o Parking
 
-Fricciones → ítems sueltos arriba o Parking. Misiones pausadas hasta que esto asiente.
+## P3 — Phase 3 Misiones (ahora)
 
-## P3 — Phase 3 Misiones (siguiente)
+Modelo D18: **input → loop → output** · pantalla · no bloquea chat · resultado markdown.
 
-- [ ] Diseño mínimo: qué es una misión, estado, dónde se ve
-- [ ] Primer loop background (crear → correr → reportar)
-- [ ] Confirmaciones donde haga falta
-
-## Gmail next (D17)
-
-- [x] **Reply:** leer mail → borrador IA editable → confirmar → send (`gmail.send` + reconectar OAuth)
-- [x] Superficie: botón **Responder** en Día Inbox
-- [ ] Triage auto labels (Parking)
+- [ ] Persistencia: tabla `missions` (+ events) + `vault/missions/{id}.md`
+- [ ] Layout consola **Misiones**: lista (activas / hechas) + detalle markdown bonito
+- [ ] Fase input: aclarar brief (chat) → lanzar `queued`
+- [ ] Runner background in-process (cola, max 1, ticks / resume)
+- [ ] Primera misión usable (stub research o perfil tono sent)
 
 ## P4+ — Después
 

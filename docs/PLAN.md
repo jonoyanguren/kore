@@ -7,7 +7,7 @@
 |-------|--------|
 | Repo | `jonoyanguren/kore` |
 | Producto | **Kore** · hablado **Jone** (`ASSISTANT_NAME`) |
-| Fase actual | **3 — Misiones** (siguiente) · Gmail MVP cerrado |
+| Fase actual | **3 — Misiones** (D18: input → loop → output + pantalla) |
 | Canal | Consola web = operar / día · Telegram = captura móvil opcional |
 | Deploy | Fly.io · `/data` |
 | LLM | OpenRouter · diario `deepseek/deepseek-v4-pro` · strong `claude-sonnet-4.6` (asks gordas + **dream**) |
@@ -42,17 +42,30 @@
 | D15 | Briefing matutino → **vista Día**; Telegram notify off por defecto |
 | D16 | Gmail MVP = OAuth + Día/`/inbox` + dream Inbox + triage log |
 | D17 | Gmail send = **reply/answer**: leer hilo → borrador IA editable → confirmar → enviar (`gmail.send`; no compose frío en v1) |
+| D18 | Misión = **input → loop → output**; no bloquea chat; pantalla Misiones; resultado = markdown bonito en vault |
 
 ## Roadmap (lean)
 
-**Ahora — Phase 3 Misiones:**
-1. Trabajo background con estado visible
-2. Confirmaciones donde haga falta
-3. Independiente de Gmail (ya cerrado)
+**Ahora — Phase 3 Misiones (D18):**
 
-**Gmail MVP (cerrado):** OAuth `gmail.modify` · lista unread + Leído/Tarea · `/inbox` · dream Inbox · log marcados leídos.  
-**Gmail D17 (reply):** Día **Responder** → borrador editable → Enviar (`gmail.send`; reconectar OAuth una vez).  
-Aplazado → Parking: triage auto labels, compose frío, multi-cuenta, digest IA Día.
+Una misión no es “un botón mágico”: es capacidad de Kore + pantalla.
+
+| Fase | Qué | UI |
+|------|-----|----|
+| **Input** | Brief + preguntas hasta tener el encargo claro → se **lanza** | Chat (o formulario corto) |
+| **Loop** | Itera en background (puede retomar cada X tiempo) hasta resultado usable; **no bloquea** chat | Estado en pantalla Misiones |
+| **Output** | Resultado = markdown **bien formateado** en vault; clic en misión → lectura | Pantalla Misiones (activas / hechas) |
+
+Ejemplo: “casas en Cantabria con X” → aclara → loop research → informe `.md`.
+
+**MVP build (orden):**
+1. Modelo + persistencia (`missions` + `vault/missions/…`)
+2. Layout **Misiones** (lista + detalle markdown)
+3. Input: aclarar en chat → crear misión `queued`
+4. Runner in-process (cola, max 1): ticks del loop + checkpoints
+5. Primera misión real (p.ej. perfil tono desde sent, o research stub)
+
+**Gmail:** cerrado (MVP + D17). Parking aparte. Dogfood reply en paralelo.
 
 **1.6:** dogfood OK; UI viva = rediseño aparte; fricciones = miguitas.
 
@@ -70,8 +83,8 @@ Detalle de lo ya shipped → [`milestones.md`](./milestones.md).
 
 ## Next steps
 
-1. **Dogfood Gmail reply** (estos días) — fricciones → `TODO.md`
-2. Luego **Phase 3 — Misiones** (diseño mínimo + primer loop)
+1. **Phase 3 — Misiones:** esqueleto (modelo + pantalla + runner stub)
+2. Dogfood Gmail reply en paralelo (fricciones → TODO)
 3. UI viva = rediseño aparte (no bloquea)
 
 No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
@@ -80,6 +93,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-28 | D18: misión = input → loop → output; pantalla Misiones; markdown resultado |
 | 2026-07-28 | Dogfood focus: Gmail reply (D17) estos días; misiones después |
 | 2026-07-28 | D17 shipped: Responder en Día (borrador editable + gmail.send) |
 | 2026-07-28 | D17: Gmail send = reply/answer (borrador editable), no compose frío |
