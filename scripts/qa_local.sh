@@ -44,7 +44,8 @@ code="$(curl -sS -o /dev/null -w '%{http_code}' -X POST "${BASE}/telegram/webhoo
   -H "X-Telegram-Bot-Api-Secret-Token: ${TELEGRAM_WEBHOOK_SECRET}" \
   -H 'Content-Type: application/json' \
   -d '{"update_id":1}')"
-if [ "$code" = "404" ]; then ok "webhook path malo → 404"; else bad "webhook path malo → $code"; fi
+# Wrong path: Starlette may 404, or SPA mount may answer 405 on POST — neither runs the bot.
+if [ "$code" = "404" ] || [ "$code" = "405" ]; then ok "webhook path malo → $code"; else bad "webhook path malo → $code"; fi
 
 post_update() {
   local payload="$1"

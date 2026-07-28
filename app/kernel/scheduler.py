@@ -10,6 +10,7 @@ import openai
 
 from app.config import settings
 from app.kernel.dream import run_dream
+from app.kernel.review_common import is_blank_report
 from app.storage.memory import MemoryStore
 from app.storage.vault import Vault
 from app.telegram.client import TelegramClient
@@ -33,6 +34,19 @@ def dream_body_from_vault(raw: str | None) -> str | None:
             i += 1
     body = "\n".join(lines[i:]).strip()
     return body or None
+
+
+def needs_dream_consolidate(
+    vault: Vault,
+    target: str,
+    last_run: str | None,
+    last_status: str | None,
+) -> bool:
+    """True if yesterday's dream is missing, failed, or only a blank placeholder."""
+    if last_run != target or last_status != "ok":
+        return True
+    body = dream_body_from_vault(vault.read_dream(target))
+    return is_blank_report(body)
 
 
 def today_fire_at(
@@ -93,7 +107,7 @@ async def run_scheduled_dream(
     chat_id = settings.telegram_allowed_chat_id
 
     last_run, last_status, _err = await store.get_job(JOB_DREAM)
-    if last_run == target and last_status == "ok":
+    if not needs_dream_consolidate(vault, target, last_run, last_status):
         logger.info("Cron dream skip consolidate — already ok for day=%s", target)
         summary = dream_body_from_vault(vault.read_dream(target)) or (
             f"El sueño de {target} ya estaba consolidado."
@@ -101,6 +115,11 @@ async def run_scheduled_dream(
         consolidate_status = "skipped"
         error = ""
     else:
+        if last_run == target and last_status == "ok":
+            logger.warning(
+                "Cron dream re-consolidate — vault blank/placeholder for day=%s",
+                target,
+            )
         logger.info("Cron dream starting for day=%s", target)
         summary = await run_dream(
             store,
@@ -114,6 +133,19 @@ async def run_scheduled_dream(
         _last, status, err = await store.get_job(JOB_DREAM)
         consolidate_status = status or "unknown"
         error = err or ""
+        # Don't mark morning "ok" if consolidate failed — allow catch-up retry.
+        if consolidate_status != "ok" or is_blank_report(
+            dream_body_from_vault(vault.read_dream(target))
+        ):
+            return {
+                "status": consolidate_status,
+                "day": target,
+                "morning": morning,
+                "notified": False,
+                "telegram": settings.dream_notify_telegram,
+                "error": error or "dream consolidate failed or blank",
+                "preview": summary[:200],
+            }
 
     last_m, status_m, _ = await store.get_job(JOB_MORNING)
     already_notified = last_m == morning and status_m == "ok"
@@ -182,6 +214,16 @@ async def dream_cron_loop(
             morning = today_madrid().isoformat()
             last_m, status_m, _ = await store.get_job(JOB_MORNING)
             done_today = last_m == morning and status_m == "ok"
+            if done_today:
+                # Prior bug: morning ok + vault "(vacío)" — still need catch-up.
+                target = (today_madrid() - timedelta(days=1)).isoformat()
+                last_d, status_d, _ = await store.get_job(JOB_DREAM)
+                if needs_dream_consolidate(vault, target, last_d, status_d):
+                    logger.warning(
+                        "Dream cron morning marked ok but vault blank — re-fire morning=%s",
+                        morning,
+                    )
+                    done_today = False
 
             if now >= fire_today and not done_today:
                 logger.info(

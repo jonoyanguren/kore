@@ -10,7 +10,7 @@
 | Fase actual | **1.6 UX personal** (código P1 hecho; falta dogfood) |
 | Canal | Consola web = operar / día · Telegram = captura móvil opcional |
 | Deploy | Fly.io · `/data` |
-| LLM | OpenRouter · `deepseek/deepseek-v4-pro` (+ Claude Sonnet en asks gordas) |
+| LLM | OpenRouter · diario `deepseek/deepseek-v4-pro` · strong `claude-sonnet-4.6` (asks gordas + **dream**) |
 | Diseño largo | `companion-plan.md` · Consola 1.5: `web-console-plan.md` |
 
 ## Estado
@@ -53,14 +53,14 @@ Detalle de lo ya shipped → [`milestones.md`](./milestones.md).
 
 - [x] Kernel, tasks, dream 09:00, consola MVP
 - [x] Day strip + chat vivo + tareas ricas + layouts + memoria drawer
-- [x] Voz one-tap · espacios · privacidad (export/borrar) · mobile polish
+- [x] Voz one-tap · privacidad · mobile · gasto LLM en barra · proyecto inferido (sin chips)
 - [ ] Dogfood: briefing en Día + consola como canal principal
 - [ ] Gmail · misión · git (más adelante)
 
 ## Next steps
 
-1. **Mañana:** validar cron → vista Día (P0)
-2. **Dogfood** consola (mic + espacios + Memoria → Privacidad)
+1. **Hoy:** `/dream` o catch-up post-deploy → validar briefing en vista Día (P0)
+2. **Dogfood** consola (chat limpio + mic + board + Memoria)
 3. Phase 2: Gmail cuando el loop diario esté asentado
 
 No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
@@ -69,7 +69,9 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
-| 2026-07-27 | Close sesión: P1 en Fly; next = dogfood Día |
+| 2026-07-28 | Dream → modelo strong (Sonnet); vacío ≠ ok; catch-up si vault `(vacío)` |
+| 2026-07-27 | Close noche: DeepSeek diario, chip gasto, sin espacios UI |
+| 2026-07-27 | Close sesión tarde: P1 en Fly; next = dogfood Día |
 | 2026-07-27 | P1: voz / espacios / privacidad / mobile |
 | 2026-07-27 | Split PLAN/TODO ↔ `milestones.md` (contexto histórico) |
 | 2026-07-27 | Día = canal briefing; agenda `01-Ago` + ventana 3 días; ★ / must-not-miss |

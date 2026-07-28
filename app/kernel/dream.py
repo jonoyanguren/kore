@@ -9,9 +9,11 @@ import openai
 
 from app.kernel.review_common import (
     build_capture_tools,
+    is_blank_report,
     run_tool_loop,
     transcript_block,
 )
+from app.llm.llm_assistant import resolve_model
 from app.storage.memory import MemoryStore
 from app.storage.vault import Vault
 from app.telegram.client import TelegramClient
@@ -117,6 +119,10 @@ async def run_dream(
     )
 
     tools, handlers = build_capture_tools(store, vault)
+    # Dream is once/day + heavy context: use strong model. DeepSeek V4 Pro
+    # (thinking) has returned blank `content` on this path (~37s → "(vacío)").
+    dream_model = resolve_model(strong=True)
+    logger.info("Dream using model=%s for day=%s", dream_model, target)
 
     try:
         report = await run_tool_loop(
@@ -125,7 +131,12 @@ async def run_dream(
             user_payload=payload,
             tools=tools,
             handlers=handlers,
+            model=dream_model,
         )
+        if is_blank_report(report):
+            raise RuntimeError(
+                "El modelo devolvió un dream vacío (sin secciones de briefing)"
+            )
         dream_path = vault.write_dream(
             target,
             f"# dream / {target}\n\n{report}\n",

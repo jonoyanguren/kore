@@ -1,14 +1,19 @@
 # Kore — TODO
 
-Backlog **abierto**. Histórico: [`milestones.md`](./milestones.md) · Plan: [`PLAN.md`](./PLAN.md)
+Backlog **abierto**. Histórico: `[milestones.md](./milestones.md)` · Plan: `[PLAN.md](./PLAN.md)`
 
 Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 
+## TODO
+
+- [ ] Fecha bien en pantalla Board
+- [ ] Limpiar la UI mucho
+
 ## P0 — Esta semana (dogfood)
 
-- [ ] **Mañana ~09:00:** abrir vista Día en https://kore.fly.dev/ y validar briefing
-- [ ] **3–5 días:** operar desde consola (chat / mic / board)
-- [ ] Dogfood: fricciones reales (ya: no cards de `/tareas` en chat; web tools)
+- [ ] **Mañana ~09:00:** abrir vista Día en [https://kore.fly.dev/](https://kore.fly.dev/) y validar briefing
+- [ ] **3–5 días:** operar desde consola (chat limpio / mic / board)
+- [ ] Dogfood: fricciones (síntesis tools, DeepSeek, gasto LLM, captura sin chips)
 
 ## P1 — Phase 1.6 (producto)
 
@@ -30,3 +35,4 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 - Agresividad de captura
 - Multi-modelo (imagen / code)
 - Autorrelleno tareas en chat (sale del dogfood)
+
