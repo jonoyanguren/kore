@@ -18,8 +18,9 @@ class Settings(BaseSettings):
     openrouter_api_key: str
     # Daily driver (tools + chat). Override via OPENROUTER_MODEL.
     openrouter_model: str = "deepseek/deepseek-v4-pro"
-    # Heavier Claude for mega-asks (coach / research). Empty = same as daily.
-    openrouter_model_strong: str = "anthropic/claude-sonnet-4.6"
+    # Heavier model for mega-asks / dream / Gmail drafts. Dogfood: Haiku (~⅓ Sonnet).
+    # Alt via env: moonshotai/kimi-k2.5 or anthropic/claude-sonnet-4.6
+    openrouter_model_strong: str = "anthropic/claude-haiku-4.5"
     # Speech-to-text (console mic). Same OpenRouter key.
     openrouter_stt_model: str = "openai/whisper-1"
     openrouter_stt_language: str = "es"

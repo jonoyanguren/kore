@@ -58,9 +58,9 @@ def test_resolve_model_strong():
     prev_s = settings.openrouter_model_strong
     try:
         settings.openrouter_model = "deepseek/deepseek-v4-pro"
-        settings.openrouter_model_strong = "anthropic/claude-sonnet-4.6"
+        settings.openrouter_model_strong = "anthropic/claude-haiku-4.5"
         assert resolve_model(strong=False) == "deepseek/deepseek-v4-pro"
-        assert resolve_model(strong=True) == "anthropic/claude-sonnet-4.6"
+        assert resolve_model(strong=True) == "anthropic/claude-haiku-4.5"
     finally:
         settings.openrouter_model = prev
         settings.openrouter_model_strong = prev_s

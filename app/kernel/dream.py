@@ -153,6 +153,7 @@ async def run_dream(
             tools=tools,
             handlers=handlers,
             model=dream_model,
+            session_id=f"dream-{target}",
         )
         if is_blank_report(report):
             raise RuntimeError(

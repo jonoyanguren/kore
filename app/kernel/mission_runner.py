@@ -105,6 +105,7 @@ async def _research_tick(
         handlers=handlers,
         model=model,
         max_tokens=3500,
+        session_id=f"mission-{mission.id}-tick-{step}",
     )
     if is_blank_report(text):
         raise RuntimeError("El modelo devolvió informe vacío")

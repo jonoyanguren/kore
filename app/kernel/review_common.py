@@ -9,6 +9,7 @@ from typing import Any
 import openai
 
 from app.config import settings
+from app.llm.prompt_cache import openrouter_extra_body, with_system_cache_control
 from app.storage.memory import MemoryStore
 from app.storage.task_tools import build_task_tools
 from app.storage.tools import build_memory_tools
@@ -157,16 +158,21 @@ async def _synthesize_report(
     *,
     model: str,
     max_tokens: int,
+    session_id: str | None = None,
 ) -> str | None:
     """Forced text-only wrap-up when the model returns blank / only tools."""
     synth_messages = list(messages)
     synth_messages.append({"role": "user", "content": _DREAM_SYNTH_NUDGE})
-    response = await client.chat.completions.create(
-        model=model,
-        max_tokens=min(max(settings.llm_max_tokens, SYNTH_MAX_TOKENS), max_tokens * 2),
-        messages=synth_messages,
-        tools=None,
-    )
+    kwargs: dict[str, Any] = {
+        "model": model,
+        "max_tokens": min(max(settings.llm_max_tokens, SYNTH_MAX_TOKENS), max_tokens * 2),
+        "messages": with_system_cache_control(synth_messages, model=model),
+        "tools": None,
+    }
+    extra = openrouter_extra_body(model=model, session_id=session_id)
+    if extra:
+        kwargs["extra_body"] = extra
+    response = await client.chat.completions.create(**kwargs)
     choices = getattr(response, "choices", None) or []
     if not choices or choices[0] is None or choices[0].message is None:
         return None
@@ -185,6 +191,7 @@ async def run_tool_loop(
     handlers: dict[str, Any],
     max_tokens: int = 2500,
     model: str | None = None,
+    session_id: str | None = None,
 ) -> str:
     model_id = (model or settings.openrouter_model).strip()
     messages: list[dict[str, Any]] = [
@@ -200,12 +207,16 @@ async def run_tool_loop(
         if iteration >= MAX_TOOL_ITERS - 1 and used_any_tool:
             call_tools = None
 
-        response = await client.chat.completions.create(
-            model=model_id,
-            max_tokens=min(settings.llm_max_tokens, max_tokens),
-            messages=messages,
-            tools=call_tools,
-        )
+        kwargs: dict[str, Any] = {
+            "model": model_id,
+            "max_tokens": min(settings.llm_max_tokens, max_tokens),
+            "messages": with_system_cache_control(messages, model=model_id),
+            "tools": call_tools,
+        }
+        extra = openrouter_extra_body(model=model_id, session_id=session_id)
+        if extra:
+            kwargs["extra_body"] = extra
+        response = await client.chat.completions.create(**kwargs)
         choice = response.choices[0]
         message = choice.message
         finish = getattr(choice, "finish_reason", None)
@@ -257,7 +268,11 @@ async def run_tool_loop(
         )
         try:
             synth = await _synthesize_report(
-                client, messages, model=model_id, max_tokens=max_tokens
+                client,
+                messages,
+                model=model_id,
+                max_tokens=max_tokens,
+                session_id=session_id,
             )
         except Exception:
             logger.exception("Review synthesis pass failed")

@@ -20,7 +20,7 @@ Telegram --webhook (HTTPS)--> Fly.io (TLS automático) --> FastAPI (app) --> Ope
 - **Backend**: FastAPI + Python 3.12, gestionado con `uv`.
 - **Modelo**: vía **OpenRouter** — diario `OPENROUTER_MODEL`
   (`deepseek/deepseek-v4-pro`); asks gordas `OPENROUTER_MODEL_STRONG`
-  (`anthropic/claude-sonnet-4.6`). Alt: Opus / MiMo multimodal.
+  (`anthropic/claude-haiku-4.5` dogfood; alt Kimi / Sonnet). Prompt cache en loops.
   Sin streaming — las respuestas son mensajes
   de chat cortos, no documentos largos.
 - **Tool use**: `LLMAssistant` corre un loop de llamada→tool_calls→resultado

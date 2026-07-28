@@ -21,7 +21,9 @@ import openai
 from app.config import settings
 from app.kernel.prompt_assembler import PromptAssembler
 from app.kernel.skill_registry import Skill
+from app.llm.prompt_cache import openrouter_extra_body, with_system_cache_control
 from app.storage.memory import MemoryStore
+from app.timeutil import now_madrid
 
 logger = logging.getLogger(__name__)
 
@@ -214,6 +216,8 @@ class LLMAssistant:
         used_fallback = False
         final_text: str | None = None
         used_any_tool = False
+        # Sticky provider + Anthropic cache across tool iterations.
+        cache_session = f"chat-{now_madrid().date().isoformat()}"
 
         await status("Modelo fuerte…" if use_strong else "Pensando…")
         if use_strong:
@@ -231,6 +235,7 @@ class LLMAssistant:
                     messages=messages,
                     tools=call_tools,
                     max_tokens=settings.llm_max_tokens,
+                    session_id=cache_session,
                 )
                 if err == "rate_limit":
                     return (
@@ -330,6 +335,7 @@ class LLMAssistant:
                     messages=messages,
                     used_fallback=used_fallback,
                     prefer_strong=used_any_tool,
+                    session_id=cache_session,
                 )
             except Exception:
                 logger.exception("Synthesis pass crashed")
@@ -365,16 +371,20 @@ class LLMAssistant:
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None,
         max_tokens: int,
+        session_id: str | None = None,
     ) -> tuple[Any | None, str | None]:
         """Return (response, error_code). error_code None means ok."""
         try:
             kwargs: dict[str, Any] = {
                 "model": model,
                 "max_tokens": max_tokens,
-                "messages": messages,
+                "messages": with_system_cache_control(messages, model=model),
             }
             if tools:
                 kwargs["tools"] = tools
+            extra = openrouter_extra_body(model=model, session_id=session_id)
+            if extra:
+                kwargs["extra_body"] = extra
             response = await self._client.chat.completions.create(**kwargs)
             return response, None
         except openai.RateLimitError:
@@ -402,6 +412,7 @@ class LLMAssistant:
         messages: list[dict[str, Any]],
         used_fallback: bool,
         prefer_strong: bool = False,
+        session_id: str | None = None,
     ) -> str | None:
         """Force a text-only wrap-up after tools / empty final message."""
         # Prefer strong model for the wrap-up of heavy tool work.
@@ -413,6 +424,7 @@ class LLMAssistant:
             messages=synth_messages,
             tools=None,
             max_tokens=max(settings.llm_max_tokens, SYNTH_MAX_TOKENS),
+            session_id=session_id,
         )
         if err or response is None:
             logger.warning("Synthesis call failed: %s", err)

@@ -10,7 +10,7 @@
 | Fase actual | **3 — Misiones** (D18: input → loop → output + pantalla) |
 | Canal | Consola web = operar / día · Telegram = captura móvil opcional |
 | Deploy | Fly.io · `/data` |
-| LLM | OpenRouter · diario `deepseek/deepseek-v4-pro` · strong `claude-sonnet-4.6` (asks gordas + **dream**) |
+| LLM | OpenRouter · diario `deepseek/deepseek-v4-pro` · strong `claude-haiku-4.5` (dogfood; alt Kimi/Sonnet) · prompt cache en tool loops |
 | Diseño largo | `companion-plan.md` · Consola 1.5: `web-console-plan.md` |
 
 ## Estado
@@ -95,6 +95,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-28 | Strong → Haiku 4.5 (dogfood); prompt cache + session_id en tool loops |
 | 2026-07-28 | Misiones: ticks con **daily** (DeepSeek) mientras dogfood — Sonnet salía ~$2+/misión |
 | 2026-07-28 | Misiones: loop con web_search/fetch + strong model; Relanzar |
 | 2026-07-28 | Misiones esqueleto: layout + SQLite/vault + runner stub + cancelar |

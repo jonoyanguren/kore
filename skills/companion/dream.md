@@ -9,7 +9,7 @@ tools: [save_memory, add_diary_entry, complete_task, delete_task, list_tasks, ge
 
 Cron in-process **09:00 Europe/Madrid** (Fly, asyncio). Manual `/dream` → por defecto **hoy**.
 `POST /internal/cron/dream` queda como trigger opcional.
-Modelo: **strong** (`OPENROUTER_MODEL_STRONG`, Sonnet).
+Modelo: **strong** (`OPENROUTER_MODEL_STRONG`, default Haiku 4.5; alt Kimi/Sonnet).
 
 ## Qué hace el runner (no improvisar a mano)
 1. Carga el transcript del día + diario/memoria/tareas abiertas + `done.md` (archivo).
