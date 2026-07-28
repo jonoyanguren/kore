@@ -416,8 +416,8 @@ class CreateMissionBody(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     brief: str = Field(default="", max_length=8000)
     launch: bool = True
-    max_ticks: int = Field(default=3, ge=1, le=20)
-    tick_seconds: int = Field(default=30, ge=5, le=3600)
+    max_ticks: int = Field(default=2, ge=1, le=20)
+    tick_seconds: int = Field(default=10, ge=5, le=3600)
 
 
 def _mission_dict(row: MissionRow, *, markdown: str | None = None) -> dict[str, Any]:
@@ -504,6 +504,34 @@ async def cancel_mission(request: Request, mission_id: int) -> dict[str, Any]:
     )
     await request.app.state.memory.add_mission_event(mission_id, "cancelled", None)
     assert updated is not None
+    return {"mission": _mission_dict(updated)}
+
+
+@router.post(
+    "/missions/{mission_id}/relaunch",
+    dependencies=[Depends(require_console_auth)],
+)
+async def relaunch_mission(request: Request, mission_id: int) -> dict[str, Any]:
+    """Reset a mission and queue it again (useful after stub → real research)."""
+    row = await request.app.state.memory.get_mission(mission_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="mission not found")
+    next_run = now_madrid().replace(microsecond=0).isoformat()
+    updated = await request.app.state.memory.update_mission(
+        mission_id,
+        status="queued",
+        step_index=0,
+        next_run_at=next_run,
+        clear_error=True,
+    )
+    assert updated is not None
+    request.app.state.vault.write_mission(
+        mission_id,
+        f"# {updated.title}\n\n"
+        f"> Estado: en cola (relanzada)\n\n"
+        f"## Encargo\n\n{updated.brief.strip() or '(sin brief)'}\n",
+    )
+    await request.app.state.memory.add_mission_event(mission_id, "relaunch", None)
     return {"mission": _mission_dict(updated)}
 
 

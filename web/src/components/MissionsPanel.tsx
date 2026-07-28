@@ -4,6 +4,7 @@ import {
   apiCreateMission,
   apiGetMission,
   apiListMissions,
+  apiRelaunchMission,
 } from '../api'
 import type { Mission } from '../types'
 import { useToast } from './Toasts'
@@ -191,8 +192,8 @@ export function MissionsPanel({ active = true }: Props) {
         title: title.trim(),
         brief: brief.trim(),
         launch: true,
-        max_ticks: 3,
-        tick_seconds: 20,
+        max_ticks: 2,
+        tick_seconds: 10,
       })
       toast.ok(`Misión #${m.id} en cola`)
       setTitle('')
@@ -217,6 +218,21 @@ export function MissionsPanel({ active = true }: Props) {
         const m = await apiGetMission(id)
         setDetail(m)
       }
+    } catch (err) {
+      toast.err(String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function onRelaunch(id: number) {
+    setBusy(true)
+    try {
+      const m = await apiRelaunchMission(id)
+      toast.ok(`Relanzada #${m.id}`)
+      setSelectedId(m.id)
+      await loadList()
+      setDetail(await apiGetMission(id))
     } catch (err) {
       toast.err(String(err))
     } finally {
@@ -276,7 +292,7 @@ export function MissionsPanel({ active = true }: Props) {
               />
             </label>
             <p className="muted missions__form-hint">
-              El loop aún es stub (progreso → markdown). Research real, luego.
+              Investiga en web (2 ticks). Abre el panel para ver el informe.
             </p>
             <button type="submit" disabled={busy || !title.trim()}>
               {busy ? '…' : 'Lanzar'}
@@ -335,16 +351,28 @@ export function MissionsPanel({ active = true }: Props) {
               >
                 Cerrar
               </button>
-              {detail && !isDoneStatus(detail.status) ? (
-                <button
-                  type="button"
-                  className="ghost"
-                  disabled={busy}
-                  onClick={() => void onCancel(detail.id)}
-                >
-                  Cancelar misión
-                </button>
-              ) : null}
+              <div className="missions__panel-actions">
+                {detail && isDoneStatus(detail.status) ? (
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={busy}
+                    onClick={() => void onRelaunch(detail.id)}
+                  >
+                    Relanzar
+                  </button>
+                ) : null}
+                {detail && !isDoneStatus(detail.status) ? (
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={busy}
+                    onClick={() => void onCancel(detail.id)}
+                  >
+                    Cancelar
+                  </button>
+                ) : null}
+              </div>
             </div>
             {!detail ? (
               <p className="muted missions__panel-loading">Cargando…</p>

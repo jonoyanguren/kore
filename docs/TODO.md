@@ -22,8 +22,9 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 **Build:**
 - [x] Tabla `missions` + `vault/missions/{id}.md`
 - [x] Layout Misiones: lista, ocultar terminadas, detalle md, Nueva
-- [x] Runner in-process (ticks, `next_run_at`, max 1)
-- [ ] Tools reales / aclaración con preguntas / misión research de verdad
+- [x] Runner in-process (ticks, `next_run_at`, max 1) + **research web real**
+- [x] Relanzar misión desde el panel
+- [ ] Aclaración con preguntas en Nueva
 
 ## P4+ — Después
 

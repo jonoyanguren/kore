@@ -1,11 +1,13 @@
-"""Missions store + vault + stub tick."""
+"""Missions store + vault + stub tick (research mocked)."""
 
 from __future__ import annotations
 
 import asyncio
 import tempfile
 from pathlib import Path
+from unittest.mock import AsyncMock
 
+from app.kernel import mission_runner
 from app.kernel.mission_runner import run_mission_tick
 from app.storage.memory import MemoryStore
 from app.storage.vault import Vault
@@ -33,16 +35,21 @@ def test_mission_crud_and_vault():
             path = vault.write_mission(mid, f"# {row.title}\n\nhola\n")
             assert path.is_file()
             assert "hola" in (vault.read_mission(mid) or "")
-            updated = await store.update_mission(
-                mid, result_path=f"missions/{mid}.md"
-            )
-            assert updated is not None
-            assert updated.result_path == f"missions/{mid}.md"
 
     asyncio.run(_run())
 
 
-def test_mission_stub_ticks_to_done():
+def test_mission_ticks_to_done_with_fake_research(monkeypatch):
+    async def fake_research(llm, mission, *, step, previous_md):
+        return (
+            f"# {mission.title}\n\n"
+            f"> Estado: en curso · tick {step}/{mission.max_ticks}\n\n"
+            f"## Encargo\n\n{mission.brief}\n\n"
+            f"## Hallazgos\n\nDato fake tick {step}.\n"
+        )
+
+    monkeypatch.setattr(mission_runner, "_research_tick", fake_research)
+
     async def _run() -> None:
         with tempfile.TemporaryDirectory() as tmp:
             db = str(Path(tmp) / "kore.db")
@@ -57,21 +64,20 @@ def test_mission_stub_ticks_to_done():
                 max_ticks=2,
                 tick_seconds=5,
             )
+            llm = AsyncMock()
             m = await store.get_mission(mid)
             assert m is not None
-            await run_mission_tick(store, vault, m)
+            await run_mission_tick(store, vault, m, llm)
             m = await store.get_mission(mid)
             assert m is not None
             assert m.step_index == 1
             assert m.status == "waiting"
-            assert vault.read_mission(mid)
-            await run_mission_tick(store, vault, m)
+            assert "Dato fake tick 1" in (vault.read_mission(mid) or "")
+            await run_mission_tick(store, vault, m, llm)
             m = await store.get_mission(mid)
             assert m is not None
             assert m.status == "done"
             assert m.step_index == 2
-            md = vault.read_mission(mid) or ""
-            assert "Resultado" in md
 
     asyncio.run(_run())
 

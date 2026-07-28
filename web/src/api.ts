@@ -389,6 +389,14 @@ export async function apiCancelMission(id: number): Promise<Mission> {
   return r.data.mission
 }
 
+export async function apiRelaunchMission(id: number): Promise<Mission> {
+  const r = await req<{ mission: Mission }>(`/api/missions/${id}/relaunch`, {
+    method: 'POST',
+  })
+  if (!r.ok) throw new Error(`relaunch mission ${r.status}`)
+  return r.data.mission
+}
+
 export type GmailReplyDraft = {
   message_id: string
   thread_id: string

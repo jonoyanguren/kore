@@ -180,7 +180,7 @@ async def lifespan(app: FastAPI):
         logger.info("Dream cron disabled (DREAM_CRON_ENABLED=false)")
 
     mission_task = asyncio.create_task(
-        mission_runner_loop(memory_store, vault),
+        mission_runner_loop(memory_store, vault, llm_client),
         name="mission-runner",
     )
 
