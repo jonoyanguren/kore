@@ -2500,6 +2500,24 @@ a.more-drawer__btn {
   background: rgba(21, 32, 43, 0.03);
 }
 
+.missions__form form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.missions__form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.missions__clarify-lede {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
 .missions__form label {
   display: flex;
   flex-direction: column;

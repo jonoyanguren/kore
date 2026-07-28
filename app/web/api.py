@@ -41,6 +41,7 @@ from app.integrations.gmail.triage_log import (
     today_madrid_start_unix,
 )
 from app.kernel.briefing import build_day_briefing
+from app.kernel.mission_clarify import clarify_mission
 from app.llm.openrouter_credits import fetch_usage
 from app.llm.llm_routing import llm_routing
 from app.llm.transcribe import MAX_AUDIO_BYTES, transcribe_audio
@@ -427,6 +428,18 @@ class CreateMissionBody(BaseModel):
     tick_seconds: int = Field(default=10, ge=5, le=3600)
 
 
+class ClarifyHistoryItem(BaseModel):
+    question: str = Field(default="", max_length=500)
+    answer: str = Field(default="", max_length=2000)
+
+
+class ClarifyMissionBody(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    brief: str = Field(default="", max_length=8000)
+    history: list[ClarifyHistoryItem] = Field(default_factory=list)
+    round: int = Field(default=1, ge=1, le=2)
+
+
 def _mission_dict(row: MissionRow, *, markdown: str | None = None) -> dict[str, Any]:
     out: dict[str, Any] = {
         "id": row.id,
@@ -483,6 +496,33 @@ async def create_mission(request: Request, body: CreateMissionBody) -> dict[str,
         mid, "created", "launch" if body.launch else "draft"
     )
     return {"mission": _mission_dict(row)}
+
+
+@router.post("/missions/clarify", dependencies=[Depends(require_console_auth)])
+async def clarify_mission_endpoint(
+    request: Request, body: ClarifyMissionBody
+) -> dict[str, Any]:
+    """Ask 1–2 clarifying questions (or mark ready) before creating a mission."""
+    llm = request.app.state.llm_client
+    hist = [
+        {"question": h.question.strip(), "answer": h.answer.strip()}
+        for h in body.history
+    ]
+    result = await clarify_mission(
+        llm,
+        title=body.title.strip(),
+        brief=body.brief.strip(),
+        history=hist,
+        round_n=body.round,
+    )
+    return {
+        "ok": True,
+        "ready": result.ready,
+        "questions": result.questions,
+        "refined_brief": result.refined_brief,
+        "round": result.round,
+        "rounds_left": result.rounds_left,
+    }
 
 
 @router.get("/missions/{mission_id}", dependencies=[Depends(require_console_auth)])

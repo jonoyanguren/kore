@@ -402,6 +402,43 @@ export async function apiCreateMission(input: {
   return r.data.mission
 }
 
+export type ClarifyHistoryItem = { question: string; answer: string }
+
+export type ClarifyResult = {
+  ready: boolean
+  questions: string[]
+  refined_brief: string
+  round: number
+  rounds_left: number
+}
+
+export async function apiClarifyMission(input: {
+  title: string
+  brief?: string
+  history?: ClarifyHistoryItem[]
+  round?: number
+}): Promise<ClarifyResult> {
+  const r = await req<{
+    ok: boolean
+    ready: boolean
+    questions: string[]
+    refined_brief: string
+    round: number
+    rounds_left: number
+  }>('/api/missions/clarify', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+  if (!r.ok) throw new Error(`clarify mission ${r.status}`)
+  return {
+    ready: !!r.data.ready,
+    questions: r.data.questions ?? [],
+    refined_brief: r.data.refined_brief ?? '',
+    round: r.data.round,
+    rounds_left: r.data.rounds_left,
+  }
+}
+
 export async function apiCancelMission(id: number): Promise<Mission> {
   const r = await req<{ mission: Mission }>(`/api/missions/${id}/cancel`, {
     method: 'POST',

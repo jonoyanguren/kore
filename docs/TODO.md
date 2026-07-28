@@ -24,7 +24,7 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 - [x] Layout Misiones: lista, ocultar terminadas, detalle md, Nueva
 - [x] Runner in-process (ticks, `next_run_at`, max 1) + **research web real**
 - [x] Relanzar misión desde el panel
-- [ ] Aclaración con preguntas en Nueva
+- [x] Aclaración con preguntas en Nueva
 
 ## P4+ — Después
 

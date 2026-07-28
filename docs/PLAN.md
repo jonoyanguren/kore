@@ -59,13 +59,14 @@
 
 **Cerrado:** 4º layout · SQLite listado · vault output · Nueva (formulario v1) · ocultar terminadas · cancelar · stub ticks.
 
-**Siguiente slice:** tools reales en el loop · aclaración con preguntas · primera misión útil (p.ej. tono sent).
+**Siguiente slice:** dogfood aclaración + primera misión útil; tono sent (parking).
 
 **MVP build:**
 1. [x] Tabla `missions` + vault path
 2. [x] Layout Misiones (lista, ocultar hechas, detalle md, Nueva)
 3. [x] Runner ticks + `next_run_at`
-4. Jon prueba con una misión (stub → luego real)
+4. [x] Tools reales + aclaración en Nueva
+5. Jon prueba con una misión
 
 **Gmail:** cerrado. Dogfood reply en paralelo.
 
@@ -95,6 +96,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-29 | Misiones Nueva: aclaración 1–2 preguntas (DeepSeek) antes de Lanzar |
 | 2026-07-28 | Strong → Haiku 4.5 (dogfood); prompt cache + session_id en tool loops |
 | 2026-07-28 | Misiones: ticks con **daily** (DeepSeek) mientras dogfood — Sonnet salía ~$2+/misión |
 | 2026-07-28 | Misiones: loop con web_search/fetch + strong model; Relanzar |

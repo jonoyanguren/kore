@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   apiCancelMission,
+  apiClarifyMission,
   apiCreateMission,
   apiGetMission,
   apiListMissions,
   apiRelaunchMission,
+  type ClarifyHistoryItem,
 } from '../api'
 import type { Mission } from '../types'
 import { useToast } from './Toasts'
@@ -12,6 +14,8 @@ import { useToast } from './Toasts'
 type Props = {
   active?: boolean
 }
+
+type FormPhase = 'draft' | 'questions' | 'ready'
 
 const STATUS_LABEL: Record<string, string> = {
   draft: 'Borrador',
@@ -124,11 +128,28 @@ export function MissionsPanel({ active = true }: Props) {
   const [creating, setCreating] = useState(false)
   const [title, setTitle] = useState('')
   const [brief, setBrief] = useState('')
+  const [phase, setPhase] = useState<FormPhase>('draft')
+  const [questions, setQuestions] = useState<string[]>([])
+  const [answers, setAnswers] = useState<string[]>([])
+  const [history, setHistory] = useState<ClarifyHistoryItem[]>([])
+  const [round, setRound] = useState(1)
+  const [refinedBrief, setRefinedBrief] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const toast = useToast()
 
   const panelOpen = selectedId != null
+
+  function resetForm() {
+    setTitle('')
+    setBrief('')
+    setPhase('draft')
+    setQuestions([])
+    setAnswers([])
+    setHistory([])
+    setRound(1)
+    setRefinedBrief('')
+  }
 
   async function loadList() {
     try {
@@ -183,21 +204,74 @@ export function MissionsPanel({ active = true }: Props) {
     return missions.filter((m) => !isDoneStatus(m.status))
   }, [missions, hideDone])
 
-  async function onCreate(e: FormEvent) {
+  async function runClarify(
+    nextHistory: ClarifyHistoryItem[],
+    nextRound: number,
+  ) {
+    const result = await apiClarifyMission({
+      title: title.trim(),
+      brief: brief.trim(),
+      history: nextHistory,
+      round: nextRound,
+    })
+    setRound(result.round)
+    setRefinedBrief(result.refined_brief)
+    if (result.ready || result.questions.length === 0) {
+      setPhase('ready')
+      setQuestions([])
+      setAnswers([])
+      return
+    }
+    setPhase('questions')
+    setQuestions(result.questions)
+    setAnswers(result.questions.map(() => ''))
+  }
+
+  async function onContinue(e: FormEvent) {
     e.preventDefault()
+    if (!title.trim() || busy) return
+    setBusy(true)
+    try {
+      await runClarify([], 1)
+    } catch (err) {
+      toast.err(String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function onAnswer(e: FormEvent) {
+    e.preventDefault()
+    if (busy || questions.length === 0) return
+    setBusy(true)
+    try {
+      const turns: ClarifyHistoryItem[] = questions.map((q, i) => ({
+        question: q,
+        answer: (answers[i] || '').trim(),
+      }))
+      const nextHistory = [...history, ...turns]
+      setHistory(nextHistory)
+      await runClarify(nextHistory, Math.min(round + 1, 2))
+    } catch (err) {
+      toast.err(String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function launchWithBrief(finalBrief: string) {
     if (!title.trim() || busy) return
     setBusy(true)
     try {
       const m = await apiCreateMission({
         title: title.trim(),
-        brief: brief.trim(),
+        brief: finalBrief.trim(),
         launch: true,
         max_ticks: 2,
         tick_seconds: 10,
       })
       toast.ok(`Misión #${m.id} en cola`)
-      setTitle('')
-      setBrief('')
+      resetForm()
       setCreating(false)
       setSelectedId(m.id)
       await loadList()
@@ -206,6 +280,15 @@ export function MissionsPanel({ active = true }: Props) {
     } finally {
       setBusy(false)
     }
+  }
+
+  async function onLaunch(e: FormEvent) {
+    e.preventDefault()
+    await launchWithBrief(refinedBrief || brief)
+  }
+
+  async function onSkipClarify() {
+    await launchWithBrief(brief)
   }
 
   async function onCancel(id: number) {
@@ -262,42 +345,140 @@ export function MissionsPanel({ active = true }: Props) {
           <button
             type="button"
             className="missions__new"
-            onClick={() => setCreating((v) => !v)}
+            onClick={() => {
+              if (creating) resetForm()
+              setCreating((v) => !v)
+            }}
           >
             {creating ? 'Cerrar' : 'Nueva'}
           </button>
         </header>
 
         {creating ? (
-          <form className="missions__form" onSubmit={(e) => void onCreate(e)}>
-            <label>
-              Título
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Casas en Cantabria…"
-                required
-                maxLength={200}
-                disabled={busy}
-              />
-            </label>
-            <label>
-              Encargo
-              <textarea
-                value={brief}
-                onChange={(e) => setBrief(e.target.value)}
-                placeholder="Condiciones, presupuesto, zona…"
-                rows={4}
-                disabled={busy}
-              />
-            </label>
-            <p className="muted missions__form-hint">
-              Investiga en web (2 ticks). Abre el panel para ver el informe.
-            </p>
-            <button type="submit" disabled={busy || !title.trim()}>
-              {busy ? '…' : 'Lanzar'}
-            </button>
-          </form>
+          <div className="missions__form">
+            {phase === 'draft' ? (
+              <form onSubmit={(e) => void onContinue(e)}>
+                <label>
+                  Título
+                  <input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Casas en Cantabria…"
+                    required
+                    maxLength={200}
+                    disabled={busy}
+                  />
+                </label>
+                <label>
+                  Encargo
+                  <textarea
+                    value={brief}
+                    onChange={(e) => setBrief(e.target.value)}
+                    placeholder="Condiciones, presupuesto, zona…"
+                    rows={4}
+                    disabled={busy}
+                  />
+                </label>
+                <p className="muted missions__form-hint">
+                  Primero aclaramos 1–2 puntos si hace falta; luego investiga en
+                  web (2 ticks).
+                </p>
+                <div className="missions__form-actions">
+                  <button type="submit" disabled={busy || !title.trim()}>
+                    {busy ? '…' : 'Continuar'}
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={busy || !title.trim()}
+                    onClick={() => void onSkipClarify()}
+                  >
+                    Lanzar sin aclarar
+                  </button>
+                </div>
+              </form>
+            ) : null}
+
+            {phase === 'questions' ? (
+              <form onSubmit={(e) => void onAnswer(e)}>
+                <p className="missions__clarify-lede">
+                  Antes de lanzar, unas preguntas:
+                </p>
+                {questions.map((q, i) => (
+                  <label key={`${round}-${i}`}>
+                    {q}
+                    <textarea
+                      value={answers[i] ?? ''}
+                      onChange={(e) => {
+                        const next = [...answers]
+                        next[i] = e.target.value
+                        setAnswers(next)
+                      }}
+                      rows={2}
+                      disabled={busy}
+                      required
+                    />
+                  </label>
+                ))}
+                <div className="missions__form-actions">
+                  <button type="submit" disabled={busy}>
+                    {busy ? '…' : 'Responder'}
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={busy}
+                    onClick={() => void onSkipClarify()}
+                  >
+                    Lanzar igual
+                  </button>
+                </div>
+              </form>
+            ) : null}
+
+            {phase === 'ready' ? (
+              <form onSubmit={(e) => void onLaunch(e)}>
+                <p className="missions__clarify-lede">
+                  Brief listo. Puedes editarlo antes de lanzar.
+                </p>
+                <label>
+                  Título
+                  <input value={title} disabled readOnly />
+                </label>
+                <label>
+                  Encargo final
+                  <textarea
+                    value={refinedBrief}
+                    onChange={(e) => setRefinedBrief(e.target.value)}
+                    rows={6}
+                    disabled={busy}
+                  />
+                </label>
+                <div className="missions__form-actions">
+                  <button
+                    type="submit"
+                    disabled={busy || !refinedBrief.trim()}
+                  >
+                    {busy ? '…' : 'Lanzar'}
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={busy}
+                    onClick={() => {
+                      setPhase('draft')
+                      setQuestions([])
+                      setAnswers([])
+                      setHistory([])
+                      setRound(1)
+                    }}
+                  >
+                    Volver
+                  </button>
+                </div>
+              </form>
+            ) : null}
+          </div>
         ) : null}
 
         {error ? <p className="muted">{error}</p> : null}
@@ -321,11 +502,10 @@ export function MissionsPanel({ active = true }: Props) {
                 >
                   <span className="missions__item-title">{m.title}</span>
                   <span className="missions__item-meta muted">
-                    {STATUS_LABEL[m.status] ?? m.status}
+                    {STATUS_LABEL[m.status] || m.status}
                     {isActiveStatus(m.status)
                       ? ` · ${m.step_index}/${m.max_ticks}`
-                      : null}
-                    {isDoneStatus(m.status) ? ' · ver resumen →' : null}
+                      : ''}
                   </span>
                 </button>
               </li>
@@ -345,16 +525,6 @@ export function MissionsPanel({ active = true }: Props) {
               Cerrar
             </button>
             <div className="missions__panel-actions">
-              {detail && isDoneStatus(detail.status) ? (
-                <button
-                  type="button"
-                  className="ghost"
-                  disabled={busy}
-                  onClick={() => void onRelaunch(detail.id)}
-                >
-                  Relanzar
-                </button>
-              ) : null}
               {detail && !isDoneStatus(detail.status) ? (
                 <button
                   type="button"
@@ -363,6 +533,16 @@ export function MissionsPanel({ active = true }: Props) {
                   onClick={() => void onCancel(detail.id)}
                 >
                   Cancelar
+                </button>
+              ) : null}
+              {detail && isDoneStatus(detail.status) ? (
+                <button
+                  type="button"
+                  className="ghost"
+                  disabled={busy}
+                  onClick={() => void onRelaunch(detail.id)}
+                >
+                  Relanzar
                 </button>
               ) : null}
             </div>
@@ -374,23 +554,19 @@ export function MissionsPanel({ active = true }: Props) {
               <header className="missions__panel-head">
                 <h3>{detail.title}</h3>
                 <p className="muted">
-                  {STATUS_LABEL[detail.status] ?? detail.status}
+                  {STATUS_LABEL[detail.status] || detail.status}
                   {isActiveStatus(detail.status)
                     ? ` · tick ${detail.step_index}/${detail.max_ticks}`
-                    : null}
+                    : ''}
                 </p>
               </header>
               {md ? (
-                <article
+                <div
                   className="missions__md"
-                  dangerouslySetInnerHTML={{
-                    __html: renderMarkdown(md),
-                  }}
+                  dangerouslySetInnerHTML={{ __html: renderMarkdown(md) }}
                 />
               ) : (
-                <p className="muted">
-                  Aún no hay markdown. El runner escribe al hacer ticks…
-                </p>
+                <p className="muted">Sin informe aún.</p>
               )}
             </>
           )}
