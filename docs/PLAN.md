@@ -20,7 +20,7 @@
 - [x] Phase 1.5 — Consola web MVP (chat + board)
 - [ ] Phase 1.6 — UX personal *(parcial; UI viva aparte / fricciones)*
 - [x] Phase 2 — Gmail MVP
-- [ ] Phase 3 — Misiones
+- [ ] Phase 3 — Misiones *(esqueleto shipped: pantalla + stub runner)*
 - [ ] Phase 4 — Git / código
 - [ ] Phase 5+ — Calendar, PDF, media web…
 
@@ -57,19 +57,15 @@
 | **Loop** | Ticks cada cierto tiempo hasta resultado usable; **no bloquea** chat | Estado en la lista |
 | **Output** | Markdown bonito en vault; clic → lectura | Misma pantalla |
 
-**Cerrado:** 4º layout · SQLite listado · vault output · Nueva (no chat-first) · ocultar terminadas · primera misión real la prueba Jon cuando exista el módulo.
+**Cerrado:** 4º layout · SQLite listado · vault output · Nueva (formulario v1) · ocultar terminadas · cancelar · stub ticks.
 
-**Aún abierto (antes de codear a fondo):**
-- Dentro de Nueva: ¿mini-chat de aclaración o formulario?
-- Presupuesto por tick / por misión (tokens, #ticks)
-- Tools del loop v1 (web? solo vault/gmail? stub?)
-- ¿Pausar / cancelar desde la lista?
+**Siguiente slice:** tools reales en el loop · aclaración con preguntas · primera misión útil (p.ej. tono sent).
 
-**MVP build (cuando digamos dale):**
-1. Tabla `missions` + vault path
-2. Layout Misiones (lista, ocultar hechas, detalle md, Nueva stub)
-3. Runner ticks + `next_run_at`
-4. Jon prueba con una misión real
+**MVP build:**
+1. [x] Tabla `missions` + vault path
+2. [x] Layout Misiones (lista, ocultar hechas, detalle md, Nueva)
+3. [x] Runner ticks + `next_run_at`
+4. Jon prueba con una misión (stub → luego real)
 
 **Gmail:** cerrado. Dogfood reply en paralelo.
 
@@ -89,8 +85,8 @@ Detalle de lo ya shipped → [`milestones.md`](./milestones.md).
 
 ## Next steps
 
-1. Cerrar abiertos de Misiones (Nueva = mini-chat vs form; presupuesto; tools; cancelar)
-2. Luego esqueleto: layout + SQLite + vault + runner stub
+1. Probar layout **Misiones** en Fly (Nueva → ver ticks → markdown)
+2. Siguiente: tools en el loop / aclaración / primera misión útil
 3. Dogfood Gmail reply en paralelo
 
 No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
@@ -99,6 +95,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-28 | Misiones esqueleto: layout + SQLite/vault + runner stub + cancelar |
 | 2026-07-28 | D19–D21: Nueva en layout Misiones; SQLite+vault; ticks en el tiempo; ocultar terminadas |
 | 2026-07-28 | D18: misión = input → loop → output; pantalla Misiones; markdown resultado |
 | 2026-07-28 | Dogfood focus: Gmail reply (D17) estos días; misiones después |

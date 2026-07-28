@@ -28,6 +28,7 @@ from app.kernel.dream import run_dream
 from app.kernel.project_tools import build_project_tools
 from app.kernel.prompt_assembler import PromptAssembler
 from app.kernel.scheduler import dream_cron_loop, run_scheduled_dream
+from app.kernel.mission_runner import mission_runner_loop
 from app.kernel.skill_registry import SkillRegistry
 from app.kernel.time_tools import build_time_tools
 from app.llm.llm_assistant import LLMAssistant, ToolHandler
@@ -178,8 +179,18 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("Dream cron disabled (DREAM_CRON_ENABLED=false)")
 
+    mission_task = asyncio.create_task(
+        mission_runner_loop(memory_store, vault),
+        name="mission-runner",
+    )
+
     yield
 
+    mission_task.cancel()
+    try:
+        await mission_task
+    except asyncio.CancelledError:
+        pass
     if dream_task is not None:
         dream_task.cancel()
         try:

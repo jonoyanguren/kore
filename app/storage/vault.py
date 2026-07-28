@@ -11,7 +11,7 @@ class Vault:
         self.root = Path(root)
 
     def ensure(self) -> None:
-        for name in ("memory", "diary", "agenda", "dreams", "tasks"):
+        for name in ("memory", "diary", "agenda", "dreams", "tasks", "missions"):
             (self.root / name).mkdir(parents=True, exist_ok=True)
 
     def append_memory(self, category: str, item_id: int, text: str) -> Path:
@@ -79,6 +79,19 @@ class Vault:
 
     def read_dream(self, day: str) -> str | None:
         path = self.root / "dreams" / f"{day}.md"
+        if not path.is_file():
+            return None
+        text = path.read_text(encoding="utf-8").strip()
+        return text or None
+
+    def write_mission(self, mission_id: int, content: str) -> Path:
+        self.ensure()
+        path = self.root / "missions" / f"{mission_id}.md"
+        path.write_text(content.strip() + "\n", encoding="utf-8")
+        return path
+
+    def read_mission(self, mission_id: int) -> str | None:
+        path = self.root / "missions" / f"{mission_id}.md"
         if not path.is_file():
             return None
         text = path.read_text(encoding="utf-8").strip()

@@ -8,7 +8,7 @@ export type CommandAction =
   | { kind: 'focus_new_task' }
   | { kind: 'filter_project'; project: string }
   | { kind: 'clear_filters' }
-  | { kind: 'layout'; mode: 'day' | 'focus' | 'operate' }
+  | { kind: 'layout'; mode: 'day' | 'focus' | 'operate' | 'missions' }
   | { kind: 'open_memory'; tab?: 'diary' | 'memory' | 'privacy' }
   | { kind: 'open_docs'; section?: DocsSectionId }
   | { kind: 'logout' }
@@ -48,6 +48,13 @@ const STATIC: Item[] = [
     hint: '3',
     keywords: 'layout operate board tareas',
     action: { kind: 'layout', mode: 'operate' },
+  },
+  {
+    id: 'layout-missions',
+    label: 'Vista Misiones',
+    hint: '4',
+    keywords: 'layout missions misiones background research',
+    action: { kind: 'layout', mode: 'missions' },
   },
   {
     id: 'memory-drawer',

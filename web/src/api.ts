@@ -1,4 +1,4 @@
-import type { Task, TaskStatus } from './types'
+import type { Mission, Task, TaskStatus } from './types'
 
 async function req<T>(
   path: string,
@@ -351,6 +351,42 @@ export async function apiGmailToTask(
   })
   if (!r.ok) throw new Error(`No se pudo crear la tarea (${r.status})`)
   return { task: r.data.task, email: r.data.email }
+}
+
+export async function apiListMissions(includeDone = true): Promise<Mission[]> {
+  const qs = includeDone ? '' : '?include_done=false'
+  const r = await req<{ missions: Mission[] }>(`/api/missions${qs}`)
+  if (!r.ok) throw new Error(`missions ${r.status}`)
+  return r.data.missions
+}
+
+export async function apiGetMission(id: number): Promise<Mission> {
+  const r = await req<{ mission: Mission }>(`/api/missions/${id}`)
+  if (!r.ok) throw new Error(`mission ${r.status}`)
+  return r.data.mission
+}
+
+export async function apiCreateMission(input: {
+  title: string
+  brief?: string
+  launch?: boolean
+  max_ticks?: number
+  tick_seconds?: number
+}): Promise<Mission> {
+  const r = await req<{ mission: Mission }>('/api/missions', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+  if (!r.ok) throw new Error(`create mission ${r.status}`)
+  return r.data.mission
+}
+
+export async function apiCancelMission(id: number): Promise<Mission> {
+  const r = await req<{ mission: Mission }>(`/api/missions/${id}/cancel`, {
+    method: 'POST',
+  })
+  if (!r.ok) throw new Error(`cancel mission ${r.status}`)
+  return r.data.mission
 }
 
 export type GmailReplyDraft = {

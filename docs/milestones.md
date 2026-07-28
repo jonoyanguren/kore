@@ -77,6 +77,14 @@ Pendiente 1.6 → UI viva (aparte) / fricciones dogfood.
 - API: `POST .../reply-draft` + `POST .../reply`
 - Sin compose frío ni send desde chat
 
+## 2026-07-28 — Phase 3 Misiones (esqueleto)
+
+- 4º layout **Misiones** (tecla 4)
+- SQLite `missions` / `mission_events` + `vault/missions/{id}.md`
+- Nueva (formulario) → cola → runner stub con ticks → markdown
+- Ocultar terminadas · cancelar · max 1 running
+- Pendiente: tools reales, aclaración Q&A, misión útil
+
 ## Prompting (baseline cerrado)
 
 - `personality.md`, `kimay.md`, Datafine, `slow-project.md`, `investing.md` (azValor baseline)

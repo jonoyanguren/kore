@@ -12,3 +12,29 @@ export type Task = {
 }
 
 export type BoardColumnId = 'in_progress' | 'open' | 'done'
+
+export type MissionStatus =
+  | 'draft'
+  | 'clarifying'
+  | 'queued'
+  | 'running'
+  | 'waiting'
+  | 'done'
+  | 'failed'
+  | 'cancelled'
+
+export type Mission = {
+  id: number
+  title: string
+  status: MissionStatus | string
+  brief: string
+  step_index: number
+  max_ticks: number
+  tick_seconds: number
+  next_run_at: string | null
+  result_path: string | null
+  error: string | null
+  created_at: string
+  updated_at: string
+  markdown?: string
+}

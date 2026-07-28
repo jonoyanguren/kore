@@ -8,16 +8,18 @@ import {
 import { DayStrip } from './DayStrip'
 import { DocsDrawer, type DocsSectionId } from './DocsDrawer'
 import { MemoryDrawer } from './MemoryDrawer'
+import { MissionsPanel } from './MissionsPanel'
 import { MoreDrawer } from './MoreDrawer'
 import { TaskBoard, type TaskBoardHandle } from './TaskBoard'
 import type { Task } from '../types'
 
-export type LayoutMode = 'day' | 'focus' | 'operate'
+export type LayoutMode = 'day' | 'focus' | 'operate' | 'missions'
 
 const LAYOUTS: { id: LayoutMode; label: string }[] = [
   { id: 'day', label: 'Día' },
   { id: 'focus', label: 'Chat' },
   { id: 'operate', label: 'Board' },
+  { id: 'missions', label: 'Misiones' },
 ]
 
 const STORAGE_KEY = 'kore.layout'
@@ -30,7 +32,8 @@ type Props = {
 
 function readLayout(): LayoutMode {
   const v = localStorage.getItem(STORAGE_KEY)
-  if (v === 'day' || v === 'focus' || v === 'operate') return v
+  if (v === 'day' || v === 'focus' || v === 'operate' || v === 'missions')
+    return v
   return 'day'
 }
 
@@ -89,6 +92,7 @@ export function Console({ onLogout }: Props) {
       if (e.key === '1') setLayoutPersist('day')
       if (e.key === '2') setLayoutPersist('focus')
       if (e.key === '3') setLayoutPersist('operate')
+      if (e.key === '4') setLayoutPersist('missions')
       if (e.key.toLowerCase() === 'm') openMemory('diary')
       if (e.key === '?' || e.key.toLowerCase() === 'h') openDocs()
       if (e.key === ',') setMoreOpen(true)
@@ -194,6 +198,8 @@ export function Console({ onLogout }: Props) {
           onOpenBoard={() => setLayoutPersist('operate')}
         />
       ) : null}
+
+      {layout === 'missions' ? <MissionsPanel active /> : null}
 
       <div className="console__body">
         <ChatPanel

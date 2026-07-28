@@ -15,18 +15,15 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 
 ## P3 — Phase 3 Misiones (diseño → build)
 
-**Cerrado:** input vía **Nueva** · 4º layout · SQLite lista · vault output · ticks en el tiempo · ocultar terminadas · Jon prueba la 1ª misión cuando exista el módulo.
+**Cerrado:** input vía **Nueva** (formulario v1) · 4º layout · SQLite lista · vault output · ticks · ocultar terminadas · cancelar · Jon prueba la 1ª misión real cuando quiera.
 
-**Abierto (pensar):**
-- [ ] Nueva: mini-chat de aclaración vs formulario
-- [ ] Presupuesto tick / misión
-- [ ] Tools del loop v1
-- [ ] Pausar / cancelar en lista
+**Defaults v1:** form (no mini-chat aún) · stub loop sin tools · cancelar en detalle · 3 ticks / 20–30s.
 
-**Build (después de cerrar abiertos):**
-- [ ] Tabla `missions` + `vault/missions/{id}.md`
-- [ ] Layout Misiones: lista, ocultar terminadas, detalle md, Nueva
-- [ ] Runner in-process (ticks, `next_run_at`, max 1)
+**Build:**
+- [x] Tabla `missions` + `vault/missions/{id}.md`
+- [x] Layout Misiones: lista, ocultar terminadas, detalle md, Nueva
+- [x] Runner in-process (ticks, `next_run_at`, max 1)
+- [ ] Tools reales / aclaración con preguntas / misión research de verdad
 
 ## P4+ — Después
 

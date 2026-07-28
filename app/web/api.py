@@ -43,7 +43,7 @@ from app.integrations.gmail.triage_log import (
 from app.kernel.briefing import build_day_briefing
 from app.llm.openrouter_credits import fetch_usage
 from app.llm.transcribe import MAX_AUDIO_BYTES, transcribe_audio
-from app.storage.memory import TaskRow, VALID_TASK_STATUSES, format_tasks_message
+from app.storage.memory import TaskRow, VALID_TASK_STATUSES, format_tasks_message, MissionRow
 from app.storage.task_tools import purge_done_tasks_archiving, sync_tasks_vault
 from app.timeutil import (
     format_madrid_clock,
@@ -407,6 +407,104 @@ async def delete_task(request: Request, task_id: int) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail="task not found")
     await sync_tasks_vault(request.app.state.memory, request.app.state.vault)
     return {"ok": True}
+
+
+# --- Missions (Phase 3) ------------------------------------------------------
+
+
+class CreateMissionBody(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    brief: str = Field(default="", max_length=8000)
+    launch: bool = True
+    max_ticks: int = Field(default=3, ge=1, le=20)
+    tick_seconds: int = Field(default=30, ge=5, le=3600)
+
+
+def _mission_dict(row: MissionRow, *, markdown: str | None = None) -> dict[str, Any]:
+    out: dict[str, Any] = {
+        "id": row.id,
+        "title": row.title,
+        "status": row.status,
+        "brief": row.brief,
+        "step_index": row.step_index,
+        "max_ticks": row.max_ticks,
+        "tick_seconds": row.tick_seconds,
+        "next_run_at": row.next_run_at,
+        "result_path": row.result_path,
+        "error": row.error,
+        "created_at": row.created_at,
+        "updated_at": row.updated_at,
+    }
+    if markdown is not None:
+        out["markdown"] = markdown
+    return out
+
+
+@router.get("/missions", dependencies=[Depends(require_console_auth)])
+async def list_missions(
+    request: Request,
+    include_done: bool = Query(True),
+) -> dict[str, Any]:
+    rows = await request.app.state.memory.list_missions(include_done=include_done)
+    return {"missions": [_mission_dict(r) for r in rows]}
+
+
+@router.post("/missions", dependencies=[Depends(require_console_auth)])
+async def create_mission(request: Request, body: CreateMissionBody) -> dict[str, Any]:
+    memory = request.app.state.memory
+    vault = request.app.state.vault
+    status_v = "queued" if body.launch else "draft"
+    next_run = now_madrid().replace(microsecond=0).isoformat() if body.launch else None
+    mid = await memory.add_mission(
+        body.title.strip(),
+        brief=body.brief.strip(),
+        status=status_v,
+        max_ticks=body.max_ticks,
+        tick_seconds=body.tick_seconds,
+        next_run_at=next_run,
+    )
+    path = vault.write_mission(
+        mid,
+        f"# {body.title.strip()}\n\n"
+        f"> Estado: {'en cola' if body.launch else 'borrador'}\n\n"
+        f"## Encargo\n\n{body.brief.strip() or '(sin brief)'}\n",
+    )
+    rel = str(path.relative_to(vault.root)) if path.is_relative_to(vault.root) else str(path)
+    row = await memory.update_mission(mid, result_path=rel)
+    assert row is not None
+    await memory.add_mission_event(
+        mid, "created", "launch" if body.launch else "draft"
+    )
+    return {"mission": _mission_dict(row)}
+
+
+@router.get("/missions/{mission_id}", dependencies=[Depends(require_console_auth)])
+async def get_mission(request: Request, mission_id: int) -> dict[str, Any]:
+    row = await request.app.state.memory.get_mission(mission_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="mission not found")
+    md = request.app.state.vault.read_mission(mission_id)
+    return {"mission": _mission_dict(row, markdown=md or "")}
+
+
+@router.post(
+    "/missions/{mission_id}/cancel",
+    dependencies=[Depends(require_console_auth)],
+)
+async def cancel_mission(request: Request, mission_id: int) -> dict[str, Any]:
+    row = await request.app.state.memory.get_mission(mission_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="mission not found")
+    if row.status in ("done", "failed", "cancelled"):
+        return {"mission": _mission_dict(row)}
+    updated = await request.app.state.memory.update_mission(
+        mission_id,
+        status="cancelled",
+        clear_next_run=True,
+    )
+    await request.app.state.memory.add_mission_event(mission_id, "cancelled", None)
+    assert updated is not None
+    return {"mission": _mission_dict(updated)}
 
 
 class ChatBody(BaseModel):

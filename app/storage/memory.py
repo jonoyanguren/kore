@@ -25,6 +25,27 @@ class TaskRow:
 ACTIVE_TASK_STATUSES = ("open", "in_progress")
 VALID_TASK_STATUSES = ("open", "in_progress", "done", "cancelled")
 
+MISSION_ACTIVE_STATUSES = ("draft", "clarifying", "queued", "running", "waiting")
+MISSION_DONE_STATUSES = ("done", "failed", "cancelled")
+VALID_MISSION_STATUSES = MISSION_ACTIVE_STATUSES + MISSION_DONE_STATUSES
+
+
+@dataclass(frozen=True)
+class MissionRow:
+    id: int
+    title: str
+    status: str
+    brief: str
+    plan_json: str | None
+    step_index: int
+    max_ticks: int
+    tick_seconds: int
+    next_run_at: str | None
+    result_path: str | None
+    error: str | None
+    created_at: str
+    updated_at: str
+
 _STATUS_ES = {
     "open": "abierta",
     "in_progress": "en curso",
@@ -168,11 +189,39 @@ CREATE TABLE IF NOT EXISTS jobs (
     last_error TEXT
 );
 
+CREATE TABLE IF NOT EXISTS missions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'draft',
+    brief TEXT NOT NULL DEFAULT '',
+    plan_json TEXT,
+    step_index INTEGER NOT NULL DEFAULT 0,
+    max_ticks INTEGER NOT NULL DEFAULT 3,
+    tick_seconds INTEGER NOT NULL DEFAULT 30,
+    next_run_at TEXT,
+    result_path TEXT,
+    error TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS mission_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    mission_id INTEGER NOT NULL,
+    kind TEXT NOT NULL,
+    payload TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (mission_id) REFERENCES missions(id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_memory_items_category ON memory_items(category);
 CREATE INDEX IF NOT EXISTS idx_diary_entries_day ON diary_entries(day);
 CREATE INDEX IF NOT EXISTS idx_messages_session_date ON messages(session_date);
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
 CREATE INDEX IF NOT EXISTS idx_agenda_starts ON agenda_items(starts_at);
+CREATE INDEX IF NOT EXISTS idx_missions_status ON missions(status);
+CREATE INDEX IF NOT EXISTS idx_missions_next_run ON missions(next_run_at);
+CREATE INDEX IF NOT EXISTS idx_mission_events_mission ON mission_events(mission_id);
 """
 
 
@@ -754,6 +803,241 @@ class MemoryStore:
             )
             rows = await cursor.fetchall()
             return [(row[0], row[1], row[2], row[3]) for row in rows]
+
+    # --- Missions -----------------------------------------------------------
+
+    def _mission_from_row(self, row: tuple) -> MissionRow:
+        return MissionRow(
+            id=row[0],
+            title=row[1],
+            status=row[2],
+            brief=row[3] or "",
+            plan_json=row[4],
+            step_index=int(row[5] or 0),
+            max_ticks=int(row[6] or 3),
+            tick_seconds=int(row[7] or 30),
+            next_run_at=row[8],
+            result_path=row[9],
+            error=row[10],
+            created_at=row[11],
+            updated_at=row[12],
+        )
+
+    async def add_mission(
+        self,
+        title: str,
+        *,
+        brief: str = "",
+        status: str = "draft",
+        max_ticks: int = 3,
+        tick_seconds: int = 30,
+        next_run_at: str | None = None,
+        result_path: str | None = None,
+    ) -> int:
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                """
+                INSERT INTO missions (
+                    title, status, brief, max_ticks, tick_seconds,
+                    next_run_at, result_path
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    title.strip(),
+                    status,
+                    brief.strip(),
+                    max(1, max_ticks),
+                    max(5, tick_seconds),
+                    next_run_at,
+                    result_path,
+                ),
+            )
+            await db.commit()
+            return int(cursor.lastrowid)
+
+    async def get_mission(self, mission_id: int) -> MissionRow | None:
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                """
+                SELECT id, title, status, brief, plan_json, step_index,
+                       max_ticks, tick_seconds, next_run_at, result_path,
+                       error, created_at, updated_at
+                FROM missions WHERE id = ?
+                """,
+                (mission_id,),
+            )
+            row = await cursor.fetchone()
+            return self._mission_from_row(row) if row else None
+
+    async def list_missions(
+        self,
+        *,
+        include_done: bool = True,
+        limit: int = 50,
+    ) -> list[MissionRow]:
+        async with aiosqlite.connect(self._db_path) as db:
+            if include_done:
+                cursor = await db.execute(
+                    """
+                    SELECT id, title, status, brief, plan_json, step_index,
+                           max_ticks, tick_seconds, next_run_at, result_path,
+                           error, created_at, updated_at
+                    FROM missions
+                    ORDER BY
+                      CASE status
+                        WHEN 'running' THEN 0
+                        WHEN 'waiting' THEN 1
+                        WHEN 'queued' THEN 2
+                        WHEN 'clarifying' THEN 3
+                        WHEN 'draft' THEN 4
+                        ELSE 5
+                      END,
+                      updated_at DESC,
+                      id DESC
+                    LIMIT ?
+                    """,
+                    (max(1, min(limit, 100)),),
+                )
+            else:
+                placeholders = ",".join("?" for _ in MISSION_ACTIVE_STATUSES)
+                cursor = await db.execute(
+                    f"""
+                    SELECT id, title, status, brief, plan_json, step_index,
+                           max_ticks, tick_seconds, next_run_at, result_path,
+                           error, created_at, updated_at
+                    FROM missions
+                    WHERE status IN ({placeholders})
+                    ORDER BY
+                      CASE status
+                        WHEN 'running' THEN 0
+                        WHEN 'waiting' THEN 1
+                        WHEN 'queued' THEN 2
+                        WHEN 'clarifying' THEN 3
+                        WHEN 'draft' THEN 4
+                        ELSE 5
+                      END,
+                      updated_at DESC,
+                      id DESC
+                    LIMIT ?
+                    """,
+                    (*MISSION_ACTIVE_STATUSES, max(1, min(limit, 100))),
+                )
+            rows = await cursor.fetchall()
+            return [self._mission_from_row(r) for r in rows]
+
+    async def update_mission(
+        self,
+        mission_id: int,
+        *,
+        title: str | None = None,
+        status: str | None = None,
+        brief: str | None = None,
+        plan_json: str | None = None,
+        step_index: int | None = None,
+        max_ticks: int | None = None,
+        tick_seconds: int | None = None,
+        next_run_at: str | None = None,
+        clear_next_run: bool = False,
+        result_path: str | None = None,
+        error: str | None = None,
+        clear_error: bool = False,
+    ) -> MissionRow | None:
+        current = await self.get_mission(mission_id)
+        if current is None:
+            return None
+        if status is not None and status not in VALID_MISSION_STATUSES:
+            raise ValueError(f"invalid mission status: {status}")
+        new_next = current.next_run_at
+        if clear_next_run:
+            new_next = None
+        elif next_run_at is not None:
+            new_next = next_run_at
+        new_error = None if clear_error else current.error
+        if error is not None:
+            new_error = error
+        async with aiosqlite.connect(self._db_path) as db:
+            await db.execute(
+                """
+                UPDATE missions SET
+                    title = ?,
+                    status = ?,
+                    brief = ?,
+                    plan_json = ?,
+                    step_index = ?,
+                    max_ticks = ?,
+                    tick_seconds = ?,
+                    next_run_at = ?,
+                    result_path = ?,
+                    error = ?,
+                    updated_at = datetime('now')
+                WHERE id = ?
+                """,
+                (
+                    title if title is not None else current.title,
+                    status if status is not None else current.status,
+                    brief if brief is not None else current.brief,
+                    plan_json if plan_json is not None else current.plan_json,
+                    step_index if step_index is not None else current.step_index,
+                    max_ticks if max_ticks is not None else current.max_ticks,
+                    tick_seconds if tick_seconds is not None else current.tick_seconds,
+                    new_next,
+                    result_path if result_path is not None else current.result_path,
+                    new_error,
+                    mission_id,
+                ),
+            )
+            await db.commit()
+        return await self.get_mission(mission_id)
+
+    async def add_mission_event(
+        self,
+        mission_id: int,
+        kind: str,
+        payload: str | None = None,
+    ) -> int:
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                """
+                INSERT INTO mission_events (mission_id, kind, payload)
+                VALUES (?, ?, ?)
+                """,
+                (mission_id, kind, payload),
+            )
+            await db.commit()
+            return int(cursor.lastrowid)
+
+    async def list_due_missions(self, *, now_iso: str, limit: int = 5) -> list[MissionRow]:
+        """Missions ready to tick (queued/waiting/running with next_run_at <= now)."""
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                """
+                SELECT id, title, status, brief, plan_json, step_index,
+                       max_ticks, tick_seconds, next_run_at, result_path,
+                       error, created_at, updated_at
+                FROM missions
+                WHERE status IN ('queued', 'waiting', 'running')
+                  AND next_run_at IS NOT NULL
+                  AND next_run_at <= ?
+                ORDER BY next_run_at ASC, id ASC
+                LIMIT ?
+                """,
+                (now_iso, max(1, min(limit, 20))),
+            )
+            rows = await cursor.fetchall()
+            return [self._mission_from_row(r) for r in rows]
+
+    async def count_missions_in_status(self, *statuses: str) -> int:
+        if not statuses:
+            return 0
+        placeholders = ",".join("?" for _ in statuses)
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                f"SELECT COUNT(*) FROM missions WHERE status IN ({placeholders})",
+                statuses,
+            )
+            row = await cursor.fetchone()
+            return int(row[0] if row else 0)
 
     # --- Jobs (cron bookkeeping) --------------------------------------------
 
