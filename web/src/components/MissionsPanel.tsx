@@ -27,6 +27,10 @@ function isDoneStatus(s: string): boolean {
   return s === 'done' || s === 'failed' || s === 'cancelled'
 }
 
+function isActiveStatus(s: string): boolean {
+  return s === 'queued' || s === 'running' || s === 'waiting'
+}
+
 /** Minimal markdown → HTML for mission results (no extra deps). */
 function renderMarkdown(md: string): string {
   const esc = (s: string) =>
@@ -123,6 +127,8 @@ export function MissionsPanel({ active = true }: Props) {
   const [error, setError] = useState<string | null>(null)
   const toast = useToast()
 
+  const panelOpen = selectedId != null
+
   async function loadList() {
     try {
       const rows = await apiListMissions(!hideDone)
@@ -155,12 +161,21 @@ export function MissionsPanel({ active = true }: Props) {
       }
     }
     void load()
-    const id = window.setInterval(() => void load(), 4000)
+    const id = window.setInterval(() => void load(), 3000)
     return () => {
       cancelled = true
       window.clearInterval(id)
     }
   }, [active, selectedId])
+
+  useEffect(() => {
+    if (!panelOpen) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setSelectedId(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [panelOpen])
 
   const visible = useMemo(() => {
     if (!hideDone) return missions
@@ -209,63 +224,68 @@ export function MissionsPanel({ active = true }: Props) {
     }
   }
 
+  function closePanel() {
+    setSelectedId(null)
+  }
+
+  const md = (detail?.markdown || '').trim()
+
   return (
-    <section className="missions">
-      <header className="missions__bar">
-        <h2 className="missions__title">Misiones</h2>
-        <label className="missions__hide">
-          <input
-            type="checkbox"
-            checked={hideDone}
-            onChange={(e) => setHideDone(e.target.checked)}
-          />
-          Ocultar terminadas
-        </label>
-        <button
-          type="button"
-          className="missions__new"
-          onClick={() => setCreating((v) => !v)}
-        >
-          {creating ? 'Cerrar' : 'Nueva'}
-        </button>
-      </header>
-
-      {creating ? (
-        <form className="missions__form" onSubmit={(e) => void onCreate(e)}>
-          <label>
-            Título
+    <section className={`missions${panelOpen ? ' missions--panel' : ''}`}>
+      <div className="missions__main">
+        <header className="missions__bar">
+          <h2 className="missions__title">Misiones</h2>
+          <label className="missions__hide">
             <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Casas en Cantabria…"
-              required
-              maxLength={200}
-              disabled={busy}
+              type="checkbox"
+              checked={hideDone}
+              onChange={(e) => setHideDone(e.target.checked)}
             />
+            Ocultar terminadas
           </label>
-          <label>
-            Encargo
-            <textarea
-              value={brief}
-              onChange={(e) => setBrief(e.target.value)}
-              placeholder="Condiciones, presupuesto, zona…"
-              rows={4}
-              disabled={busy}
-            />
-          </label>
-          <p className="muted missions__form-hint">
-            v1: formulario → se lanza al instante (loop stub). Aclaración con
-            preguntas, luego.
-          </p>
-          <button type="submit" disabled={busy || !title.trim()}>
-            {busy ? '…' : 'Lanzar'}
+          <button
+            type="button"
+            className="missions__new"
+            onClick={() => setCreating((v) => !v)}
+          >
+            {creating ? 'Cerrar' : 'Nueva'}
           </button>
-        </form>
-      ) : null}
+        </header>
 
-      {error ? <p className="muted">{error}</p> : null}
+        {creating ? (
+          <form className="missions__form" onSubmit={(e) => void onCreate(e)}>
+            <label>
+              Título
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Casas en Cantabria…"
+                required
+                maxLength={200}
+                disabled={busy}
+              />
+            </label>
+            <label>
+              Encargo
+              <textarea
+                value={brief}
+                onChange={(e) => setBrief(e.target.value)}
+                placeholder="Condiciones, presupuesto, zona…"
+                rows={4}
+                disabled={busy}
+              />
+            </label>
+            <p className="muted missions__form-hint">
+              El loop aún es stub (progreso → markdown). Research real, luego.
+            </p>
+            <button type="submit" disabled={busy || !title.trim()}>
+              {busy ? '…' : 'Lanzar'}
+            </button>
+          </form>
+        ) : null}
 
-      <div className="missions__body">
+        {error ? <p className="muted">{error}</p> : null}
+
         <ul className="missions__list">
           {visible.length === 0 ? (
             <li className="missions__empty muted">
@@ -286,52 +306,76 @@ export function MissionsPanel({ active = true }: Props) {
                   <span className="missions__item-title">{m.title}</span>
                   <span className="missions__item-meta muted">
                     {STATUS_LABEL[m.status] ?? m.status}
-                    {m.status === 'waiting' || m.status === 'running'
+                    {isActiveStatus(m.status)
                       ? ` · ${m.step_index}/${m.max_ticks}`
                       : null}
+                    {isDoneStatus(m.status) ? ' · ver resumen →' : null}
                   </span>
                 </button>
               </li>
             ))
           )}
         </ul>
+      </div>
 
-        <div className="missions__detail">
-          {!detail ? (
-            <p className="muted">Elige una misión para ver el resultado.</p>
-          ) : (
-            <>
-              <div className="missions__detail-bar">
-                <div>
+      {panelOpen ? (
+        <>
+          <button
+            type="button"
+            className="missions__backdrop"
+            aria-label="Cerrar resumen"
+            onClick={closePanel}
+          />
+          <aside className="missions__panel" aria-label="Resumen de misión">
+            <div className="missions__panel-bar">
+              <button
+                type="button"
+                className="ghost missions__panel-close"
+                onClick={closePanel}
+              >
+                Cerrar
+              </button>
+              {detail && !isDoneStatus(detail.status) ? (
+                <button
+                  type="button"
+                  className="ghost"
+                  disabled={busy}
+                  onClick={() => void onCancel(detail.id)}
+                >
+                  Cancelar misión
+                </button>
+              ) : null}
+            </div>
+            {!detail ? (
+              <p className="muted missions__panel-loading">Cargando…</p>
+            ) : (
+              <>
+                <header className="missions__panel-head">
                   <h3>{detail.title}</h3>
                   <p className="muted">
                     {STATUS_LABEL[detail.status] ?? detail.status}
-                    {detail.result_path
-                      ? ` · ${detail.result_path}`
+                    {isActiveStatus(detail.status)
+                      ? ` · tick ${detail.step_index}/${detail.max_ticks}`
                       : null}
                   </p>
-                </div>
-                {!isDoneStatus(detail.status) ? (
-                  <button
-                    type="button"
-                    className="ghost"
-                    disabled={busy}
-                    onClick={() => void onCancel(detail.id)}
-                  >
-                    Cancelar
-                  </button>
-                ) : null}
-              </div>
-              <article
-                className="missions__md"
-                dangerouslySetInnerHTML={{
-                  __html: renderMarkdown(detail.markdown || '_Sin contenido aún._'),
-                }}
-              />
-            </>
-          )}
-        </div>
-      </div>
+                </header>
+                {md ? (
+                  <article
+                    className="missions__md"
+                    dangerouslySetInnerHTML={{
+                      __html: renderMarkdown(md),
+                    }}
+                  />
+                ) : (
+                  <p className="muted">
+                    Aún no hay markdown. El runner escribe al hacer ticks…
+                  </p>
+                )}
+              </>
+            )}
+          </aside>
+        </>
+      ) : null}
     </section>
   )
 }
