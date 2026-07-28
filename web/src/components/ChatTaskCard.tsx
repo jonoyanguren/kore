@@ -1,4 +1,5 @@
 import type { Task } from '../types'
+import { ProjectChip } from './ProjectChip'
 
 const STATUS_ES: Record<string, string> = {
   open: 'abierta',
@@ -26,7 +27,7 @@ export function ChatTaskCard({ task, onOpen, onComplete, onStart }: Props) {
       </div>
       <div className="chat-task__meta">
         <span>{STATUS_ES[task.status] ?? task.status}</span>
-        {task.project ? <span>{task.project}</span> : null}
+        <ProjectChip project={task.project} />
         {task.due_at ? <span>{task.due_at}</span> : null}
       </div>
       {task.url ? (

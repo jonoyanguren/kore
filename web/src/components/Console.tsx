@@ -191,9 +191,7 @@ export function Console({ onLogout }: Props) {
         <DayStrip
           refreshToken={boardToken}
           variant="hero"
-          onOpenChat={() => setLayoutPersist('focus')}
           onOpenBoard={() => setLayoutPersist('operate')}
-          onOpenMemory={() => openMemory('diary')}
         />
       ) : null}
 

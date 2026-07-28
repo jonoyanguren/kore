@@ -1,6 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { Task } from '../types'
+import { ProjectChip } from './ProjectChip'
 
 type Props = {
   task: Task
@@ -113,7 +114,7 @@ export function TaskCard({
         ) : null}
       </header>
       <div className="task-card__meta">
-        {task.project ? <span>{task.project}</span> : null}
+        <ProjectChip project={task.project} />
         {task.due_at ? <span>{task.due_at}</span> : null}
       </div>
       {task.url ? (

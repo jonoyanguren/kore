@@ -1,4 +1,4 @@
-/** Project color accents for task cards (no UI space chips). */
+/** Project color accents for task chips. */
 
 export type SpaceId = 'all' | 'personal' | 'kimay' | 'kore'
 
@@ -16,6 +16,18 @@ export const SPACES: SpaceDef[] = [
   { id: 'personal', label: 'Personal', color: '#2f6f5e', project: 'personal' },
   { id: 'kimay', label: 'Kimay', color: '#b45309', project: 'kimay' },
   { id: 'kore', label: 'Kore', color: '#2b6cb0', project: 'kore' },
+]
+
+/** Palette for unknown project slugs (stable hash). */
+const FALLBACK_COLORS = [
+  '#6b5b95',
+  '#88b04b',
+  '#c06c84',
+  '#92a8d1',
+  '#955251',
+  '#b565a7',
+  '#009b77',
+  '#dd4124',
 ]
 
 const STORAGE_KEY = 'kore.space'
@@ -42,8 +54,22 @@ export function spaceDef(id: SpaceId): SpaceDef {
   return SPACES.find((s) => s.id === id) ?? SPACES[0]
 }
 
-export function spaceColorForProject(project: string | null | undefined): string | null {
+function hashSlug(slug: string): number {
+  let h = 0
+  for (let i = 0; i < slug.length; i++) {
+    h = (h * 31 + slug.charCodeAt(i)) >>> 0
+  }
+  return h
+}
+
+/** Same project slug → same color (known spaces or stable fallback). */
+export function spaceColorForProject(
+  project: string | null | undefined,
+): string | null {
   if (!project) return null
-  const hit = SPACES.find((s) => s.project === project)
-  return hit?.color ?? null
+  const slug = project.trim().toLowerCase()
+  if (!slug) return null
+  const hit = SPACES.find((s) => s.project === slug)
+  if (hit) return hit.color
+  return FALLBACK_COLORS[hashSlug(slug) % FALLBACK_COLORS.length]
 }

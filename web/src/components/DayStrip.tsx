@@ -4,9 +4,7 @@ import { apiDay, type DaySnapshot } from '../api'
 type Props = {
   refreshToken?: number
   variant?: 'hero' | 'rail'
-  onOpenChat?: () => void
   onOpenBoard?: () => void
-  onOpenMemory?: () => void
 }
 
 const MONTHS_ES_SHORT = [
@@ -65,9 +63,7 @@ const STATUS_SHORT: Record<string, string> = {
 export function DayStrip({
   refreshToken = 0,
   variant = 'rail',
-  onOpenChat,
   onOpenBoard,
-  onOpenMemory,
 }: Props) {
   const [day, setDay] = useState<DaySnapshot | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -273,24 +269,6 @@ export function DayStrip({
               ))}
             </ul>
           )}
-          <div className="day-strip__ctas">
-            <button
-              type="button"
-              className="ghost day-strip__cta"
-              onClick={onOpenMemory ?? onOpenChat}
-            >
-              {onOpenMemory ? 'Memoria / diario →' : 'Hablar con Jone →'}
-            </button>
-            {onOpenMemory && onOpenChat ? (
-              <button
-                type="button"
-                className="ghost day-strip__cta"
-                onClick={onOpenChat}
-              >
-                Hablar con Jone →
-              </button>
-            ) : null}
-          </div>
         </div>
       </div>
     </section>

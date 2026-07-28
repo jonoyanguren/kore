@@ -1,6 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { Task } from '../types'
+import { ProjectChip } from './ProjectChip'
 
 type Props = {
   task: Task
@@ -74,10 +75,11 @@ export function TaskListRow({
       >
         {task.title}
       </button>
-      <span className="task-list__meta muted">
-        {task.project ?? ''}
-        {task.project && task.due_at ? ' · ' : ''}
-        {task.due_at ?? ''}
+      <span className="task-list__meta">
+        <ProjectChip project={task.project} />
+        {task.due_at ? (
+          <span className="muted task-list__due">{task.due_at}</span>
+        ) : null}
       </span>
       <button
         type="button"

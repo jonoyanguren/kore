@@ -89,8 +89,6 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
   const [title, setTitle] = useState('')
   const [activeId, setActiveId] = useState<string | null>(null)
   const [editing, setEditing] = useState<Task | null>(null)
-  const [query, setQuery] = useState('')
-  const [projectFilter, setProjectFilter] = useState('')
   const [view, setView] = useState<ViewMode>(loadView)
   const addInputRef = useRef<HTMLInputElement>(null)
 
@@ -99,10 +97,11 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
       addInputRef.current?.focus()
       addInputRef.current?.scrollIntoView({ block: 'nearest' })
     },
-    filterProject: (project: string) => setProjectFilter(project),
+    filterProject: () => {
+      /* filters removed — project shown as chips */
+    },
     clearFilters: () => {
-      setQuery('')
-      setProjectFilter('')
+      /* no-op */
     },
     openTask: (task: Task) => setEditing(task),
   }))
@@ -142,34 +141,13 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
     }
   }
 
-  const projects = useMemo(() => {
-    const set = new Set<string>()
-    for (const t of tasks) {
-      if (t.project) set.add(t.project)
-    }
-    return Array.from(set).sort()
-  }, [tasks])
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    return tasks.filter((t) => {
-      if (projectFilter && (t.project ?? '') !== projectFilter) return false
-      if (!q) return true
-      const hay = [t.title, t.project, t.notes, t.url, t.due_at]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-      return hay.includes(q)
-    })
-  }, [tasks, query, projectFilter])
-
   const grouped = useMemo(() => {
     const map: Record<BoardColumnId, Task[]> = {
       in_progress: [],
       open: [],
       done: [],
     }
-    for (const t of filtered) {
+    for (const t of tasks) {
       const col = columnOf(t.status)
       if (col) map[col].push(t)
     }
@@ -177,17 +155,17 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
       map[col].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0))
     }
     return map
-  }, [filtered])
+  }, [tasks])
 
   const listOrdered = useMemo(() => {
     const rank = (s: string) =>
       s === 'in_progress' ? 0 : s === 'open' ? 1 : s === 'done' ? 2 : 3
-    return [...filtered].sort((a, b) => {
+    return [...tasks].sort((a, b) => {
       const d = rank(a.status) - rank(b.status)
       if (d !== 0) return d
       return (b.priority ?? 0) - (a.priority ?? 0)
     })
-  }, [filtered])
+  }, [tasks])
 
   const activeTask = activeId
     ? (tasks.find((t) => String(t.id) === activeId) ?? null)
@@ -202,7 +180,6 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
       const task = await apiCreateTask({
         title: t,
         status: 'open',
-        project: projectFilter || undefined,
       })
       setTasks((prev) => [...prev, task])
       toast.ok('Tarea añadida')
@@ -504,39 +481,6 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
         </button>
       </header>
 
-      <div className="board-panel__filters">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar…"
-          aria-label="Buscar tareas"
-        />
-        <select
-          value={projectFilter}
-          onChange={(e) => setProjectFilter(e.target.value)}
-          aria-label="Filtrar por proyecto"
-        >
-          <option value="">Todos los proyectos</option>
-          {projects.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </select>
-        {(query || projectFilter) && (
-          <button
-            type="button"
-            className="ghost"
-            onClick={() => {
-              setQuery('')
-              setProjectFilter('')
-            }}
-          >
-            Limpiar
-          </button>
-        )}
-      </div>
-
       {error ? <p className="error">{error}</p> : null}
       {loading ? <p className="muted">Cargando…</p> : null}
 
@@ -566,9 +510,7 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
                 <li className="task-list__empty muted empty-state">
                   <span className="empty-state__title">Sin tareas aquí</span>
                   <span>
-                    {projectFilter
-                      ? `Nada en «${projectFilter}». Quita el filtro o añade una.`
-                      : 'Añade una arriba o pide a Jone en el chat.'}
+                    Añade una arriba o pide a Jone en el chat.
                   </span>
                 </li>
               ) : null}
