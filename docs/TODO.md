@@ -38,7 +38,7 @@ Fricciones nuevas → ítems sueltos arriba o Parking.
 - [x] Conectar cuenta en prod + smoke listado
 - [x] Botón Inbox → tarea (IA + link mail)
 - [x] Digest Gmail unread en dream 09:00 (sección Inbox)
-- [ ] Triage + log de marcados leídos
+- [x] Log triage: marcados leídos (Día + tool `list_marked_read`)
 - ~~Digest IA en Día~~ — aparcado (lista basta)
 
 ## P2+ — Después

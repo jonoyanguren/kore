@@ -296,6 +296,14 @@ export type DaySnapshot = {
     }[]
     error?: string | null
     error_code?: string | null
+    marked_read_today?: {
+      at: number
+      message_id: string
+      subject: string
+      from: string
+      permalink: string
+      reason: string
+    }[]
   }
   server_now: string
 }

@@ -118,6 +118,10 @@ async def create_task_from_email(
     await sync_tasks_vault(memory, vault)
     task = await memory.get_task(task_id)
     assert task is not None
+    try:
+        await gmail.mark_read(message_id, reason="task")
+    except Exception:
+        logger.exception("Created task but failed to mark email read id=%s", message_id)
     return {
         "ok": True,
         "task": {
@@ -135,4 +139,5 @@ async def create_task_from_email(
             "subject": msg.subject,
             "from": msg.from_,
         },
+        "marked_read": True,
     }

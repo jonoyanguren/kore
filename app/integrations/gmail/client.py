@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from email.utils import parsedate_to_datetime
+import time
 from typing import Any
 
 import httpx
@@ -12,6 +13,11 @@ import httpx
 from app.config import settings
 from app.integrations.gmail.oauth import refresh_access_token
 from app.integrations.gmail.tokens import GmailTokenStore, GmailTokens
+from app.integrations.gmail.triage_log import (
+    MarkedReadEntry,
+    append_marked_read,
+    marked_read_path_for_db,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +127,13 @@ class GmailClient:
             raise _gmail_http_error(response)
         return _parse_message(response.json())
 
-    async def mark_read(self, message_id: str) -> bool:
+    async def mark_read(
+        self,
+        message_id: str,
+        *,
+        reason: str = "manual",
+    ) -> bool:
+        meta = await self.get_message(message_id)
         headers = await self._access_headers()
         response = await self._http.post(
             f"{GMAIL_API}/users/me/messages/{message_id}/modify",
@@ -132,6 +144,21 @@ class GmailClient:
             return False
         if response.status_code >= 400:
             raise _gmail_http_error(response)
+        if meta is not None:
+            try:
+                append_marked_read(
+                    marked_read_path_for_db(settings.storage_db_path),
+                    MarkedReadEntry(
+                        at=time.time(),
+                        message_id=meta.id,
+                        subject=meta.subject,
+                        from_=meta.from_,
+                        permalink=meta.permalink,
+                        reason=reason,
+                    ),
+                )
+            except Exception:
+                logger.exception("Failed appending Gmail marked-read log")
         return True
 
     async def save_tokens(self, tokens: GmailTokens) -> None:

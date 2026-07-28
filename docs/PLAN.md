@@ -49,7 +49,7 @@
 3. Superficie: sección en **vista Día** + comando `/inbox` (chat)
 4. Inbox Día = lista unread + **Tarea** (IA) / **Leído** (digest IA en Día aparcado)
 5. Dream 09:00 incluye unread Gmail → sección **Inbox** en el briefing
-6. (Luego) triage log
+6. Log de triage: mails marcados leídos (vista Día + `list_marked_read`)
 
 **Aplazado en P2:** triage automático a carpetas/labels, envío de mail, multi-cuenta, digest IA en Día.
 
@@ -65,7 +65,7 @@ Detalle de lo ya shipped → [`milestones.md`](./milestones.md).
 - [x] Day strip + chat vivo + tareas ricas + layouts + memoria drawer
 - [x] Voz one-tap · privacidad · mobile · gasto LLM en barra · proyecto inferido (sin chips)
 - [x] Dogfood: briefing en Día + consola como canal principal
-- [ ] Gmail OAuth + inbox en Día / `/inbox` (código shipped; falta conectar cuenta en prod)
+- [x] Gmail OAuth + inbox en Día / `/inbox` + dream Inbox + triage log
 - [ ] Misión · git (más adelante)
 
 ## Next steps
@@ -80,6 +80,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-28 | Gmail triage log: marcados leídos (Día + tool) |
 | 2026-07-28 | Dream incluye Gmail unread → sección Inbox en briefing |
 | 2026-07-28 | Gmail Día: lista + botón Tarea (IA); digest IA aparcado |
 | 2026-07-28 | Gmail: digest IA de unread en vista Día (caché 30 min) |

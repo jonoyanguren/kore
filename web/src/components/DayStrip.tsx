@@ -81,8 +81,10 @@ export function DayStrip({
   const help = briefing?.help ?? []
   const inbox = day.inbox
   const dreamInbox = briefing?.inbox ?? []
+  const markedToday = inbox?.marked_read_today ?? []
 
   async function markRead(id: string) {
+    const msg = day?.inbox?.messages.find((m) => m.id === id)
     const ok = await apiGmailMarkRead(id)
     if (!ok || !day?.inbox) return
     setDay({
@@ -90,6 +92,19 @@ export function DayStrip({
       inbox: {
         ...day.inbox,
         messages: day.inbox.messages.filter((m) => m.id !== id),
+        marked_read_today: msg
+          ? [
+              {
+                at: Date.now() / 1000,
+                message_id: id,
+                subject: msg.subject,
+                from: msg.from,
+                permalink: msg.permalink,
+                reason: 'manual',
+              },
+              ...(day.inbox.marked_read_today ?? []),
+            ]
+          : day.inbox.marked_read_today,
       },
     })
   }
@@ -97,10 +112,32 @@ export function DayStrip({
   async function toTask(id: string) {
     if (busyId) return
     setBusyId(id)
+    const msg = day?.inbox?.messages.find((m) => m.id === id)
     try {
       const { task } = await apiGmailToTask(id)
       toast.ok(`Tarea: ${task.title}`)
-      await markRead(id)
+      if (day?.inbox) {
+        setDay({
+          ...day,
+          inbox: {
+            ...day.inbox,
+            messages: day.inbox.messages.filter((m) => m.id !== id),
+            marked_read_today: msg
+              ? [
+                  {
+                    at: Date.now() / 1000,
+                    message_id: id,
+                    subject: msg.subject,
+                    from: msg.from,
+                    permalink: msg.permalink,
+                    reason: 'task',
+                  },
+                  ...(day.inbox.marked_read_today ?? []),
+                ]
+              : day.inbox.marked_read_today,
+          },
+        })
+      }
     } catch (e) {
       toast.err(String(e))
     } finally {
@@ -346,6 +383,28 @@ export function DayStrip({
               </ul>
             </>
           )}
+          {markedToday.length > 0 ? (
+            <div className="day-strip__marked">
+              <h4 className="day-strip__marked-h">Marcados leídos hoy</h4>
+              <ul className="day-strip__marked-list">
+                {markedToday.map((e) => (
+                  <li key={`${e.message_id}-${e.at}`}>
+                    <a
+                      href={e.permalink || undefined}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="day-strip__task-link"
+                    >
+                      {e.subject}
+                    </a>
+                    <span className="day-strip__tag muted">
+                      {e.reason === 'task' ? '→ tarea' : e.from}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
 
         <div className="day-strip__block">

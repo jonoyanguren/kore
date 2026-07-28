@@ -1,14 +1,21 @@
-"""LLM tools for Gmail inbox (list + mark read)."""
+"""LLM tools for Gmail inbox (list, mark read, triage log)."""
 
 from __future__ import annotations
 
 import json
 from typing import Any
 
+from app.config import settings
 from app.integrations.gmail.client import (
+    GmailApiError,
     GmailClient,
     GmailConfigError,
     GmailNotConnectedError,
+)
+from app.integrations.gmail.triage_log import (
+    list_marked_read,
+    marked_read_path_for_db,
+    today_madrid_start_unix,
 )
 from app.llm.llm_assistant import ToolHandler
 
@@ -47,7 +54,10 @@ def build_gmail_tools(
             "type": "function",
             "function": {
                 "name": "mark_email_read",
-                "description": "Marca un correo Gmail como leído (quita label UNREAD).",
+                "description": (
+                    "Marca un correo Gmail como leído (quita UNREAD) y lo anota "
+                    "en el log de triage por si Jon quiere revisarlo después."
+                ),
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -57,6 +67,29 @@ def build_gmail_tools(
                         },
                     },
                     "required": ["message_id"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "list_marked_read",
+                "description": (
+                    "Lista correos que Kore marcó como leídos (triage log). "
+                    "Útil si Jon pregunta qué se marcó leído hoy / recientemente."
+                ),
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "limit": {
+                            "type": "integer",
+                            "description": "Máximo entradas (1–50). Default 20.",
+                        },
+                        "today_only": {
+                            "type": "boolean",
+                            "description": "Si true, solo desde medianoche Madrid. Default true.",
+                        },
+                    },
                 },
             },
         },
@@ -78,6 +111,8 @@ def build_gmail_tools(
             )
         except GmailConfigError as exc:
             return json.dumps({"ok": False, "error": "gmail_not_configured", "detail": str(exc)})
+        except GmailApiError as exc:
+            return json.dumps({"ok": False, "error": exc.code, "detail": exc.message})
         except Exception as exc:
             return json.dumps({"ok": False, "error": "gmail_api_error", "detail": str(exc)})
         return json.dumps(
@@ -106,17 +141,42 @@ def build_gmail_tools(
         if not message_id:
             return json.dumps({"ok": False, "error": "message_id_required"})
         try:
-            ok = await gmail.mark_read(message_id)
+            ok = await gmail.mark_read(message_id, reason="tool")
         except GmailNotConnectedError:
             return json.dumps({"ok": False, "error": "gmail_not_connected"})
         except GmailConfigError as exc:
             return json.dumps({"ok": False, "error": "gmail_not_configured", "detail": str(exc)})
+        except GmailApiError as exc:
+            return json.dumps({"ok": False, "error": exc.code, "detail": exc.message})
         except Exception as exc:
             return json.dumps({"ok": False, "error": "gmail_api_error", "detail": str(exc)})
-        return json.dumps({"ok": ok, "message_id": message_id})
+        return json.dumps({"ok": ok, "message_id": message_id, "logged": True})
+
+    async def list_marked_read_tool(args: dict[str, Any]) -> str:
+        limit = int(args.get("limit") or 20)
+        limit = max(1, min(limit, 50))
+        today_only = args.get("today_only")
+        if today_only is None:
+            today_only = True
+        since = today_madrid_start_unix() if today_only else None
+        entries = list_marked_read(
+            marked_read_path_for_db(settings.storage_db_path),
+            limit=limit,
+            since=since,
+        )
+        return json.dumps(
+            {
+                "ok": True,
+                "today_only": bool(today_only),
+                "count": len(entries),
+                "entries": entries,
+            },
+            ensure_ascii=False,
+        )
 
     handlers: dict[str, ToolHandler] = {
         "list_inbox": list_inbox,
         "mark_email_read": mark_email_read,
+        "list_marked_read": list_marked_read_tool,
     }
     return schemas, handlers

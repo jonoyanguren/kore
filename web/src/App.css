@@ -1799,6 +1799,37 @@ a.more-drawer__btn {
   box-sizing: border-box;
 }
 
+.day-strip__marked {
+  margin-top: 0.85rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(21, 32, 43, 0.08);
+}
+
+.day-strip__marked-h {
+  margin: 0 0 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.day-strip__marked-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.day-strip__marked-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  font-size: 0.85rem;
+}
+
 .day-strip__inbox-dream {
   margin: 0 0 0.65rem;
   padding-left: 1.1rem;

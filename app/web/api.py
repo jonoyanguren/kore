@@ -34,6 +34,11 @@ from app.integrations.gmail.oauth import (
     exchange_code,
 )
 from app.integrations.gmail.to_task import create_task_from_email
+from app.integrations.gmail.triage_log import (
+    list_marked_read,
+    marked_read_path_for_db,
+    today_madrid_start_unix,
+)
 from app.kernel.briefing import build_day_briefing
 from app.llm.openrouter_credits import fetch_usage
 from app.llm.transcribe import MAX_AUDIO_BYTES, transcribe_audio
@@ -428,6 +433,7 @@ async def day_snapshot(request: Request) -> dict[str, Any]:
         "error": None,
         "error_code": None,
         "gmail_ready": False,
+        "marked_read_today": [],
     }
     gmail = getattr(request.app.state, "gmail", None)
     if gmail is not None:
@@ -467,6 +473,11 @@ async def day_snapshot(request: Request) -> dict[str, Any]:
                 inbox["error"] = (
                     "No se pudo cargar el correo. Revisa Más → Gmail."
                 )
+            inbox["marked_read_today"] = list_marked_read(
+                marked_read_path_for_db(settings.storage_db_path),
+                limit=12,
+                since=today_madrid_start_unix(),
+            )
 
     return {
         "today": today,
@@ -878,6 +889,20 @@ async def gmail_inbox(
     }
 
 
+@router.get("/gmail/marked-read", dependencies=[Depends(require_console_auth)])
+async def gmail_marked_read(
+    limit: int = Query(20, ge=1, le=50),
+    today_only: bool = Query(True),
+) -> dict[str, Any]:
+    since = today_madrid_start_unix() if today_only else None
+    entries = list_marked_read(
+        marked_read_path_for_db(settings.storage_db_path),
+        limit=limit,
+        since=since,
+    )
+    return {"today_only": today_only, "entries": entries}
+
+
 @router.post(
     "/gmail/messages/{message_id}/read",
     dependencies=[Depends(require_console_auth)],
@@ -887,11 +912,16 @@ async def gmail_mark_read(request: Request, message_id: str) -> dict[str, Any]:
     if gmail is None:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="gmail_unavailable")
     try:
-        ok = await gmail.mark_read(message_id)
+        ok = await gmail.mark_read(message_id, reason="manual")
     except GmailNotConnectedError:
         raise HTTPException(status.HTTP_409_CONFLICT, detail="gmail_not_connected") from None
     except GmailConfigError as exc:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from None
+    except GmailApiError as exc:
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            detail={"code": exc.code, "message": exc.message},
+        ) from None
     if not ok:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="message_not_found")
     return {"ok": True, "message_id": message_id}
