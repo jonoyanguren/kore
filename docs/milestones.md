@@ -52,13 +52,23 @@ Hecho en consola:
 - **Privacidad** — overview, export vault `.zip`, borrar categoría de memoria
 - Mobile polish + empty states en chat/board/drawer
 
-Pendiente 1.6 → pulir UI / fricciones; Phase 2 Gmail.
+Pendiente 1.6 → UI viva (aparte) / fricciones dogfood.
 
 ## 2026-07-28 — Dogfood consola
 
 - Jon opera Día / Chat / Board a diario en Fly
 - Dream strong (Sonnet); sin `add_task` (no resucitar archivadas)
 - Chrome limpio: una vista, Más drawer, chips proyecto, fechas humanas
+
+## 2026-07-28 — Phase 2 Gmail MVP (cerrado)
+
+- OAuth Google (`gmail.modify`) + refresh tokens en `/data`
+- Cliente: list unread + marcar leído
+- Vista Día: Inbox (lista) + **Leído** + **Tarea** (IA + link mail)
+- Chat `/inbox` + skill companion
+- Dream 09:00 → unread en sección **Inbox** del briefing
+- Log triage: `gmail_marked_read.jsonl` + Día «Marcados leídos hoy» + tool `list_marked_read`
+- Aplazado (Parking): triage auto labels, send, multi-cuenta, digest IA Día
 
 ## Prompting (baseline cerrado)
 
@@ -67,4 +77,4 @@ Pendiente 1.6 → pulir UI / fricciones; Phase 2 Gmail.
 
 ---
 
-*Última actualización del archivo: 2026-07-27*
+*Última actualización del archivo: 2026-07-28*

@@ -7,7 +7,7 @@
 |-------|--------|
 | Repo | `jonoyanguren/kore` |
 | Producto | **Kore** · hablado **Jone** (`ASSISTANT_NAME`) |
-| Fase actual | **2 — Gmail** (MVP; 1.6 dogfood/UI en paralelo) |
+| Fase actual | **3 — Misiones** (siguiente) · Gmail MVP cerrado |
 | Canal | Consola web = operar / día · Telegram = captura móvil opcional |
 | Deploy | Fly.io · `/data` |
 | LLM | OpenRouter · diario `deepseek/deepseek-v4-pro` · strong `claude-sonnet-4.6` (asks gordas + **dream**) |
@@ -18,8 +18,8 @@
 - [x] Phase 0 — Kernel + captura
 - [x] Phase 1 — Vault / tasks / dream (cron 09:00 Madrid in-process)
 - [x] Phase 1.5 — Consola web MVP (chat + board)
-- [ ] Phase 1.6 — UX personal *(parcial; ver TODO)*
-- [ ] Phase 2 — Gmail
+- [ ] Phase 1.6 — UX personal *(parcial; UI viva aparte / fricciones)*
+- [x] Phase 2 — Gmail MVP
 - [ ] Phase 3 — Misiones
 - [ ] Phase 4 — Git / código
 - [ ] Phase 5+ — Calendar, PDF, media web…
@@ -40,20 +40,17 @@
 | D13 | Vite + React + TS |
 | D14 | 1.6 = super-herramienta personal; no multi-user |
 | D15 | Briefing matutino → **vista Día**; Telegram notify off por defecto |
+| D16 | Gmail MVP = OAuth + Día/`/inbox` + dream Inbox + triage log; sin send / multi-cuenta / triage auto |
 
 ## Roadmap (lean)
 
-**Ahora — Phase 2 Gmail (MVP):**
-1. OAuth Google + refresh en `/data` (D2) — scope **`gmail.modify`** (leer + marcar leídas; no send)
-2. Inbox (hoy / unread) + marcar leído vía API / tools
-3. Superficie: sección en **vista Día** + comando `/inbox` (chat)
-4. Inbox Día = lista unread + **Tarea** (IA) / **Leído** (digest IA en Día aparcado)
-5. Dream 09:00 incluye unread Gmail → sección **Inbox** en el briefing
-6. Log de triage: mails marcados leídos (vista Día + `list_marked_read`)
+**Ahora — Phase 3 Misiones:**
+1. Trabajo background con estado visible
+2. Confirmaciones donde haga falta
+3. Independiente de Gmail (ya cerrado)
 
-**Aplazado en P2:** triage automático a carpetas/labels, envío de mail, multi-cuenta, digest IA en Día.
-
-**Luego:** Misiones (Phase 3, independiente de Gmail) · Git · Calendar.
+**Gmail (cerrado):** OAuth `gmail.modify` · lista unread + Leído/Tarea · `/inbox` · dream Inbox · log marcados leídos.  
+Aplazado → Parking: triage auto labels, envío, multi-cuenta, digest IA Día.
 
 **1.6:** dogfood OK; UI viva = rediseño aparte; fricciones = miguitas.
 
@@ -65,12 +62,13 @@ Detalle de lo ya shipped → [`milestones.md`](./milestones.md).
 - [x] Day strip + chat vivo + tareas ricas + layouts + memoria drawer
 - [x] Voz one-tap · privacidad · mobile · gasto LLM en barra · proyecto inferido (sin chips)
 - [x] Dogfood: briefing en Día + consola como canal principal
-- [x] Gmail OAuth + inbox en Día / `/inbox` + dream Inbox + triage log
-- [ ] Misión · git (más adelante)
+- [x] Phase 2 Gmail MVP cerrado
+- [ ] Misiones (Phase 3)
+- [ ] Git (Phase 4)
 
 ## Next steps
 
-1. **Gmail MVP:** OAuth → `/data` → listar mail → Día + `/inbox`
+1. **Phase 3 — Misiones** (diseño mínimo + primer loop)
 2. Fricciones dogfood → miguitas en `TODO.md`
 3. UI viva = rediseño aparte (no bloquea)
 
@@ -80,6 +78,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-28 | **Phase 2 Gmail MVP cerrado** → siguiente = Misiones |
 | 2026-07-28 | Gmail triage log: marcados leídos (Día + tool) |
 | 2026-07-28 | Dream incluye Gmail unread → sección Inbox en briefing |
 | 2026-07-28 | Gmail Día: lista + botón Tarea (IA); digest IA aparcado |
