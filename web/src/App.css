@@ -1750,6 +1750,67 @@ button.ghost:hover {
   font-weight: 500;
 }
 
+.more-drawer__h--sub {
+  margin-top: 1rem;
+  margin-bottom: 0.45rem;
+}
+
+.llm-routing__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.llm-routing__table th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0.25rem 0.35rem 0.4rem 0;
+  border-bottom: 1px solid var(--line, #e5e7eb);
+}
+
+.llm-routing__table td {
+  padding: 0.55rem 0.35rem 0.55rem 0;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line, #e5e7eb);
+}
+
+.llm-routing__table tr:last-child td {
+  border-bottom: none;
+}
+
+.llm-routing__role {
+  display: block;
+  font-weight: 600;
+}
+
+.llm-routing__uses {
+  display: block;
+  font-size: 0.7rem;
+  margin-top: 0.15rem;
+  line-height: 1.3;
+}
+
+.llm-routing__model {
+  font-size: 0.75rem;
+  word-break: break-all;
+}
+
+.llm-routing__price {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.llm-routing__notes {
+  margin: 0.65rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
 .more-drawer__usage-empty {
   margin: 0;
   font-size: 0.9rem;

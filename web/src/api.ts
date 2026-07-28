@@ -50,6 +50,27 @@ export async function apiUsage(force = false): Promise<UsageInfo | null> {
   return r.data.usage
 }
 
+export type LlmRoutingRow = {
+  role: string
+  model: string
+  price_in: string
+  price_out: string
+  uses: string
+}
+
+export type LlmRouting = {
+  rows: LlmRoutingRow[]
+  notes: string[]
+}
+
+export async function apiLlmRouting(): Promise<LlmRouting | null> {
+  const r = await req<{ ok: boolean; rows: LlmRoutingRow[]; notes: string[] }>(
+    '/api/llm-routing',
+  )
+  if (!r.ok || !r.data.ok) return null
+  return { rows: r.data.rows, notes: r.data.notes ?? [] }
+}
+
 export type MemoryItem = { id: number; category: string; text: string }
 export type DiaryEntry = { id: number; text: string }
 

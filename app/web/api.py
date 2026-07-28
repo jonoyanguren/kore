@@ -42,6 +42,7 @@ from app.integrations.gmail.triage_log import (
 )
 from app.kernel.briefing import build_day_briefing
 from app.llm.openrouter_credits import fetch_usage
+from app.llm.llm_routing import llm_routing
 from app.llm.transcribe import MAX_AUDIO_BYTES, transcribe_audio
 from app.storage.memory import TaskRow, VALID_TASK_STATUSES, format_tasks_message, MissionRow
 from app.storage.task_tools import purge_done_tasks_archiving, sync_tasks_vault
@@ -154,6 +155,12 @@ async def usage(force: bool = False) -> dict[str, Any]:
     if snap is None:
         return {"ok": False, "usage": None}
     return {"ok": True, "usage": snap.as_dict()}
+
+
+@router.get("/llm-routing", dependencies=[Depends(require_console_auth)])
+async def llm_routing_endpoint() -> dict[str, Any]:
+    """Daily/strong models + approx prices for the Más drawer."""
+    return {"ok": True, **llm_routing()}
 
 
 class MemoryBody(BaseModel):
