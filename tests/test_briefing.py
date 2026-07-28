@@ -21,6 +21,10 @@ Reuniones
 - 10:00 sync Kimay
 - Ninguna
 
+Inbox
+- Factura Esteve: revisar julio
+- Andrei pide recomendación Gainrep
+
 Ayuda
 - Empieza por el board
 - No te enredes con CSS
@@ -33,6 +37,7 @@ Vamos.
     assert "10:00 sync Kimay" in s["meetings"]
     assert "Empieza por el board" in s["help"]
     assert "Día largo con Kore." in s["summary"]
+    assert "Factura Esteve: revisar julio" in s["inbox"]
     assert "Vamos." not in s["help"]
 
 

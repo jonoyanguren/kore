@@ -80,6 +80,7 @@ export function DayStrip({
   const meetings = briefing?.meetings ?? day.agenda ?? []
   const help = briefing?.help ?? []
   const inbox = day.inbox
+  const dreamInbox = briefing?.inbox ?? []
 
   async function markRead(id: string) {
     const ok = await apiGmailMarkRead(id)
@@ -279,11 +280,33 @@ export function DayStrip({
             </div>
           ) : inbox.messages.length === 0 ? (
             <div className="day-strip__inbox-state">
-              <p className="day-strip__inbox-lead">Bandeja tranquila</p>
-              <p className="muted">Sin unread de los últimos días.</p>
+              {dreamInbox.length > 0 ? (
+                <>
+                  <p className="day-strip__inbox-lead">Del dream</p>
+                  <ul className="day-strip__inbox-dream">
+                    {dreamInbox.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                  <p className="muted">Sin unread ahora en Gmail.</p>
+                </>
+              ) : (
+                <>
+                  <p className="day-strip__inbox-lead">Bandeja tranquila</p>
+                  <p className="muted">Sin unread de los últimos días.</p>
+                </>
+              )}
             </div>
           ) : (
-            <ul className="day-strip__inbox">
+            <>
+              {dreamInbox.length > 0 ? (
+                <ul className="day-strip__inbox-dream">
+                  {dreamInbox.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              ) : null}
+              <ul className="day-strip__inbox">
               {inbox.messages.map((m) => (
                 <li key={m.id}>
                   <a
@@ -320,7 +343,8 @@ export function DayStrip({
                   </div>
                 </li>
               ))}
-            </ul>
+              </ul>
+            </>
           )}
         </div>
 

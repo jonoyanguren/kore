@@ -170,7 +170,9 @@ async def lifespan(app: FastAPI):
     dream_task: asyncio.Task | None = None
     if settings.dream_cron_enabled:
         dream_task = asyncio.create_task(
-            dream_cron_loop(memory_store, vault, llm_client, telegram),
+            dream_cron_loop(
+                memory_store, vault, llm_client, telegram, gmail=gmail_client
+            ),
             name="dream-cron",
         )
     else:
@@ -227,6 +229,7 @@ async def handle_text_message(
     *,
     vault: Vault | None = None,
     llm_client: openai.AsyncOpenAI | None = None,
+    gmail: GmailClient | None = None,
 ) -> None:
     match = commands.match(text)
 
@@ -274,6 +277,7 @@ async def handle_text_message(
                 day=day_arg,
                 telegram=None,
                 notify=False,
+                gmail=gmail,
             )
             text_out = summary if len(summary) < 3500 else summary[:3490] + "…"
             await telegram.send_message(chat_id, text_out)
@@ -416,6 +420,7 @@ async def cron_dream(request: Request) -> dict:
         request.app.state.vault,
         request.app.state.llm_client,
         request.app.state.telegram,
+        gmail=getattr(request.app.state, "gmail", None),
     )
     return {"ok": True, **result}
 
@@ -479,6 +484,7 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks) 
             text,
             vault=vault,
             llm_client=llm_client,
+            gmail=getattr(request.app.state, "gmail", None),
         )
 
     return {"ok": True}

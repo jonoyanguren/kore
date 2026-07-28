@@ -269,6 +269,7 @@ export type DayBriefing = {
   }[]
   meetings: { id: number; starts_at: string; title: string; status: string }[]
   help: string[]
+  inbox?: string[]
 }
 
 export type DaySnapshot = {

@@ -7,6 +7,8 @@ from datetime import date, timedelta
 
 import openai
 
+from app.integrations.gmail.client import GmailClient
+from app.integrations.gmail.dream_inbox import fetch_inbox_block_for_dream
 from app.kernel.review_common import (
     DREAM_CAPTURE_TOOL_NAMES,
     build_capture_tools,
@@ -31,7 +33,10 @@ Objetivo:
    citas → add_agenda_item. Puedes listar/actualizar/completar tareas YA existentes.
    NO crees tareas nuevas (no tienes add_task): si el chat menciona pendientes, menciónalos
    en el briefing; no reabras cosas de vault/tasks/done.md ni dupliques las abiertas.
-3) Cuando hayas terminado de usar tools (o no haga falta ninguna), responde SOLO el mensaje
+3) Mira el bloque INBOX (Gmail unread): resume SOLO lo importante/accionable en la sección
+   Inbox del mensaje final. Ignora newsletters y ruido. NO marques mails ni crees tareas
+   desde el correo en este proceso.
+4) Cuando hayas terminado de usar tools (o no haga falta ninguna), responde SOLO el mensaje
    final para Jon en español, texto plano (sin markdown, sin ** ni #).
 
 Estructura del mensaje final (obligatoria), texto plano (sin markdown, sin ** ni #):
@@ -47,6 +52,10 @@ Reuniones
 - (hora — qué; de agenda o citas del chat)
 - Si no hay: Ninguna
 
+Inbox
+- (3–6 bullets de correo importante / accionable para hoy)
+- Si no hay nada relevante: Nada urgente
+
 Ayuda
 - (3–6 bullets: foco, riesgos, recordatorios útiles — NO repitas el listado de tareas)
 
@@ -54,7 +63,8 @@ Cierre
 (una frase corta, tono directo)
 
 Reglas: no digas que eres un modelo; no upsell; no pidas permiso; fechas naturales en el chat.
-ISO solo dentro de las tools. Nunca inventes tareas nuevas en tools."""
+ISO solo dentro de las tools. Nunca inventes tareas nuevas en tools.
+No inventes mails: solo lo del bloque INBOX."""
 
 
 async def run_dream(
@@ -66,6 +76,7 @@ async def run_dream(
     telegram: TelegramClient | None = None,
     chat_id: int | None = None,
     notify: bool = True,
+    gmail: GmailClient | None = None,
 ) -> str:
     """Consolidate chat+captures for `day` (default: yesterday). Brief next morning."""
     target = day or (today_madrid() - timedelta(days=1)).isoformat()
@@ -77,6 +88,7 @@ async def run_dream(
     digests = await store.memory_digests(limit_per_category=12)
     open_tasks = await store.list_tasks(status="open", limit=25)
     agenda = await store.list_agenda_upcoming(from_day=target, limit=20)
+    inbox_block = await fetch_inbox_block_for_dream(gmail)
 
     vault.rewrite_diary_day(target, diary)
     for category in await store.list_categories():
@@ -118,10 +130,11 @@ async def run_dream(
         f"=== TAREAS ABIERTAS ===\n{tasks_block}\n\n"
         f"=== TAREAS ARCHIVADAS (done.md — NO reabrir) ===\n{done_excerpt}\n\n"
         f"=== AGENDA PRÓXIMA ===\n{agenda_block}\n\n"
+        f"=== INBOX (Gmail unread) ===\n{inbox_block}\n\n"
         "Usa tools solo para huecos de memoria/diario/agenda. "
         "NO crees tareas nuevas. "
         "Luego escribe el mensaje final con las secciones "
-        "Resumen / Tareas importantes / Reuniones / Ayuda / Cierre."
+        "Resumen / Tareas importantes / Reuniones / Inbox / Ayuda / Cierre."
     )
 
     tools, handlers = build_capture_tools(

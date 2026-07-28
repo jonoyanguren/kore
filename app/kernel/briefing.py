@@ -23,6 +23,10 @@ _SECTION_HEADERS = {
     "tareas": "tasks",
     "reuniones": "meetings",
     "agenda": "meetings",
+    "inbox": "inbox",
+    "correo": "inbox",
+    "mail": "inbox",
+    "gmail": "inbox",
 }
 
 
@@ -43,6 +47,8 @@ def _normalize_header(line: str) -> str | None:
         return "meetings"
     if s.startswith("ayuda") or s.startswith("foco"):
         return "help"
+    if s.startswith("inbox") or s.startswith("correo") or s.startswith("gmail"):
+        return "inbox"
     return None
 
 
@@ -67,6 +73,7 @@ def parse_dream_sections(raw: str | None) -> dict[str, list[str]]:
         "help": [],
         "tasks": [],
         "meetings": [],
+        "inbox": [],
     }
     if not raw:
         return out
@@ -96,7 +103,13 @@ def parse_dream_sections(raw: str | None) -> dict[str, list[str]]:
                 grab = True
                 continue
             if grab:
-                if _normalize_header(line) in {"skip", "tasks", "meetings", "summary"}:
+                if _normalize_header(line) in {
+                    "skip",
+                    "tasks",
+                    "meetings",
+                    "summary",
+                    "inbox",
+                }:
                     break
                 item = _bullet_or_line(line)
                 if item:
@@ -256,4 +269,5 @@ async def build_day_briefing(memory: Any, vault: Any) -> dict[str, Any]:
         "important_tasks": [task_dict(t) for t in important],
         "meetings": meetings,
         "help": help_items,
+        "inbox": sections["inbox"],
     }

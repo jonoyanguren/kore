@@ -26,7 +26,7 @@ EMPTY_REPORT_MARKERS = frozenset({"(vacío)", "(sin respuesta)", "(respuesta vac
 _DREAM_SYNTH_NUDGE = (
     "STOP. No llames más tools. Con el contexto de este turno, escribe YA el "
     "mensaje final en español, texto plano, con las secciones obligatorias:\n"
-    "Resumen\nTareas importantes\nReuniones\nAyuda\nCierre\n"
+    "Resumen\nTareas importantes\nReuniones\nInbox\nAyuda\nCierre\n"
     "No respondas vacío ni digas solo '(vacío)'."
 )
 

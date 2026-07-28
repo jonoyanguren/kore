@@ -37,9 +37,11 @@ Fricciones nuevas → ítems sueltos arriba o Parking.
 - [x] `/inbox` en chat (+ skill companion)
 - [x] Conectar cuenta en prod + smoke listado
 - [x] Botón Inbox → tarea (IA + link mail)
-- [ ] (Luego) digest en cron mañana / dream
+- [x] Digest Gmail unread en dream 09:00 (sección Inbox)
 - [ ] Triage + log de marcados leídos
-- ~~Digest IA en Día~~ — aparcado (lista basta)## P2+ — Después
+- ~~Digest IA en Día~~ — aparcado (lista basta)
+
+## P2+ — Después
 
 - [ ] Misiones background
 - [ ] Git/código con confirmación

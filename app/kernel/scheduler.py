@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import openai
 
 from app.config import settings
+from app.integrations.gmail.client import GmailClient
 from app.kernel.dream import run_dream
 from app.kernel.review_common import is_blank_report
 from app.storage.memory import MemoryStore
@@ -96,6 +97,8 @@ async def run_scheduled_dream(
     vault: Vault,
     llm_client: openai.AsyncOpenAI,
     telegram: TelegramClient,
+    *,
+    gmail: GmailClient | None = None,
 ) -> dict[str, str | bool]:
     """Consolidate yesterday once; deliver morning briefing once per Madrid day.
 
@@ -129,6 +132,7 @@ async def run_scheduled_dream(
             telegram=telegram,
             chat_id=chat_id,
             notify=False,
+            gmail=gmail,
         )
         _last, status, err = await store.get_job(JOB_DREAM)
         consolidate_status = status or "unknown"
@@ -192,6 +196,7 @@ async def dream_cron_loop(
     llm_client: openai.AsyncOpenAI,
     telegram: TelegramClient,
     *,
+    gmail: GmailClient | None = None,
     hour: int | None = None,
     minute: int | None = None,
 ) -> None:
@@ -229,7 +234,9 @@ async def dream_cron_loop(
                 logger.info(
                     "Dream cron firing (on-time or catch-up) morning=%s", morning
                 )
-                await run_scheduled_dream(store, vault, llm_client, telegram)
+                await run_scheduled_dream(
+                    store, vault, llm_client, telegram, gmail=gmail
+                )
                 await sleep_until(fire_today + timedelta(days=1))
             elif now < fire_today:
                 logger.info("Dream cron sleeping until %s", fire_today.isoformat())
