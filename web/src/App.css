@@ -121,11 +121,20 @@ button.ghost:hover {
 .console {
   min-height: 100svh;
   height: 100svh;
-  padding: 1.25rem clamp(1.25rem, 4vw, 3rem) 1.5rem;
+  width: 100%;
+  max-width: 48rem;
+  margin-inline: auto;
+  padding: 1.25rem clamp(1rem, 3vw, 1.75rem) 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
   overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Board needs a bit more room for columns */
+.console--operate {
+  max-width: 64rem;
 }
 
 .console__bar {
