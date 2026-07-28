@@ -40,7 +40,8 @@
 | D13 | Vite + React + TS |
 | D14 | 1.6 = super-herramienta personal; no multi-user |
 | D15 | Briefing matutino → **vista Día**; Telegram notify off por defecto |
-| D16 | Gmail MVP = OAuth + Día/`/inbox` + dream Inbox + triage log; sin send / multi-cuenta / triage auto |
+| D16 | Gmail MVP = OAuth + Día/`/inbox` + dream Inbox + triage log |
+| D17 | Gmail send = **reply/answer**: leer hilo → borrador IA editable → confirmar → enviar (`gmail.send`; no compose frío en v1) |
 
 ## Roadmap (lean)
 
@@ -49,8 +50,9 @@
 2. Confirmaciones donde haga falta
 3. Independiente de Gmail (ya cerrado)
 
-**Gmail (cerrado):** OAuth `gmail.modify` · lista unread + Leído/Tarea · `/inbox` · dream Inbox · log marcados leídos.  
-Aplazado → Parking: triage auto labels, envío, multi-cuenta, digest IA Día.
+**Gmail MVP (cerrado):** OAuth `gmail.modify` · lista unread + Leído/Tarea · `/inbox` · dream Inbox · log marcados leídos.  
+**Gmail next (D17):** reply — entiende mail → propone texto editable → envía (scope `gmail.send` + reconectar).  
+Aplazado → Parking: triage auto labels, compose frío, multi-cuenta, digest IA Día.
 
 **1.6:** dogfood OK; UI viva = rediseño aparte; fricciones = miguitas.
 
@@ -78,6 +80,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-28 | D17: Gmail send = reply/answer (borrador editable), no compose frío |
 | 2026-07-28 | **Phase 2 Gmail MVP cerrado** → siguiente = Misiones |
 | 2026-07-28 | Gmail triage log: marcados leídos (Día + tool) |
 | 2026-07-28 | Dream incluye Gmail unread → sección Inbox en briefing |

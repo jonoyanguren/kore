@@ -18,6 +18,11 @@ Fricciones nuevas → ítems sueltos arriba o Parking.
 - [ ] Primer loop background (crear → correr → reportar)
 - [ ] Confirmaciones donde haga falta
 
+## Gmail next (D17 — cuando toque)
+
+- [ ] **Reply:** leer mail → borrador IA editable → confirmar → send (`gmail.send` + reconectar OAuth)
+- [ ] Superficie: botón en Día Inbox y/o tool chat
+
 ## P4+ — Después
 
 - [ ] Git/código con confirmación
@@ -26,7 +31,8 @@ Fricciones nuevas → ítems sueltos arriba o Parking.
 ## Parking
 
 - Triage Gmail auto → labels/carpetas
-- Envío de mail / multi-cuenta / digest IA en Día
+- Compose frío (mail nuevo sin reply)
+- Multi-cuenta / digest IA en Día
 - Ampliar investing / Slow Project–Andrea / Datafine About
 - Agresividad de captura
 - Multi-modelo (imagen / code)
