@@ -1847,12 +1847,19 @@ a.more-drawer__btn {
 .day-strip__inbox li {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 0.15rem 0.75rem;
-  align-items: baseline;
+  gap: 0.1rem 0.5rem;
+  align-items: center;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid rgba(21, 32, 43, 0.06);
+}
+
+.day-strip__inbox li:last-child {
+  border-bottom: none;
 }
 
 .day-strip__inbox .day-strip__tag {
   grid-column: 1;
+  font-size: 0.8rem;
 }
 
 .day-strip__inbox-actions {
@@ -1860,22 +1867,29 @@ a.more-drawer__btn {
   grid-row: 1 / span 2;
   align-self: center;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.15rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.1rem;
 }
 
-.day-strip__inbox-task,
-.day-strip__inbox-read {
-  font-size: 0.8rem;
+.day-strip__inbox-icon {
+  width: 1.85rem;
+  height: 1.85rem;
+  padding: 0;
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
+  justify-content: center;
+  border-radius: 0.4rem;
+  opacity: 0.72;
 }
 
-.day-strip__inbox-task:disabled,
-.day-strip__inbox-read:disabled {
-  opacity: 0.5;
+.day-strip__inbox-icon:hover:not(:disabled) {
+  opacity: 1;
+  background: rgba(21, 32, 43, 0.06);
+}
+
+.day-strip__inbox-icon:disabled {
+  opacity: 0.4;
   cursor: wait;
 }
 

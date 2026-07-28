@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode, type SVGProps } from 'react'
 import {
   apiDay,
   apiGmailMarkRead,
@@ -27,6 +27,52 @@ function clockParts(clock: string): { time: string; rest: string } {
   }
 }
 
+function InboxIcon({ children, ...rest }: SVGProps<SVGSVGElement> & { children: ReactNode }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      {...rest}
+    >
+      {children}
+    </svg>
+  )
+}
+
+function IconReply() {
+  return (
+    <InboxIcon>
+      <path d="M9 17l-5-5 5-5" />
+      <path d="M4 12h10a5 5 0 0 1 5 5v1" />
+    </InboxIcon>
+  )
+}
+
+function IconTask() {
+  return (
+    <InboxIcon>
+      <path d="M9 11l3 3L22 4" />
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+    </InboxIcon>
+  )
+}
+
+function IconRead() {
+  return (
+    <InboxIcon>
+      <path d="M4 8l8 5 8-5" />
+      <rect x="4" y="6" width="16" height="12" rx="2" />
+    </InboxIcon>
+  )
+}
+
 export function DayStrip({
   refreshToken = 0,
   variant = 'rail',
@@ -35,6 +81,7 @@ export function DayStrip({
   const [day, setDay] = useState<DaySnapshot | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [busyKind, setBusyKind] = useState<'reply' | 'task' | null>(null)
   const [reply, setReply] = useState<GmailReplyDraft | null>(null)
   const [replyBody, setReplyBody] = useState('')
   const [replyBusy, setReplyBusy] = useState(false)
@@ -118,6 +165,7 @@ export function DayStrip({
   async function toTask(id: string) {
     if (busyId) return
     setBusyId(id)
+    setBusyKind('task')
     const msg = day?.inbox?.messages.find((m) => m.id === id)
     try {
       const { task } = await apiGmailToTask(id)
@@ -148,6 +196,7 @@ export function DayStrip({
       toast.err(String(e))
     } finally {
       setBusyId(null)
+      setBusyKind(null)
     }
   }
 
@@ -160,6 +209,7 @@ export function DayStrip({
       return
     }
     setBusyId(id)
+    setBusyKind('reply')
     try {
       const draft = await apiGmailReplyDraft(id)
       setReply(draft)
@@ -168,6 +218,7 @@ export function DayStrip({
       toast.err(String(e))
     } finally {
       setBusyId(null)
+      setBusyKind(null)
     }
   }
 
@@ -428,34 +479,33 @@ export function DayStrip({
                   <div className="day-strip__inbox-actions">
                     <button
                       type="button"
-                      className="ghost day-strip__inbox-task"
+                      className="ghost day-strip__inbox-icon"
                       title="Responder"
                       aria-label="Responder"
                       disabled={busyId === m.id || replyBusy}
                       onClick={() => void openReply(m.id)}
                     >
-                      {busyId === m.id && !reply ? '…' : 'Responder'}
+                      {busyId === m.id && busyKind === 'reply' ? '…' : <IconReply />}
                     </button>
                     <button
                       type="button"
-                      className="ghost day-strip__inbox-task"
+                      className="ghost day-strip__inbox-icon"
                       title="Pasar a tarea"
                       aria-label="Pasar a tarea"
                       disabled={busyId === m.id || replyBusy}
                       onClick={() => void toTask(m.id)}
                     >
-                      <span aria-hidden="true">☑</span>
-                      <span className="day-strip__inbox-task-label">
-                        {busyId === m.id ? '…' : 'Tarea'}
-                      </span>
+                      {busyId === m.id && busyKind === 'task' ? '…' : <IconTask />}
                     </button>
                     <button
                       type="button"
-                      className="ghost day-strip__inbox-read"
+                      className="ghost day-strip__inbox-icon"
+                      title="Marcar leído"
+                      aria-label="Marcar leído"
                       disabled={busyId === m.id || replyBusy}
                       onClick={() => void markRead(m.id)}
                     >
-                      Leído
+                      <IconRead />
                     </button>
                   </div>
                 </li>
