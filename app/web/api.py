@@ -27,6 +27,11 @@ from app.integrations.gmail.client import (
     GmailConfigError,
     GmailNotConnectedError,
 )
+from app.integrations.gmail.digest import (
+    cached_digest_for,
+    digest_path_for_db,
+    get_or_create_digest,
+)
 from app.integrations.gmail.oauth import (
     build_authorize_url,
     consume_oauth_state,
@@ -427,6 +432,8 @@ async def day_snapshot(request: Request) -> dict[str, Any]:
         "error": None,
         "error_code": None,
         "gmail_ready": False,
+        "summary": [],
+        "summary_cached": False,
     }
     gmail = getattr(request.app.state, "gmail", None)
     if gmail is not None:
@@ -455,6 +462,13 @@ async def day_snapshot(request: Request) -> dict[str, Any]:
                     }
                     for m in msgs
                 ]
+                cached = cached_digest_for(
+                    digest_path_for_db(settings.storage_db_path),
+                    [m.id for m in msgs],
+                )
+                if cached is not None:
+                    inbox["summary"] = cached.bullets
+                    inbox["summary_cached"] = True
             except GmailApiError as exc:
                 inbox["error_code"] = exc.code
                 inbox["error"] = exc.message
@@ -727,8 +741,50 @@ async def gmail_status(request: Request) -> dict[str, Any]:
             "connected": False,
             "email": "",
             "scope": "gmail.modify",
+            "gmail_ready": False,
         }
     return gmail.status()
+
+
+@router.get("/gmail/digest", dependencies=[Depends(require_console_auth)])
+async def gmail_digest(
+    request: Request,
+    force: bool = Query(False),
+) -> dict[str, Any]:
+    """AI summary of important unread mail (cached ~30 min)."""
+    gmail = getattr(request.app.state, "gmail", None)
+    llm = getattr(request.app.state, "llm_client", None)
+    if gmail is None or llm is None:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="gmail_unavailable")
+    try:
+        result = await get_or_create_digest(
+            gmail=gmail,
+            llm=llm,
+            storage_db_path=settings.storage_db_path,
+            force=force,
+        )
+    except GmailApiError as exc:
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            detail={"code": exc.code, "message": exc.message},
+        ) from None
+    except Exception:
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            detail={"code": "api", "message": "No se pudo resumir el correo."},
+        ) from None
+    if not result.get("ok"):
+        code = str(result.get("error_code") or "auth")
+        status_code = (
+            status.HTTP_409_CONFLICT
+            if code in {"not_connected", "needs_reconnect"}
+            else status.HTTP_502_BAD_GATEWAY
+        )
+        raise HTTPException(
+            status_code,
+            detail={"code": code, "message": result.get("error") or "gmail_error"},
+        )
+    return result
 
 
 @router.get("/gmail/connect", dependencies=[Depends(require_console_auth)])

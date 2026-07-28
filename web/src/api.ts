@@ -285,6 +285,8 @@ export type DaySnapshot = {
     connected: boolean
     email?: string
     gmail_ready?: boolean
+    summary?: string[]
+    summary_cached?: boolean
     messages: {
       id: string
       subject: string
@@ -326,6 +328,40 @@ export async function apiGmailMarkRead(messageId: string): Promise<boolean> {
     { method: 'POST' },
   )
   return r.ok
+}
+
+export async function apiGmailDigest(force = false): Promise<{
+  bullets: string[]
+  cached: boolean
+  messages: {
+    id: string
+    subject: string
+    from: string
+    snippet: string
+    date: string
+    permalink: string
+  }[]
+}> {
+  const qs = force ? '?force=true' : ''
+  const r = await req<{
+    ok: boolean
+    bullets: string[]
+    cached?: boolean
+    messages?: {
+      id: string
+      subject: string
+      from: string
+      snippet: string
+      date: string
+      permalink: string
+    }[]
+  }>(`/api/gmail/digest${qs}`)
+  if (!r.ok) throw new Error(`gmail digest ${r.status}`)
+  return {
+    bullets: r.data.bullets ?? [],
+    cached: Boolean(r.data.cached),
+    messages: r.data.messages ?? [],
+  }
 }
 
 export async function apiDay(): Promise<DaySnapshot> {

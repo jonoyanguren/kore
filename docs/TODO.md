@@ -35,9 +35,11 @@ Fricciones nuevas → ítems sueltos arriba o Parking.
 - [x] Cliente: listar hoy/unread + marcar leído
 - [x] Vista Día: bloque Inbox
 - [x] `/inbox` en chat (+ skill companion)
-- [ ] (Luego) digest en cron mañana → Día
-- [ ] Conectar cuenta en prod (Más → Gmail) + smoke real
-
+- [x] Conectar cuenta en prod + smoke listado
+- [x] Digest IA de lo importante en Día (caché)
+- [ ] (Luego) digest en cron mañana / dream
+- [ ] Triage + log de marcados leídos
+- [ ] Mail → tarea (flujo chat pulido)
 ## P2+ — Después
 
 - [ ] Misiones background

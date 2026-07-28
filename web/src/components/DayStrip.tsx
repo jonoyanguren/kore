@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   apiDay,
+  apiGmailDigest,
   apiGmailMarkRead,
   type DaySnapshot,
 } from '../api'
@@ -29,6 +30,9 @@ export function DayStrip({
 }: Props) {
   const [day, setDay] = useState<DaySnapshot | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [inboxSummary, setInboxSummary] = useState<string[]>([])
+  const [digestLoading, setDigestLoading] = useState(false)
+  const [digestError, setDigestError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -38,19 +42,88 @@ export function DayStrip({
         if (!cancelled) {
           setDay(snap)
           setError(null)
+          const cached = snap.inbox?.summary ?? []
+          if (cached.length) setInboxSummary(cached)
         }
       } catch (e) {
         if (!cancelled) setError(String(e))
       }
     }
     void load()
-    // Soft poll so vista Día picks up the 09:00 dream without Telegram.
     const id = window.setInterval(() => void load(), 60_000)
     return () => {
       cancelled = true
       window.clearInterval(id)
     }
   }, [refreshToken])
+
+  useEffect(() => {
+    const inbox = day?.inbox
+    if (!inbox?.connected || inbox.error || inbox.gmail_ready === false) return
+    if ((inbox.summary?.length ?? 0) > 0) return
+    if (inboxSummary.length > 0) return
+    let cancelled = false
+    setDigestLoading(true)
+    setDigestError(null)
+    void apiGmailDigest(false)
+      .then((d) => {
+        if (cancelled) return
+        setInboxSummary(d.bullets)
+        setDay((prev) =>
+          prev?.inbox
+            ? {
+                ...prev,
+                inbox: {
+                  ...prev.inbox,
+                  summary: d.bullets,
+                  summary_cached: d.cached,
+                  messages: d.messages.length ? d.messages : prev.inbox.messages,
+                },
+              }
+            : prev,
+        )
+        setDigestLoading(false)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setDigestError('No se pudo resumir el correo ahora.')
+        setDigestLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [
+    day?.today,
+    day?.inbox?.connected,
+    day?.inbox?.error,
+    day?.inbox?.gmail_ready,
+    day?.inbox?.summary,
+    inboxSummary.length,
+  ])
+
+  async function refreshDigest() {
+    setDigestLoading(true)
+    setDigestError(null)
+    try {
+      const d = await apiGmailDigest(true)
+      setInboxSummary(d.bullets)
+      if (day?.inbox) {
+        setDay({
+          ...day,
+          inbox: {
+            ...day.inbox,
+            messages: d.messages.length ? d.messages : day.inbox.messages,
+            summary: d.bullets,
+            summary_cached: false,
+          },
+        })
+      }
+    } catch {
+      setDigestError('No se pudo resumir el correo ahora.')
+    } finally {
+      setDigestLoading(false)
+    }
+  }
 
   if (error && !day) {
     return (
@@ -89,9 +162,11 @@ export function DayStrip({
       },
     })
   }
-  // "lunes 27 de julio de 2026" → weekday + date once (not repeated)
+
   const dateLine = rest || day.headline || ''
   const focusTask = starred[0] ?? mustNotMiss[0] ?? important[0]
+  const shownSummary =
+    inboxSummary.length > 0 ? inboxSummary : (inbox?.summary ?? [])
 
   if (variant === 'rail') {
     const nextMeeting = meetings[0]
@@ -239,7 +314,19 @@ export function DayStrip({
         </div>
 
         <div className="day-strip__block">
-          <h3>Inbox</h3>
+          <div className="day-strip__inbox-head">
+            <h3>Inbox</h3>
+            {inbox?.connected && !inbox.error ? (
+              <button
+                type="button"
+                className="ghost day-strip__inbox-refresh"
+                disabled={digestLoading}
+                onClick={() => void refreshDigest()}
+              >
+                {digestLoading ? 'Resumiendo…' : 'Actualizar'}
+              </button>
+            ) : null}
+          </div>
           {!inbox?.connected ? (
             <div className="day-strip__inbox-state">
               <p className="day-strip__inbox-lead">Gmail aún no está conectado</p>
@@ -260,34 +347,52 @@ export function DayStrip({
                 Reconectar Gmail
               </a>
             </div>
-          ) : inbox.messages.length === 0 ? (
-            <div className="day-strip__inbox-state">
-              <p className="day-strip__inbox-lead">Bandeja tranquila</p>
-              <p className="muted">Sin unread de los últimos días.</p>
-            </div>
           ) : (
-            <ul className="day-strip__inbox">
-              {inbox.messages.map((m) => (
-                <li key={m.id}>
-                  <a
-                    href={m.permalink}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="day-strip__task-link"
-                  >
-                    {m.subject}
-                  </a>
-                  <span className="day-strip__tag muted">{m.from}</span>
-                  <button
-                    type="button"
-                    className="ghost day-strip__inbox-read"
-                    onClick={() => void markRead(m.id)}
-                  >
-                    Leído
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <>
+              <div className="day-strip__inbox-digest">
+                {digestLoading && shownSummary.length === 0 ? (
+                  <p className="muted">Jone está mirando el correo…</p>
+                ) : digestError && shownSummary.length === 0 ? (
+                  <p className="muted">{digestError}</p>
+                ) : shownSummary.length > 0 ? (
+                  <ul className="day-strip__inbox-summary">
+                    {shownSummary.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="muted">Sin resumen aún.</p>
+                )}
+              </div>
+              {inbox.messages.length > 0 ? (
+                <ul className="day-strip__inbox">
+                  {inbox.messages.map((m) => (
+                    <li key={m.id}>
+                      <a
+                        href={m.permalink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="day-strip__task-link"
+                      >
+                        {m.subject}
+                      </a>
+                      <span className="day-strip__tag muted">{m.from}</span>
+                      <button
+                        type="button"
+                        className="ghost day-strip__inbox-read"
+                        onClick={() => void markRead(m.id)}
+                      >
+                        Leído
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="muted day-strip__inbox-empty">
+                  Sin unread de los últimos días.
+                </p>
+              )}
+            </>
           )}
         </div>
 
