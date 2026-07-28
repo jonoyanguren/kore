@@ -1799,6 +1799,46 @@ a.more-drawer__btn {
   box-sizing: border-box;
 }
 
+.day-strip__inbox-state {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.65rem;
+  background: rgba(21, 32, 43, 0.04);
+}
+
+.day-strip__inbox-state--warn {
+  background: rgba(139, 90, 43, 0.08);
+}
+
+.day-strip__inbox-lead {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.day-strip__inbox-state .muted {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.day-strip__inbox-cta {
+  align-self: flex-start;
+  margin-top: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.more-drawer__gmail-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
 .day-strip__inbox li {
   display: grid;
   grid-template-columns: 1fr auto;

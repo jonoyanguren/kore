@@ -22,7 +22,11 @@ from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.config import settings
-from app.integrations.gmail.client import GmailConfigError, GmailNotConnectedError
+from app.integrations.gmail.client import (
+    GmailApiError,
+    GmailConfigError,
+    GmailNotConnectedError,
+)
 from app.integrations.gmail.oauth import (
     build_authorize_url,
     consume_oauth_state,
@@ -417,13 +421,25 @@ async def day_snapshot(request: Request) -> dict[str, Any]:
 
     briefing = await build_day_briefing(memory, vault)
 
-    inbox: dict[str, Any] = {"connected": False, "messages": [], "error": None}
+    inbox: dict[str, Any] = {
+        "connected": False,
+        "messages": [],
+        "error": None,
+        "error_code": None,
+        "gmail_ready": False,
+    }
     gmail = getattr(request.app.state, "gmail", None)
     if gmail is not None:
         st = gmail.status()
         inbox["connected"] = bool(st.get("connected"))
         inbox["email"] = st.get("email") or ""
-        if inbox["connected"]:
+        inbox["gmail_ready"] = bool(st.get("gmail_ready"))
+        if inbox["connected"] and not inbox["gmail_ready"]:
+            inbox["error_code"] = "needs_reconnect"
+            inbox["error"] = (
+                "Falta permiso de Gmail. Desconecta y vuelve a conectar en Más → Gmail."
+            )
+        elif inbox["connected"]:
             try:
                 msgs = await gmail.list_messages(
                     query="is:unread newer_than:2d", max_results=5
@@ -439,8 +455,17 @@ async def day_snapshot(request: Request) -> dict[str, Any]:
                     }
                     for m in msgs
                 ]
-            except Exception as exc:
+            except GmailApiError as exc:
+                inbox["error_code"] = exc.code
+                inbox["error"] = exc.message
+            except (GmailNotConnectedError, GmailConfigError) as exc:
+                inbox["error_code"] = "auth"
                 inbox["error"] = str(exc)
+            except Exception:
+                inbox["error_code"] = "api"
+                inbox["error"] = (
+                    "No se pudo cargar el correo. Revisa Más → Gmail."
+                )
 
     return {
         "today": today,
@@ -784,6 +809,16 @@ async def gmail_inbox(
         raise HTTPException(status.HTTP_409_CONFLICT, detail="gmail_not_connected") from None
     except GmailConfigError as exc:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from None
+    except GmailApiError as exc:
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            detail={"code": exc.code, "message": exc.message},
+        ) from None
+    except Exception:
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            detail={"code": "api", "message": "Gmail no respondió bien ahora."},
+        ) from None
     return {
         "query": q,
         "messages": [

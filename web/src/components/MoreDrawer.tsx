@@ -67,6 +67,15 @@ export function MoreDrawer({
           ) : gmail.connected ? (
             <div className="more-drawer__gmail">
               <p className="more-drawer__gmail-email">{gmail.email || 'Conectado'}</p>
+              {gmail.gmail_ready === false ? (
+                <p className="more-drawer__gmail-hint muted">
+                  Falta permiso de correo. Desconecta y vuelve a conectar para
+                  autorizar Gmail.
+                </p>
+              ) : null}
+              <a className="more-drawer__btn" href="/api/gmail/connect">
+                Reconectar
+              </a>
               <button
                 type="button"
                 className="more-drawer__btn"
@@ -76,7 +85,12 @@ export function MoreDrawer({
                   void apiGmailDisconnect().then((ok) => {
                     setGmailBusy(false)
                     if (ok) {
-                      setGmail({ ...gmail, connected: false, email: '' })
+                      setGmail({
+                        ...gmail,
+                        connected: false,
+                        email: '',
+                        gmail_ready: false,
+                      })
                     }
                   })
                 }}

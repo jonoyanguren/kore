@@ -241,11 +241,30 @@ export function DayStrip({
         <div className="day-strip__block">
           <h3>Inbox</h3>
           {!inbox?.connected ? (
-            <p className="muted">Conecta Gmail en Más → Gmail</p>
+            <div className="day-strip__inbox-state">
+              <p className="day-strip__inbox-lead">Gmail aún no está conectado</p>
+              <p className="muted">Ábrelo en Más → Gmail para ver unread aquí.</p>
+            </div>
           ) : inbox.error ? (
-            <p className="muted">Error: {inbox.error}</p>
+            <div className="day-strip__inbox-state day-strip__inbox-state--warn">
+              <p className="day-strip__inbox-lead">
+                {inbox.error_code === 'needs_reconnect'
+                  ? 'Hay que volver a autorizar Gmail'
+                  : 'No se pudo cargar el correo'}
+              </p>
+              <p className="muted">
+                {inbox.error ||
+                  'En Más → Gmail, desconecta y vuelve a conectar.'}
+              </p>
+              <a className="day-strip__inbox-cta" href="/api/gmail/connect">
+                Reconectar Gmail
+              </a>
+            </div>
           ) : inbox.messages.length === 0 ? (
-            <p className="muted">Sin unread recientes</p>
+            <div className="day-strip__inbox-state">
+              <p className="day-strip__inbox-lead">Bandeja tranquila</p>
+              <p className="muted">Sin unread de los últimos días.</p>
+            </div>
           ) : (
             <ul className="day-strip__inbox">
               {inbox.messages.map((m) => (

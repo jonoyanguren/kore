@@ -55,11 +55,14 @@ class GmailClient:
 
     def status(self) -> dict[str, Any]:
         tokens = self._tokens.load()
+        scope = (tokens.scope if tokens else "") or ""
+        has_gmail = "gmail" in scope.lower()
         return {
             "configured": self.configured(),
             "connected": bool(tokens and tokens.refresh_token),
             "email": (tokens.email if tokens else "") or "",
-            "scope": "gmail.modify",
+            "scope": scope or "—",
+            "gmail_ready": bool(tokens and tokens.refresh_token and has_gmail),
         }
 
     async def _access_headers(self) -> dict[str, str]:
@@ -76,6 +79,9 @@ class GmailClient:
                 refresh_token=tokens.refresh_token,
             )
             refreshed.email = tokens.email
+            # Keep prior scope if refresh omits it
+            if not refreshed.scope and tokens.scope:
+                refreshed.scope = tokens.scope
             self._tokens.save(refreshed)
             tokens = refreshed
         return {"Authorization": f"Bearer {tokens.access_token}"}
@@ -92,7 +98,8 @@ class GmailClient:
             headers=headers,
             params={"q": query, "maxResults": max(1, min(max_results, 50))},
         )
-        list_resp.raise_for_status()
+        if list_resp.status_code >= 400:
+            raise _gmail_http_error(list_resp)
         ids = [m["id"] for m in list_resp.json().get("messages") or []]
         out: list[GmailMessage] = []
         for mid in ids:
@@ -110,7 +117,8 @@ class GmailClient:
         )
         if response.status_code == 404:
             return None
-        response.raise_for_status()
+        if response.status_code >= 400:
+            raise _gmail_http_error(response)
         return _parse_message(response.json())
 
     async def mark_read(self, message_id: str) -> bool:
@@ -122,7 +130,8 @@ class GmailClient:
         )
         if response.status_code == 404:
             return False
-        response.raise_for_status()
+        if response.status_code >= 400:
+            raise _gmail_http_error(response)
         return True
 
     async def save_tokens(self, tokens: GmailTokens) -> None:
@@ -135,6 +144,38 @@ class GmailClient:
 
     def disconnect(self) -> None:
         self._tokens.clear()
+
+
+class GmailApiError(RuntimeError):
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+        self.message = message
+
+
+def _gmail_http_error(response: httpx.Response) -> GmailApiError:
+    body = ""
+    try:
+        body = response.text[:500]
+    except Exception:
+        pass
+    low = body.lower()
+    if response.status_code == 403 and (
+        "insufficient" in low or "access_token_scope_insufficient" in low
+    ):
+        return GmailApiError(
+            "needs_reconnect",
+            "Falta permiso de Gmail. Desconecta y vuelve a conectar en Más → Gmail.",
+        )
+    if response.status_code in {401, 403}:
+        return GmailApiError(
+            "auth",
+            "No se pudo acceder a Gmail. Prueba reconectar en Más → Gmail.",
+        )
+    return GmailApiError(
+        "api",
+        "Gmail no respondió bien ahora. Prueba en un momento.",
+    )
 
 
 def _header_map(payload: dict[str, Any]) -> dict[str, str]:

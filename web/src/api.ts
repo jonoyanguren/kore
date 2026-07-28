@@ -284,6 +284,7 @@ export type DaySnapshot = {
   inbox?: {
     connected: boolean
     email?: string
+    gmail_ready?: boolean
     messages: {
       id: string
       subject: string
@@ -293,6 +294,7 @@ export type DaySnapshot = {
       permalink: string
     }[]
     error?: string | null
+    error_code?: string | null
   }
   server_now: string
 }
@@ -302,6 +304,7 @@ export type GmailStatus = {
   connected: boolean
   email: string
   scope: string
+  gmail_ready?: boolean
 }
 
 export async function apiGmailStatus(): Promise<GmailStatus> {
