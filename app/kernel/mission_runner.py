@@ -86,7 +86,9 @@ async def _research_tick(
             "Respuesta = SOLO el markdown del borrador (puedes incluir # título)."
         )
 
-    model = resolve_model(strong=True)
+    # Daily (DeepSeek) while dogfooding — Sonnet was ~$2+/mission with tool loops.
+    # Revisit: strong on final tick only if quality needs it.
+    model = resolve_model(strong=False)
     logger.info(
         "Mission %s tick %s/%s model=%s final=%s",
         mission.id,

@@ -95,6 +95,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-28 | Misiones: ticks con **daily** (DeepSeek) mientras dogfood — Sonnet salía ~$2+/misión |
 | 2026-07-28 | Misiones: loop con web_search/fetch + strong model; Relanzar |
 | 2026-07-28 | Misiones esqueleto: layout + SQLite/vault + runner stub + cancelar |
 | 2026-07-28 | D19–D21: Nueva en layout Misiones; SQLite+vault; ticks en el tiempo; ocultar terminadas |
