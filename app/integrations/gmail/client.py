@@ -2,17 +2,25 @@
 
 from __future__ import annotations
 
+import base64
 import logging
-from dataclasses import dataclass
-from email.utils import parsedate_to_datetime
+import re
 import time
+from dataclasses import dataclass
+from email.mime.text import MIMEText
+from email.utils import parsedate_to_datetime
 from typing import Any
 
 import httpx
 
 from app.config import settings
 from app.integrations.gmail.oauth import refresh_access_token
-from app.integrations.gmail.tokens import GmailTokenStore, GmailTokens
+from app.integrations.gmail.tokens import (
+    GmailTokenStore,
+    GmailTokens,
+    scope_can_send,
+    scope_has_gmail,
+)
 from app.integrations.gmail.triage_log import (
     MarkedReadEntry,
     append_marked_read,
@@ -34,6 +42,14 @@ class GmailMessage:
     date: str
     unread: bool
     permalink: str
+
+
+@dataclass
+class GmailMessageDetail(GmailMessage):
+    body_text: str = ""
+    reply_to: str = ""
+    message_id_header: str = ""
+    references: str = ""
 
 
 class GmailNotConnectedError(RuntimeError):
@@ -62,13 +78,14 @@ class GmailClient:
     def status(self) -> dict[str, Any]:
         tokens = self._tokens.load()
         scope = (tokens.scope if tokens else "") or ""
-        has_gmail = "gmail" in scope.lower()
+        has_gmail = scope_has_gmail(scope)
         return {
             "configured": self.configured(),
             "connected": bool(tokens and tokens.refresh_token),
             "email": (tokens.email if tokens else "") or "",
             "scope": scope or "—",
             "gmail_ready": bool(tokens and tokens.refresh_token and has_gmail),
+            "can_send": bool(tokens and tokens.refresh_token and scope_can_send(scope)),
         }
 
     async def _access_headers(self) -> dict[str, str]:
@@ -85,9 +102,13 @@ class GmailClient:
                 refresh_token=tokens.refresh_token,
             )
             refreshed.email = tokens.email
-            # Keep prior scope if refresh omits it
             if not refreshed.scope and tokens.scope:
                 refreshed.scope = tokens.scope
+            elif refreshed.scope and tokens.scope and refreshed.scope != tokens.scope:
+                merged = " ".join(
+                    dict.fromkeys(f"{tokens.scope} {refreshed.scope}".split())
+                )
+                refreshed.scope = merged
             self._tokens.save(refreshed)
             tokens = refreshed
         return {"Authorization": f"Bearer {tokens.access_token}"}
@@ -126,6 +147,50 @@ class GmailClient:
         if response.status_code >= 400:
             raise _gmail_http_error(response)
         return _parse_message(response.json())
+
+    async def get_message_detail(self, message_id: str) -> GmailMessageDetail | None:
+        headers = await self._access_headers()
+        response = await self._http.get(
+            f"{GMAIL_API}/users/me/messages/{message_id}",
+            headers=headers,
+            params={"format": "full"},
+        )
+        if response.status_code == 404:
+            return None
+        if response.status_code >= 400:
+            raise _gmail_http_error(response)
+        return _parse_message_detail(response.json())
+
+    async def send_reply(
+        self,
+        *,
+        to: str,
+        subject: str,
+        body: str,
+        thread_id: str,
+        in_reply_to: str = "",
+        references: str = "",
+    ) -> str:
+        mime = MIMEText(body, _charset="utf-8")
+        mime["To"] = to
+        mime["Subject"] = subject
+        if in_reply_to:
+            mime["In-Reply-To"] = in_reply_to
+        if references:
+            mime["References"] = references
+        raw = base64.urlsafe_b64encode(mime.as_bytes()).decode("ascii").rstrip("=")
+        headers = await self._access_headers()
+        payload: dict[str, Any] = {"raw": raw}
+        if thread_id:
+            payload["threadId"] = thread_id
+        response = await self._http.post(
+            f"{GMAIL_API}/users/me/messages/send",
+            headers=headers,
+            json=payload,
+        )
+        if response.status_code >= 400:
+            raise _gmail_http_error(response)
+        return str(response.json().get("id") or "")
 
     async def mark_read(
         self,
@@ -236,3 +301,71 @@ def _parse_message(payload: dict[str, Any]) -> GmailMessage:
         unread="UNREAD" in label_ids,
         permalink=f"https://mail.google.com/mail/u/0/#inbox/{mid}",
     )
+
+
+def _parse_message_detail(payload: dict[str, Any]) -> GmailMessageDetail:
+    base = _parse_message(payload)
+    headers = _header_map(payload)
+    return GmailMessageDetail(
+        id=base.id,
+        thread_id=base.thread_id,
+        subject=base.subject,
+        from_=base.from_,
+        snippet=base.snippet,
+        date=base.date,
+        unread=base.unread,
+        permalink=base.permalink,
+        body_text=_extract_body_text(payload.get("payload") or {}),
+        reply_to=headers.get("reply-to") or "",
+        message_id_header=headers.get("message-id") or "",
+        references=headers.get("references") or headers.get("in-reply-to") or "",
+    )
+
+
+def _b64url_decode(data: str) -> bytes:
+    padded = data + "=" * (-len(data) % 4)
+    return base64.urlsafe_b64decode(padded.encode("ascii"))
+
+
+def _strip_html(html: str) -> str:
+    text = re.sub(r"(?is)<(script|style).*?>.*?</\1>", " ", html)
+    text = re.sub(r"(?i)<br\s*/?>", "\n", text)
+    text = re.sub(r"(?i)</p>", "\n\n", text)
+    text = re.sub(r"(?s)<[^>]+>", " ", text)
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return re.sub(r"[ \t]{2,}", " ", text).strip()
+
+
+def _extract_body_text(payload: dict[str, Any]) -> str:
+    plain_parts: list[str] = []
+    html_parts: list[str] = []
+
+    def walk(part: dict[str, Any]) -> None:
+        mime = str(part.get("mimeType") or "").lower()
+        body = part.get("body") or {}
+        data = body.get("data")
+        if data and mime.startswith("text/plain"):
+            try:
+                plain_parts.append(
+                    _b64url_decode(str(data)).decode("utf-8", errors="replace")
+                )
+            except Exception:
+                pass
+        elif data and mime.startswith("text/html"):
+            try:
+                html_parts.append(
+                    _b64url_decode(str(data)).decode("utf-8", errors="replace")
+                )
+            except Exception:
+                pass
+        for child in part.get("parts") or []:
+            if isinstance(child, dict):
+                walk(child)
+
+    walk(payload)
+    if plain_parts:
+        return "\n\n".join(p.strip() for p in plain_parts if p.strip()).strip()
+    if html_parts:
+        return _strip_html("\n\n".join(html_parts))
+    return ""

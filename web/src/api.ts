@@ -286,6 +286,7 @@ export type DaySnapshot = {
     connected: boolean
     email?: string
     gmail_ready?: boolean
+    can_send?: boolean
     messages: {
       id: string
       subject: string
@@ -314,6 +315,7 @@ export type GmailStatus = {
   email: string
   scope: string
   gmail_ready?: boolean
+  can_send?: boolean
 }
 
 export async function apiGmailStatus(): Promise<GmailStatus> {
@@ -349,6 +351,66 @@ export async function apiGmailToTask(
   })
   if (!r.ok) throw new Error(`No se pudo crear la tarea (${r.status})`)
   return { task: r.data.task, email: r.data.email }
+}
+
+export type GmailReplyDraft = {
+  message_id: string
+  thread_id: string
+  to: string
+  subject: string
+  body: string
+  from: string
+  permalink: string
+}
+
+async function gmailReplyError(res: Response, fallback: string): Promise<Error> {
+  try {
+    const j = (await res.json()) as {
+      detail?: string | { code?: string; message?: string }
+    }
+    if (typeof j.detail === 'string') return new Error(j.detail)
+    if (j.detail?.message) return new Error(j.detail.message)
+    if (j.detail?.code === 'needs_send_scope') {
+      return new Error(
+        'Falta permiso de envío. Desconecta y reconecta Gmail en Más.',
+      )
+    }
+  } catch {
+    /* ignore */
+  }
+  return new Error(`${fallback} (${res.status})`)
+}
+
+export async function apiGmailReplyDraft(
+  messageId: string,
+): Promise<GmailReplyDraft> {
+  const res = await fetch(
+    `/api/gmail/messages/${encodeURIComponent(messageId)}/reply-draft`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    },
+  )
+  if (!res.ok) throw await gmailReplyError(res, 'No se pudo preparar la respuesta')
+  return (await res.json()) as GmailReplyDraft
+}
+
+export async function apiGmailReplySend(
+  messageId: string,
+  body: string,
+): Promise<{ ok: boolean; to: string; subject: string }> {
+  const res = await fetch(
+    `/api/gmail/messages/${encodeURIComponent(messageId)}/reply`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body }),
+    },
+  )
+  if (!res.ok) throw await gmailReplyError(res, 'No se pudo enviar')
+  return (await res.json()) as { ok: boolean; to: string; subject: string }
 }
 
 export async function apiDay(): Promise<DaySnapshot> {

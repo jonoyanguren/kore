@@ -58,7 +58,7 @@ def test_oauth_state_csrf():
         assert not consume_oauth_state(db, state)
 
 
-def test_authorize_url_includes_modify_scope():
+def test_authorize_url_includes_modify_and_send_scope():
     url = build_authorize_url(
         client_id="cid",
         redirect_uri="https://kore.fly.dev/api/gmail/callback",
@@ -66,6 +66,7 @@ def test_authorize_url_includes_modify_scope():
     )
     assert "accounts.google.com" in url
     assert "gmail.modify" in url
+    assert "gmail.send" in url
     assert "access_type=offline" in url
     assert "prompt=consent" in url
     assert "state=abc" in url

@@ -70,6 +70,13 @@ Pendiente 1.6 → UI viva (aparte) / fricciones dogfood.
 - Log triage: `gmail_marked_read.jsonl` + Día «Marcados leídos hoy» + tool `list_marked_read`
 - Aplazado (Parking): triage auto labels, send, multi-cuenta, digest IA Día
 
+## 2026-07-28 — Gmail D17 reply
+
+- Scope OAuth + `gmail.send` (reconectar una vez)
+- Día: **Responder** → LLM borrador editable → **Enviar**
+- API: `POST .../reply-draft` + `POST .../reply`
+- Sin compose frío ni send desde chat
+
 ## Prompting (baseline cerrado)
 
 - `personality.md`, `kimay.md`, Datafine, `slow-project.md`, `investing.md` (azValor baseline)

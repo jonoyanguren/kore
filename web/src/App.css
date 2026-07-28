@@ -1879,6 +1879,44 @@ a.more-drawer__btn {
   cursor: wait;
 }
 
+.day-strip__reply {
+  margin-top: 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(21, 32, 43, 0.12);
+  border-radius: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  background: rgba(21, 32, 43, 0.03);
+}
+
+.day-strip__reply-meta {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.day-strip__reply-body {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 8rem;
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.4rem;
+  border: 1px solid rgba(21, 32, 43, 0.15);
+  background: #fff;
+  color: inherit;
+}
+
+.day-strip__reply-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
 .day-strip__inbox-state {
   display: flex;
   flex-direction: column;

@@ -51,7 +51,7 @@
 3. Independiente de Gmail (ya cerrado)
 
 **Gmail MVP (cerrado):** OAuth `gmail.modify` · lista unread + Leído/Tarea · `/inbox` · dream Inbox · log marcados leídos.  
-**Gmail next (D17):** reply — entiende mail → propone texto editable → envía (scope `gmail.send` + reconectar).  
+**Gmail D17 (reply):** Día **Responder** → borrador editable → Enviar (`gmail.send`; reconectar OAuth una vez).  
 Aplazado → Parking: triage auto labels, compose frío, multi-cuenta, digest IA Día.
 
 **1.6:** dogfood OK; UI viva = rediseño aparte; fricciones = miguitas.
@@ -80,6 +80,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-28 | D17 shipped: Responder en Día (borrador editable + gmail.send) |
 | 2026-07-28 | D17: Gmail send = reply/answer (borrador editable), no compose frío |
 | 2026-07-28 | **Phase 2 Gmail MVP cerrado** → siguiente = Misiones |
 | 2026-07-28 | Gmail triage log: marcados leídos (Día + tool) |

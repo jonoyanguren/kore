@@ -1,4 +1,4 @@
-"""Gmail OAuth + REST client (scope gmail.modify)."""
+"""Gmail OAuth + REST client (modify + send)."""
 
 from app.integrations.gmail.client import GmailClient, GmailMessage
 from app.integrations.gmail.tokens import GmailTokenStore, token_path_for_db

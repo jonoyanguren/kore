@@ -18,10 +18,11 @@ Fricciones nuevas → ítems sueltos arriba o Parking.
 - [ ] Primer loop background (crear → correr → reportar)
 - [ ] Confirmaciones donde haga falta
 
-## Gmail next (D17 — cuando toque)
+## Gmail next (D17)
 
-- [ ] **Reply:** leer mail → borrador IA editable → confirmar → send (`gmail.send` + reconectar OAuth)
-- [ ] Superficie: botón en Día Inbox y/o tool chat
+- [x] **Reply:** leer mail → borrador IA editable → confirmar → send (`gmail.send` + reconectar OAuth)
+- [x] Superficie: botón **Responder** en Día Inbox
+- [ ] Triage auto labels (Parking)
 
 ## P4+ — Después
 

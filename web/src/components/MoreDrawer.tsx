@@ -72,6 +72,10 @@ export function MoreDrawer({
                   Falta permiso de correo. Desconecta y vuelve a conectar para
                   autorizar Gmail.
                 </p>
+              ) : gmail.can_send === false ? (
+                <p className="more-drawer__gmail-hint muted">
+                  Para responder mails: reconecta y acepta el permiso de envío.
+                </p>
               ) : null}
               <a className="more-drawer__btn" href="/api/gmail/connect">
                 Reconectar

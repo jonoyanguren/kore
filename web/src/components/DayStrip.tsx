@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react'
 import {
   apiDay,
   apiGmailMarkRead,
+  apiGmailReplyDraft,
+  apiGmailReplySend,
   apiGmailToTask,
   type DaySnapshot,
+  type GmailReplyDraft,
 } from '../api'
 import { formatWhen } from '../dates'
 import { ProjectChip } from './ProjectChip'
@@ -32,6 +35,9 @@ export function DayStrip({
   const [day, setDay] = useState<DaySnapshot | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [reply, setReply] = useState<GmailReplyDraft | null>(null)
+  const [replyBody, setReplyBody] = useState('')
+  const [replyBusy, setReplyBusy] = useState(false)
   const toast = useToast()
 
   useEffect(() => {
@@ -142,6 +148,70 @@ export function DayStrip({
       toast.err(String(e))
     } finally {
       setBusyId(null)
+    }
+  }
+
+  async function openReply(id: string) {
+    if (busyId || replyBusy) return
+    if (day?.inbox && day.inbox.can_send === false) {
+      toast.err(
+        'Falta permiso de envío. Desconecta y reconecta Gmail en Más.',
+      )
+      return
+    }
+    setBusyId(id)
+    try {
+      const draft = await apiGmailReplyDraft(id)
+      setReply(draft)
+      setReplyBody(draft.body)
+    } catch (e) {
+      toast.err(String(e))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function sendReply() {
+    if (!reply || replyBusy) return
+    const text = replyBody.trim()
+    if (!text) {
+      toast.err('El cuerpo está vacío')
+      return
+    }
+    setReplyBusy(true)
+    try {
+      const sent = await apiGmailReplySend(reply.message_id, text)
+      toast.ok(`Enviado a ${sent.to}`)
+      const id = reply.message_id
+      const msg = day?.inbox?.messages.find((m) => m.id === id)
+      if (day?.inbox) {
+        setDay({
+          ...day,
+          inbox: {
+            ...day.inbox,
+            messages: day.inbox.messages.filter((m) => m.id !== id),
+            marked_read_today: msg
+              ? [
+                  {
+                    at: Date.now() / 1000,
+                    message_id: id,
+                    subject: msg.subject,
+                    from: msg.from,
+                    permalink: msg.permalink,
+                    reason: 'reply',
+                  },
+                  ...(day.inbox.marked_read_today ?? []),
+                ]
+              : day.inbox.marked_read_today,
+          },
+        })
+      }
+      setReply(null)
+      setReplyBody('')
+    } catch (e) {
+      toast.err(String(e))
+    } finally {
+      setReplyBusy(false)
     }
   }
 
@@ -359,9 +429,19 @@ export function DayStrip({
                     <button
                       type="button"
                       className="ghost day-strip__inbox-task"
+                      title="Responder"
+                      aria-label="Responder"
+                      disabled={busyId === m.id || replyBusy}
+                      onClick={() => void openReply(m.id)}
+                    >
+                      {busyId === m.id && !reply ? '…' : 'Responder'}
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost day-strip__inbox-task"
                       title="Pasar a tarea"
                       aria-label="Pasar a tarea"
-                      disabled={busyId === m.id}
+                      disabled={busyId === m.id || replyBusy}
                       onClick={() => void toTask(m.id)}
                     >
                       <span aria-hidden="true">☑</span>
@@ -372,7 +452,7 @@ export function DayStrip({
                     <button
                       type="button"
                       className="ghost day-strip__inbox-read"
-                      disabled={busyId === m.id}
+                      disabled={busyId === m.id || replyBusy}
                       onClick={() => void markRead(m.id)}
                     >
                       Leído
@@ -381,6 +461,42 @@ export function DayStrip({
                 </li>
               ))}
               </ul>
+              {reply ? (
+                <div className="day-strip__reply">
+                  <p className="day-strip__reply-meta">
+                    <strong>Para</strong> {reply.to}
+                    <span className="muted"> · {reply.subject}</span>
+                  </p>
+                  <textarea
+                    className="day-strip__reply-body"
+                    rows={8}
+                    value={replyBody}
+                    onChange={(e) => setReplyBody(e.target.value)}
+                    disabled={replyBusy}
+                    aria-label="Borrador de respuesta"
+                  />
+                  <div className="day-strip__reply-actions">
+                    <button
+                      type="button"
+                      className="ghost"
+                      disabled={replyBusy}
+                      onClick={() => {
+                        setReply(null)
+                        setReplyBody('')
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      disabled={replyBusy || !replyBody.trim()}
+                      onClick={() => void sendReply()}
+                    >
+                      {replyBusy ? 'Enviando…' : 'Enviar'}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </>
           )}
           {markedToday.length > 0 ? (
@@ -398,7 +514,11 @@ export function DayStrip({
                       {e.subject}
                     </a>
                     <span className="day-strip__tag muted">
-                      {e.reason === 'task' ? '→ tarea' : e.from}
+                      {e.reason === 'task'
+                        ? '→ tarea'
+                        : e.reason === 'reply'
+                          ? '→ reply'
+                          : e.from}
                     </span>
                   </li>
                 ))}

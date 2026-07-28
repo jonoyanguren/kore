@@ -34,6 +34,7 @@ from app.integrations.gmail.oauth import (
     exchange_code,
 )
 from app.integrations.gmail.to_task import create_task_from_email
+from app.integrations.gmail.reply import draft_reply, send_reply
 from app.integrations.gmail.triage_log import (
     list_marked_read,
     marked_read_path_for_db,
@@ -433,6 +434,7 @@ async def day_snapshot(request: Request) -> dict[str, Any]:
         "error": None,
         "error_code": None,
         "gmail_ready": False,
+        "can_send": False,
         "marked_read_today": [],
     }
     gmail = getattr(request.app.state, "gmail", None)
@@ -441,6 +443,7 @@ async def day_snapshot(request: Request) -> dict[str, Any]:
         inbox["connected"] = bool(st.get("connected"))
         inbox["email"] = st.get("email") or ""
         inbox["gmail_ready"] = bool(st.get("gmail_ready"))
+        inbox["can_send"] = bool(st.get("can_send"))
         if inbox["connected"] and not inbox["gmail_ready"]:
             inbox["error_code"] = "needs_reconnect"
             inbox["error"] = (
@@ -782,6 +785,83 @@ async def gmail_to_task(request: Request, message_id: str) -> dict[str, Any]:
             )
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail=err)
     return result
+
+
+class GmailReplyBody(BaseModel):
+    body: str = Field(min_length=1, max_length=20000)
+
+
+@router.post(
+    "/gmail/messages/{message_id}/reply-draft",
+    dependencies=[Depends(require_console_auth)],
+)
+async def gmail_reply_draft(request: Request, message_id: str) -> dict[str, Any]:
+    """LLM proposes an editable reply body for a Gmail message."""
+    gmail = getattr(request.app.state, "gmail", None)
+    llm = getattr(request.app.state, "llm_client", None)
+    if gmail is None or llm is None:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="gmail_unavailable")
+    st = gmail.status()
+    if not st.get("can_send"):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "needs_send_scope",
+                "message": "Falta permiso de envío. Desconecta y reconecta Gmail en Más.",
+            },
+        )
+    try:
+        return await draft_reply(gmail=gmail, llm=llm, message_id=message_id)
+    except LookupError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="message_not_found") from None
+    except GmailNotConnectedError:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="gmail_not_connected") from None
+    except GmailConfigError as exc:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from None
+    except GmailApiError as exc:
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            detail={"code": exc.code, "message": exc.message},
+        ) from None
+
+
+@router.post(
+    "/gmail/messages/{message_id}/reply",
+    dependencies=[Depends(require_console_auth)],
+)
+async def gmail_reply_send(
+    request: Request,
+    message_id: str,
+    payload: GmailReplyBody,
+) -> dict[str, Any]:
+    """Send a reply with the (edited) body. Requires gmail.send scope."""
+    gmail = getattr(request.app.state, "gmail", None)
+    if gmail is None:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="gmail_unavailable")
+    st = gmail.status()
+    if not st.get("can_send"):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "needs_send_scope",
+                "message": "Falta permiso de envío. Desconecta y reconecta Gmail en Más.",
+            },
+        )
+    try:
+        return await send_reply(gmail=gmail, message_id=message_id, body=payload.body)
+    except LookupError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="message_not_found") from None
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+    except GmailNotConnectedError:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="gmail_not_connected") from None
+    except GmailConfigError as exc:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from None
+    except GmailApiError as exc:
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            detail={"code": exc.code, "message": exc.message},
+        ) from None
 
 
 @router.get("/gmail/connect", dependencies=[Depends(require_console_auth)])
