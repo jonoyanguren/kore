@@ -281,7 +281,48 @@ export type DaySnapshot = {
   agenda: { id: number; starts_at: string; title: string; status: string }[]
   briefing: DayBriefing
   dream: { day: string | null; excerpt: string | null } | null
+  inbox?: {
+    connected: boolean
+    email?: string
+    messages: {
+      id: string
+      subject: string
+      from: string
+      snippet: string
+      date: string
+      permalink: string
+    }[]
+    error?: string | null
+  }
   server_now: string
+}
+
+export type GmailStatus = {
+  configured: boolean
+  connected: boolean
+  email: string
+  scope: string
+}
+
+export async function apiGmailStatus(): Promise<GmailStatus> {
+  const r = await req<GmailStatus>('/api/gmail/status')
+  if (!r.ok) {
+    return { configured: false, connected: false, email: '', scope: 'gmail.modify' }
+  }
+  return r.data
+}
+
+export async function apiGmailDisconnect(): Promise<boolean> {
+  const r = await req<{ ok: boolean }>('/api/gmail/disconnect', { method: 'POST' })
+  return r.ok
+}
+
+export async function apiGmailMarkRead(messageId: string): Promise<boolean> {
+  const r = await req<{ ok: boolean }>(
+    `/api/gmail/messages/${encodeURIComponent(messageId)}/read`,
+    { method: 'POST' },
+  )
+  return r.ok
 }
 
 export async function apiDay(): Promise<DaySnapshot> {

@@ -18,10 +18,17 @@ from fastapi import (
     UploadFile,
     status,
 )
-from fastapi.responses import StreamingResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.config import settings
+from app.integrations.gmail.client import GmailConfigError, GmailNotConnectedError
+from app.integrations.gmail.oauth import (
+    build_authorize_url,
+    consume_oauth_state,
+    create_oauth_state,
+    exchange_code,
+)
 from app.kernel.briefing import build_day_briefing
 from app.llm.openrouter_credits import fetch_usage
 from app.llm.transcribe import MAX_AUDIO_BYTES, transcribe_audio
@@ -410,6 +417,31 @@ async def day_snapshot(request: Request) -> dict[str, Any]:
 
     briefing = await build_day_briefing(memory, vault)
 
+    inbox: dict[str, Any] = {"connected": False, "messages": [], "error": None}
+    gmail = getattr(request.app.state, "gmail", None)
+    if gmail is not None:
+        st = gmail.status()
+        inbox["connected"] = bool(st.get("connected"))
+        inbox["email"] = st.get("email") or ""
+        if inbox["connected"]:
+            try:
+                msgs = await gmail.list_messages(
+                    query="is:unread newer_than:2d", max_results=5
+                )
+                inbox["messages"] = [
+                    {
+                        "id": m.id,
+                        "subject": m.subject,
+                        "from": m.from_,
+                        "snippet": m.snippet,
+                        "date": m.date,
+                        "permalink": m.permalink,
+                    }
+                    for m in msgs
+                ]
+            except Exception as exc:
+                inbox["error"] = str(exc)
+
     return {
         "today": today,
         "clock": clock,
@@ -427,6 +459,7 @@ async def day_snapshot(request: Request) -> dict[str, Any]:
             if briefing["has_dream"]
             else None
         ),
+        "inbox": inbox,
         "server_now": now_madrid().isoformat(),
     }
 
@@ -653,3 +686,157 @@ async def chat_stream(request: Request, body: ChatBody) -> StreamingResponse:
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# --- Gmail OAuth + inbox -------------------------------------------------
+
+
+@router.get("/gmail/status", dependencies=[Depends(require_console_auth)])
+async def gmail_status(request: Request) -> dict[str, Any]:
+    gmail = getattr(request.app.state, "gmail", None)
+    if gmail is None:
+        return {
+            "configured": bool(
+                settings.google_client_id.strip() and settings.google_client_secret.strip()
+            ),
+            "connected": False,
+            "email": "",
+            "scope": "gmail.modify",
+        }
+    return gmail.status()
+
+
+@router.get("/gmail/connect", dependencies=[Depends(require_console_auth)])
+async def gmail_connect(request: Request) -> RedirectResponse:
+    if not (
+        settings.google_client_id.strip() and settings.google_client_secret.strip()
+    ):
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Gmail OAuth not configured (GOOGLE_CLIENT_ID/SECRET)",
+        )
+    state = create_oauth_state(settings.storage_db_path)
+    url = build_authorize_url(
+        client_id=settings.google_client_id,
+        redirect_uri=settings.google_oauth_redirect_uri,
+        state=state,
+    )
+    return RedirectResponse(url, status_code=status.HTTP_302_FOUND)
+
+
+@router.get("/gmail/callback")
+async def gmail_callback(
+    request: Request,
+    code: str | None = None,
+    state: str | None = None,
+    error: str | None = None,
+) -> HTMLResponse:
+    """Google redirects here (no console auth — CSRF via oauth state)."""
+    if error:
+        return _gmail_oauth_result_page(ok=False, detail=error)
+    if not code or not state:
+        return _gmail_oauth_result_page(ok=False, detail="missing_code_or_state")
+    if not consume_oauth_state(settings.storage_db_path, state):
+        return _gmail_oauth_result_page(ok=False, detail="invalid_or_expired_state")
+
+    gmail = getattr(request.app.state, "gmail", None)
+    http = getattr(request.app.state, "http", None)
+    if gmail is None or http is None:
+        return _gmail_oauth_result_page(ok=False, detail="gmail_client_unavailable")
+
+    try:
+        tokens = await exchange_code(
+            http,
+            client_id=settings.google_client_id,
+            client_secret=settings.google_client_secret,
+            redirect_uri=settings.google_oauth_redirect_uri,
+            code=code,
+        )
+        await gmail.save_tokens(tokens)
+    except Exception as exc:
+        return _gmail_oauth_result_page(ok=False, detail=str(exc))
+
+    email = tokens.email or "Gmail"
+    return _gmail_oauth_result_page(ok=True, detail=email)
+
+
+@router.post("/gmail/disconnect", dependencies=[Depends(require_console_auth)])
+async def gmail_disconnect(request: Request) -> dict[str, Any]:
+    gmail = getattr(request.app.state, "gmail", None)
+    if gmail is None:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="gmail_unavailable")
+    gmail.disconnect()
+    return {"ok": True}
+
+
+@router.get("/gmail/inbox", dependencies=[Depends(require_console_auth)])
+async def gmail_inbox(
+    request: Request,
+    q: str = Query("is:unread newer_than:1d"),
+    limit: int = Query(15, ge=1, le=50),
+) -> dict[str, Any]:
+    gmail = getattr(request.app.state, "gmail", None)
+    if gmail is None:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="gmail_unavailable")
+    try:
+        messages = await gmail.list_messages(query=q, max_results=limit)
+    except GmailNotConnectedError:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="gmail_not_connected") from None
+    except GmailConfigError as exc:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from None
+    return {
+        "query": q,
+        "messages": [
+            {
+                "id": m.id,
+                "subject": m.subject,
+                "from": m.from_,
+                "snippet": m.snippet,
+                "date": m.date,
+                "unread": m.unread,
+                "permalink": m.permalink,
+            }
+            for m in messages
+        ],
+    }
+
+
+@router.post(
+    "/gmail/messages/{message_id}/read",
+    dependencies=[Depends(require_console_auth)],
+)
+async def gmail_mark_read(request: Request, message_id: str) -> dict[str, Any]:
+    gmail = getattr(request.app.state, "gmail", None)
+    if gmail is None:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="gmail_unavailable")
+    try:
+        ok = await gmail.mark_read(message_id)
+    except GmailNotConnectedError:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="gmail_not_connected") from None
+    except GmailConfigError as exc:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from None
+    if not ok:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="message_not_found")
+    return {"ok": True, "message_id": message_id}
+
+
+def _gmail_oauth_result_page(*, ok: bool, detail: str) -> HTMLResponse:
+    title = "Gmail conectado" if ok else "Gmail — error"
+    body = (
+        f"<p>Cuenta: <strong>{detail}</strong></p><p>Ya puedes cerrar esta pestaña.</p>"
+        if ok
+        else f"<p>No se pudo conectar: <code>{detail}</code></p>"
+    )
+    html = f"""<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>{title}</title>
+<style>
+body{{font-family:system-ui,sans-serif;max-width:28rem;margin:3rem auto;padding:0 1rem;line-height:1.45}}
+a{{color:inherit}}
+</style></head>
+<body>
+<h1>{title}</h1>
+{body}
+<p><a href="/">Volver a Kore</a></p>
+<script>try{{window.opener&&window.opener.postMessage({{type:'kore-gmail',ok:{str(ok).lower()}}},'*')}}catch(e){{}}</script>
+</body></html>"""
+    return HTMLResponse(html, status_code=200 if ok else 400)

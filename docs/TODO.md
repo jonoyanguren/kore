@@ -29,15 +29,24 @@ Fricciones nuevas → ítems sueltos arriba o Parking.
 - [x] **Proyectos** — slug en tareas; el modelo infiere (sin chips de espacio)
 - [x] **Privacidad** — overview, export vault zip, borrar categoría
 
-## P2 — Phase 2+
+## P2 — Phase 2 Gmail (MVP)
 
-- [ ] Gmail OAuth + digest + Inbox del día
+- [x] OAuth Google + refresh en `/data` — scope `gmail.modify`
+- [x] Cliente: listar hoy/unread + marcar leído
+- [x] Vista Día: bloque Inbox
+- [x] `/inbox` en chat (+ skill companion)
+- [ ] (Luego) digest en cron mañana → Día
+- [ ] Conectar cuenta en prod (Más → Gmail) + smoke real
+
+## P2+ — Después
+
 - [ ] Misiones background
 - [ ] Git/código con confirmación
 - [ ] Calendar / PDF / …
 
 ## Parking
 
+- Triage Gmail auto → labels/carpetas
 - Ampliar investing / Slow Project–Andrea / Datafine About
 - Agresividad de captura
 - Multi-modelo (imagen / code)

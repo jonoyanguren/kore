@@ -7,7 +7,7 @@
 |-------|--------|
 | Repo | `jonoyanguren/kore` |
 | Producto | **Kore** · hablado **Jone** (`ASSISTANT_NAME`) |
-| Fase actual | **1.6 UX personal** (P1 + dogfood en curso; pulir UI / Phase 2) |
+| Fase actual | **2 — Gmail** (MVP; 1.6 dogfood/UI en paralelo) |
 | Canal | Consola web = operar / día · Telegram = captura móvil opcional |
 | Deploy | Fly.io · `/data` |
 | LLM | OpenRouter · diario `deepseek/deepseek-v4-pro` · strong `claude-sonnet-4.6` (asks gordas + **dream**) |
@@ -29,7 +29,7 @@
 | # | Valor |
 |---|--------|
 | D1 | Companion kernel |
-| D2 | Gmail OAuth → `/data` |
+| D2 | Gmail OAuth (`gmail.modify`) → `/data` |
 | D3 | Git: este repo primero |
 | D4 | Kore (código) · Jone (hablado) |
 | D6 | Tasks propias (SQLite/vault); ClickUp aparcado |
@@ -43,9 +43,17 @@
 
 ## Roadmap (lean)
 
-**1.6 restante:** pulir UI; fricciones del dogfood. Luego Phase 2 Gmail.
+**Ahora — Phase 2 Gmail (MVP):**
+1. OAuth Google + refresh en `/data` (D2) — scope **`gmail.modify`** (leer + marcar leídas; no send)
+2. Inbox (hoy / unread) + marcar leído vía API / tools
+3. Superficie: sección en **vista Día** + comando `/inbox` (chat)
+4. Digest matutino → canal **Día** (mismo espíritu que dream; Telegram opcional)
 
-**2+:** Gmail digest · misiones · git confirmado · calendar/PDF.
+**Aplazado en P2:** triage automático a carpetas/labels, envío de mail, multi-cuenta.
+
+**Luego:** Misiones (Phase 3, independiente de Gmail) · Git · Calendar.
+
+**1.6:** dogfood OK; UI viva = rediseño aparte; fricciones = miguitas.
 
 Detalle de lo ya shipped → [`milestones.md`](./milestones.md).
 
@@ -55,11 +63,12 @@ Detalle de lo ya shipped → [`milestones.md`](./milestones.md).
 - [x] Day strip + chat vivo + tareas ricas + layouts + memoria drawer
 - [x] Voz one-tap · privacidad · mobile · gasto LLM en barra · proyecto inferido (sin chips)
 - [x] Dogfood: briefing en Día + consola como canal principal
-- [ ] Gmail · misión · git (más adelante)
+- [ ] Gmail OAuth + inbox en Día / `/inbox` (código shipped; falta conectar cuenta en prod)
+- [ ] Misión · git (más adelante)
 
 ## Next steps
 
-1. Elegir gorda siguiente: **Gmail** o **Misiones** (independientes)
+1. **Gmail MVP:** OAuth → `/data` → listar mail → Día + `/inbox`
 2. Fricciones dogfood → miguitas en `TODO.md`
 3. UI viva = rediseño aparte (no bloquea)
 
@@ -69,6 +78,8 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-28 | Gmail scope = `gmail.modify` (marcar leídas); esqueleto OAuth |
+| 2026-07-28 | Phase 2 = Gmail MVP (OAuth + Día/`/inbox`; triage auto aparcado) |
 | 2026-07-28 | UI polish pass 1: menos cabeceras; Board Lista/Columnas; Día chips |
 | 2026-07-28 | Dogfood marcado hecho (Jon usa consola a diario) |
 | 2026-07-28 | Dream sin `add_task` + dedupe vs done.md (no resucitar archivadas) |

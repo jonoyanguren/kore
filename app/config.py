@@ -60,6 +60,14 @@ class Settings(BaseSettings):
     # Cookie kore_console or Authorization: Bearer <secret>.
     console_secret: str = ""
 
+    # Gmail OAuth (Google Cloud OAuth client — Web application).
+    # Empty client id/secret = Gmail endpoints disabled (503).
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    # Must match authorized redirect URI in Google Cloud Console.
+    # Prod: https://kore.fly.dev/api/gmail/callback
+    google_oauth_redirect_uri: str = "https://kore.fly.dev/api/gmail/callback"
+
     # Also load skills/dev/*.md into the Telegram bot (default: Cursor-only).
     load_dev_skills: bool = False
 

@@ -23,6 +23,7 @@ def test_skills_load_and_catalog():
         "capture",
         "dream",
         "execute",
+        "inbox",
         "plan",
         "project-status",
         "tasks",

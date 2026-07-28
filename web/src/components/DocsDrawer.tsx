@@ -88,6 +88,7 @@ const CHAT_COMMANDS: CmdRow[] = [
   { cmd: '/agenda', desc: 'Próximos eventos de agenda' },
   { cmd: '/dream', desc: 'Sueño / briefing del día' },
   { cmd: '/sueno', desc: 'Alias de /dream' },
+  { cmd: '/inbox', desc: 'Gmail unread / marcar leído' },
   { cmd: '/captura', desc: 'Guardar en memoria o diario' },
   { cmd: '/diario', desc: 'Ver / añadir diario del día' },
   { cmd: '/hora', desc: 'Hora actual en Madrid' },

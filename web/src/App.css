@@ -1783,6 +1783,40 @@ button.ghost:hover {
   justify-content: flex-start;
 }
 
+.more-drawer__gmail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.more-drawer__gmail-email {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+a.more-drawer__btn {
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.day-strip__inbox li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.15rem 0.75rem;
+  align-items: baseline;
+}
+
+.day-strip__inbox .day-strip__tag {
+  grid-column: 1;
+}
+
+.day-strip__inbox-read {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-size: 0.8rem;
+}
+
 .docs-drawer__lede {
   margin: -0.35rem 0 0;
   font-size: 0.85rem;

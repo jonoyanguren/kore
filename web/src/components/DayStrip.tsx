@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
-import { apiDay, type DaySnapshot } from '../api'
+import {
+  apiDay,
+  apiGmailMarkRead,
+  type DaySnapshot,
+} from '../api'
 import { formatWhen } from '../dates'
 import { ProjectChip } from './ProjectChip'
 
@@ -72,6 +76,19 @@ export function DayStrip({
   const important = briefing?.important_tasks ?? []
   const meetings = briefing?.meetings ?? day.agenda ?? []
   const help = briefing?.help ?? []
+  const inbox = day.inbox
+
+  async function markRead(id: string) {
+    const ok = await apiGmailMarkRead(id)
+    if (!ok || !day?.inbox) return
+    setDay({
+      ...day,
+      inbox: {
+        ...day.inbox,
+        messages: day.inbox.messages.filter((m) => m.id !== id),
+      },
+    })
+  }
   // "lunes 27 de julio de 2026" → weekday + date once (not repeated)
   const dateLine = rest || day.headline || ''
   const focusTask = starred[0] ?? mustNotMiss[0] ?? important[0]
@@ -215,6 +232,40 @@ export function DayStrip({
                         )
                       : null}
                   </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="day-strip__block">
+          <h3>Inbox</h3>
+          {!inbox?.connected ? (
+            <p className="muted">Conecta Gmail en Más → Gmail</p>
+          ) : inbox.error ? (
+            <p className="muted">Error: {inbox.error}</p>
+          ) : inbox.messages.length === 0 ? (
+            <p className="muted">Sin unread recientes</p>
+          ) : (
+            <ul className="day-strip__inbox">
+              {inbox.messages.map((m) => (
+                <li key={m.id}>
+                  <a
+                    href={m.permalink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="day-strip__task-link"
+                  >
+                    {m.subject}
+                  </a>
+                  <span className="day-strip__tag muted">{m.from}</span>
+                  <button
+                    type="button"
+                    className="ghost day-strip__inbox-read"
+                    onClick={() => void markRead(m.id)}
+                  >
+                    Leído
+                  </button>
                 </li>
               ))}
             </ul>

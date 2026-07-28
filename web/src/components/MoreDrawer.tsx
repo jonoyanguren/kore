@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react'
+import { apiGmailDisconnect, apiGmailStatus, type GmailStatus } from '../api'
 import { UsageChip } from './UsageChip'
 
 type Props = {
@@ -17,6 +19,20 @@ export function MoreDrawer({
   onOpenPalette,
   onLogout,
 }: Props) {
+  const [gmail, setGmail] = useState<GmailStatus | null>(null)
+  const [gmailBusy, setGmailBusy] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    void apiGmailStatus().then((st) => {
+      if (!cancelled) setGmail(st)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [open])
+
   if (!open) return null
 
   return (
@@ -38,6 +54,45 @@ export function MoreDrawer({
         <section className="more-drawer__section">
           <h3 className="more-drawer__h">Gasto LLM</h3>
           <UsageChip variant="block" />
+        </section>
+
+        <section className="more-drawer__section">
+          <h3 className="more-drawer__h">Gmail</h3>
+          {!gmail ? (
+            <p className="muted">…</p>
+          ) : !gmail.configured ? (
+            <p className="muted">
+              Falta <code>GOOGLE_CLIENT_*</code> en secrets.
+            </p>
+          ) : gmail.connected ? (
+            <div className="more-drawer__gmail">
+              <p className="more-drawer__gmail-email">{gmail.email || 'Conectado'}</p>
+              <button
+                type="button"
+                className="more-drawer__btn"
+                disabled={gmailBusy}
+                onClick={() => {
+                  setGmailBusy(true)
+                  void apiGmailDisconnect().then((ok) => {
+                    setGmailBusy(false)
+                    if (ok) {
+                      setGmail({ ...gmail, connected: false, email: '' })
+                    }
+                  })
+                }}
+              >
+                Desconectar
+              </button>
+            </div>
+          ) : (
+            <a
+              className="more-drawer__btn"
+              href="/api/gmail/connect"
+              onClick={onClose}
+            >
+              Conectar Gmail
+            </a>
+          )}
         </section>
 
         <section className="more-drawer__section">

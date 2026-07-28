@@ -19,6 +19,9 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.integrations.clickup.clickup_client import ClickUpClient
 from app.integrations.clickup.tools import build_clickup_tools
+from app.integrations.gmail.client import GmailClient
+from app.integrations.gmail.tokens import GmailTokenStore, token_path_for_db
+from app.integrations.gmail.tools import build_gmail_tools
 from app.integrations.lol.opgg_client import call_lol_tool, list_lol_tools
 from app.kernel.command_router import CommandRouter
 from app.kernel.dream import run_dream
@@ -108,6 +111,12 @@ async def lifespan(app: FastAPI):
     clickup_client = ClickUpClient(settings.clickup_api_token, http_client)
     clickup_tool_schemas, clickup_handlers = build_clickup_tools(clickup_client)
 
+    gmail_client = GmailClient(
+        http_client,
+        GmailTokenStore(token_path_for_db(settings.storage_db_path)),
+    )
+    gmail_tool_schemas, gmail_handlers = build_gmail_tools(gmail_client)
+
     try:
         lol_tool_schemas = await list_lol_tools()
     except Exception:
@@ -130,6 +139,7 @@ async def lifespan(app: FastAPI):
         + project_tool_schemas
         + web_tool_schemas
         + clickup_tool_schemas
+        + gmail_tool_schemas
         + lol_tool_schemas
     )
     all_handlers: dict[str, ToolHandler] = {
@@ -139,11 +149,14 @@ async def lifespan(app: FastAPI):
         **project_handlers,
         **web_handlers,
         **clickup_handlers,
+        **gmail_handlers,
         **lol_handlers,
     }
 
     telegram = TelegramClient(settings.telegram_bot_token, http_client)
     app.state.telegram = telegram
+    app.state.http = http_client
+    app.state.gmail = gmail_client
     app.state.memory = memory_store
     app.state.vault = vault
     app.state.llm_client = llm_client
