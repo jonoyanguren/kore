@@ -33,14 +33,13 @@ Fricciones nuevas → ítems sueltos arriba o Parking.
 
 - [x] OAuth Google + refresh en `/data` — scope `gmail.modify`
 - [x] Cliente: listar hoy/unread + marcar leído
-- [x] Vista Día: bloque Inbox
+- [x] Vista Día: bloque Inbox (lista)
 - [x] `/inbox` en chat (+ skill companion)
 - [x] Conectar cuenta en prod + smoke listado
-- [x] Digest IA de lo importante en Día (caché)
+- [x] Botón Inbox → tarea (IA + link mail)
 - [ ] (Luego) digest en cron mañana / dream
 - [ ] Triage + log de marcados leídos
-- [ ] Mail → tarea (flujo chat pulido)
-## P2+ — Después
+- ~~Digest IA en Día~~ — aparcado (lista basta)## P2+ — Después
 
 - [ ] Misiones background
 - [ ] Git/código con confirmación

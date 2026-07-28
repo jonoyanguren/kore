@@ -27,17 +27,13 @@ from app.integrations.gmail.client import (
     GmailConfigError,
     GmailNotConnectedError,
 )
-from app.integrations.gmail.digest import (
-    cached_digest_for,
-    digest_path_for_db,
-    get_or_create_digest,
-)
 from app.integrations.gmail.oauth import (
     build_authorize_url,
     consume_oauth_state,
     create_oauth_state,
     exchange_code,
 )
+from app.integrations.gmail.to_task import create_task_from_email
 from app.kernel.briefing import build_day_briefing
 from app.llm.openrouter_credits import fetch_usage
 from app.llm.transcribe import MAX_AUDIO_BYTES, transcribe_audio
@@ -432,8 +428,6 @@ async def day_snapshot(request: Request) -> dict[str, Any]:
         "error": None,
         "error_code": None,
         "gmail_ready": False,
-        "summary": [],
-        "summary_cached": False,
     }
     gmail = getattr(request.app.state, "gmail", None)
     if gmail is not None:
@@ -462,13 +456,6 @@ async def day_snapshot(request: Request) -> dict[str, Any]:
                     }
                     for m in msgs
                 ]
-                cached = cached_digest_for(
-                    digest_path_for_db(settings.storage_db_path),
-                    [m.id for m in msgs],
-                )
-                if cached is not None:
-                    inbox["summary"] = cached.bullets
-                    inbox["summary_cached"] = True
             except GmailApiError as exc:
                 inbox["error_code"] = exc.code
                 inbox["error"] = exc.message
@@ -746,44 +733,43 @@ async def gmail_status(request: Request) -> dict[str, Any]:
     return gmail.status()
 
 
-@router.get("/gmail/digest", dependencies=[Depends(require_console_auth)])
-async def gmail_digest(
-    request: Request,
-    force: bool = Query(False),
-) -> dict[str, Any]:
-    """AI summary of important unread mail (cached ~30 min)."""
+@router.post(
+    "/gmail/messages/{message_id}/to-task",
+    dependencies=[Depends(require_console_auth)],
+)
+async def gmail_to_task(request: Request, message_id: str) -> dict[str, Any]:
+    """LLM proposes a local task from a Gmail message (title/project/notes + link)."""
     gmail = getattr(request.app.state, "gmail", None)
     llm = getattr(request.app.state, "llm_client", None)
     if gmail is None or llm is None:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="gmail_unavailable")
     try:
-        result = await get_or_create_digest(
+        result = await create_task_from_email(
             gmail=gmail,
             llm=llm,
-            storage_db_path=settings.storage_db_path,
-            force=force,
+            memory=request.app.state.memory,
+            vault=request.app.state.vault,
+            message_id=message_id,
         )
+    except GmailNotConnectedError:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="gmail_not_connected") from None
+    except GmailConfigError as exc:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from None
     except GmailApiError as exc:
         raise HTTPException(
             status.HTTP_502_BAD_GATEWAY,
             detail={"code": exc.code, "message": exc.message},
         ) from None
-    except Exception:
-        raise HTTPException(
-            status.HTTP_502_BAD_GATEWAY,
-            detail={"code": "api", "message": "No se pudo resumir el correo."},
-        ) from None
     if not result.get("ok"):
-        code = str(result.get("error_code") or "auth")
-        status_code = (
-            status.HTTP_409_CONFLICT
-            if code in {"not_connected", "needs_reconnect"}
-            else status.HTTP_502_BAD_GATEWAY
-        )
-        raise HTTPException(
-            status_code,
-            detail={"code": code, "message": result.get("error") or "gmail_error"},
-        )
+        err = str(result.get("error") or "failed")
+        if err == "message_not_found":
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail=err)
+        if err == "duplicate":
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                detail={"code": "duplicate", "message": result.get("detail")},
+            )
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail=err)
     return result
 
 

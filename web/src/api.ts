@@ -285,8 +285,6 @@ export type DaySnapshot = {
     connected: boolean
     email?: string
     gmail_ready?: boolean
-    summary?: string[]
-    summary_cached?: boolean
     messages: {
       id: string
       subject: string
@@ -330,38 +328,18 @@ export async function apiGmailMarkRead(messageId: string): Promise<boolean> {
   return r.ok
 }
 
-export async function apiGmailDigest(force = false): Promise<{
-  bullets: string[]
-  cached: boolean
-  messages: {
-    id: string
-    subject: string
-    from: string
-    snippet: string
-    date: string
-    permalink: string
-  }[]
-}> {
-  const qs = force ? '?force=true' : ''
+export async function apiGmailToTask(
+  messageId: string,
+): Promise<{ task: Task; email: { id: string; subject: string; from: string } }> {
   const r = await req<{
     ok: boolean
-    bullets: string[]
-    cached?: boolean
-    messages?: {
-      id: string
-      subject: string
-      from: string
-      snippet: string
-      date: string
-      permalink: string
-    }[]
-  }>(`/api/gmail/digest${qs}`)
-  if (!r.ok) throw new Error(`gmail digest ${r.status}`)
-  return {
-    bullets: r.data.bullets ?? [],
-    cached: Boolean(r.data.cached),
-    messages: r.data.messages ?? [],
-  }
+    task: Task
+    email: { id: string; subject: string; from: string }
+  }>(`/api/gmail/messages/${encodeURIComponent(messageId)}/to-task`, {
+    method: 'POST',
+  })
+  if (!r.ok) throw new Error(`No se pudo crear la tarea (${r.status})`)
+  return { task: r.data.task, email: r.data.email }
 }
 
 export async function apiDay(): Promise<DaySnapshot> {

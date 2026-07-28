@@ -47,11 +47,10 @@
 1. OAuth Google + refresh en `/data` (D2) — scope **`gmail.modify`** (leer + marcar leídas; no send)
 2. Inbox (hoy / unread) + marcar leído vía API / tools
 3. Superficie: sección en **vista Día** + comando `/inbox` (chat)
-4. **Digest IA** de lo importante en Día (caché ~30 min; botón Actualizar)
-5. (Luego) digest en dream/cron mañana; triage + mail→tarea
+4. Inbox Día = lista unread + **Tarea** (IA) / **Leído** (digest IA aparcado)
+5. (Luego) digest en dream/cron mañana; triage log
 
-**Aplazado en P2:** triage automático a carpetas/labels, envío de mail, multi-cuenta.
-**Luego:** Misiones (Phase 3, independiente de Gmail) · Git · Calendar.
+**Aplazado en P2:** triage automático a carpetas/labels, envío de mail, multi-cuenta, digest IA en Día.**Luego:** Misiones (Phase 3, independiente de Gmail) · Git · Calendar.
 
 **1.6:** dogfood OK; UI viva = rediseño aparte; fricciones = miguitas.
 
@@ -78,6 +77,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-28 | Gmail Día: lista + botón Tarea (IA); digest IA aparcado |
 | 2026-07-28 | Gmail: digest IA de unread en vista Día (caché 30 min) |
 | 2026-07-28 | Gmail scope = `gmail.modify` (marcar leídas); esqueleto OAuth |
 | 2026-07-28 | Phase 2 = Gmail MVP (OAuth + Día/`/inbox`; triage auto aparcado) |
