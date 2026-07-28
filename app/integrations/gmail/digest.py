@@ -141,26 +141,44 @@ async def generate_inbox_digest(
             email=email,
         )
 
-    model = resolve_model(strong=False)
+    model = resolve_model(strong=True)
     user = (
         f"Cuenta: {email or 'Gmail'}\n"
         f"Unread a considerar ({len(messages)}):\n\n"
         f"{_messages_payload(messages)}\n\n"
         "Escribe solo los bullets del resumen."
     )
-    response = await llm.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": DIGEST_SYSTEM},
-            {"role": "user", "content": user},
-        ],
-        max_tokens=DIGEST_MAX_TOKENS,
-        temperature=0.3,
-    )
-    content = (response.choices[0].message.content or "").strip()
+    try:
+        response = await llm.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": DIGEST_SYSTEM},
+                {"role": "user", "content": user},
+            ],
+            max_tokens=DIGEST_MAX_TOKENS,
+            temperature=0.3,
+        )
+        content = (response.choices[0].message.content or "").strip()
+        # Some thinking models put text only in reasoning; keep a safe fallback.
+        if not content:
+            msg = response.choices[0].message
+            reasoning = getattr(msg, "reasoning", None) or getattr(
+                msg, "reasoning_content", None
+            )
+            if isinstance(reasoning, str):
+                content = reasoning.strip()
+    except Exception:
+        logger.exception("Gmail digest LLM call failed")
+        content = ""
+
     bullets = _parse_bullets(content)
     if not bullets:
-        bullets = ["No pude resumir el correo ahora."]
+        bullets = [
+            f"{m.from_.split('<')[0].strip() or m.from_}: {m.subject}"
+            for m in messages[:6]
+        ]
+        if not bullets:
+            bullets = ["No pude resumir el correo ahora."]
     return InboxDigest(
         bullets=bullets,
         message_ids=[m.id for m in messages],
