@@ -335,74 +335,66 @@ export function MissionsPanel({ active = true }: Props) {
       </div>
 
       {panelOpen ? (
-        <>
-          <button
-            type="button"
-            className="missions__backdrop"
-            aria-label="Cerrar resumen"
-            onClick={closePanel}
-          />
-          <aside className="missions__panel" aria-label="Resumen de misión">
-            <div className="missions__panel-bar">
-              <button
-                type="button"
-                className="ghost missions__panel-close"
-                onClick={closePanel}
-              >
-                Cerrar
-              </button>
-              <div className="missions__panel-actions">
-                {detail && isDoneStatus(detail.status) ? (
-                  <button
-                    type="button"
-                    className="ghost"
-                    disabled={busy}
-                    onClick={() => void onRelaunch(detail.id)}
-                  >
-                    Relanzar
-                  </button>
-                ) : null}
-                {detail && !isDoneStatus(detail.status) ? (
-                  <button
-                    type="button"
-                    className="ghost"
-                    disabled={busy}
-                    onClick={() => void onCancel(detail.id)}
-                  >
-                    Cancelar
-                  </button>
-                ) : null}
-              </div>
+        <aside className="missions__panel" aria-label="Resumen de misión">
+          <div className="missions__panel-bar">
+            <button
+              type="button"
+              className="ghost missions__panel-close"
+              onClick={closePanel}
+            >
+              Cerrar
+            </button>
+            <div className="missions__panel-actions">
+              {detail && isDoneStatus(detail.status) ? (
+                <button
+                  type="button"
+                  className="ghost"
+                  disabled={busy}
+                  onClick={() => void onRelaunch(detail.id)}
+                >
+                  Relanzar
+                </button>
+              ) : null}
+              {detail && !isDoneStatus(detail.status) ? (
+                <button
+                  type="button"
+                  className="ghost"
+                  disabled={busy}
+                  onClick={() => void onCancel(detail.id)}
+                >
+                  Cancelar
+                </button>
+              ) : null}
             </div>
-            {!detail ? (
-              <p className="muted missions__panel-loading">Cargando…</p>
-            ) : (
-              <>
-                <header className="missions__panel-head">
-                  <h3>{detail.title}</h3>
-                  <p className="muted">
-                    {STATUS_LABEL[detail.status] ?? detail.status}
-                    {isActiveStatus(detail.status)
-                      ? ` · tick ${detail.step_index}/${detail.max_ticks}`
-                      : null}
-                  </p>
-                </header>
-                {md ? (
-                  <article
-                    className="missions__md"
-                    dangerouslySetInnerHTML={{
-                      __html: renderMarkdown(md),
-                    }}
-                  />
-                ) : (
-                  <p className="muted">
-                    Aún no hay markdown. El runner escribe al hacer ticks…
-                  </p>
-                )}
-              </>
-            )}
-          </aside>
-        </>
+          </div>
+          {!detail ? (
+            <p className="muted missions__panel-loading">Cargando…</p>
+          ) : (
+            <>
+              <header className="missions__panel-head">
+                <h3>{detail.title}</h3>
+                <p className="muted">
+                  {STATUS_LABEL[detail.status] ?? detail.status}
+                  {isActiveStatus(detail.status)
+                    ? ` · tick ${detail.step_index}/${detail.max_ticks}`
+                    : null}
+                </p>
+              </header>
+              {md ? (
+                <article
+                  className="missions__md"
+                  dangerouslySetInnerHTML={{
+                    __html: renderMarkdown(md),
+                  }}
+                />
+              ) : (
+                <p className="muted">
+                  Aún no hay markdown. El runner escribe al hacer ticks…
+                </p>
+              )}
+            </>
+          )}
+        </aside>
       ) : null}
     </section>
   )

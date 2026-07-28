@@ -362,6 +362,11 @@ button.ghost:hover {
 
 .console--missions {
   max-width: 36rem;
+  transition: max-width 0.22s ease;
+}
+
+.console--missions:has(.missions--panel) {
+  max-width: min(64rem, 100%);
 }
 
 .console--missions .console__body {
@@ -2368,13 +2373,16 @@ a.more-drawer__btn {
   flex: 1;
   min-height: 0;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
   overflow: hidden;
   position: relative;
 }
 
 .missions__main {
   flex: 1;
+  min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -2383,6 +2391,14 @@ a.more-drawer__btn {
   max-width: 28rem;
   margin-inline: auto;
   overflow: auto;
+  transition: max-width 0.22s ease, margin 0.22s ease;
+}
+
+.missions--panel .missions__main {
+  max-width: 18rem;
+  margin-inline: 0;
+  flex: 0 0 18rem;
+  padding-right: 0.75rem;
 }
 
 .missions__bar {
@@ -2397,6 +2413,7 @@ a.more-drawer__btn {
   font-size: 1.25rem;
   font-weight: 650;
   flex: 1;
+  color: var(--ink, #15202b);
 }
 
 .missions__hide {
@@ -2439,6 +2456,7 @@ a.more-drawer__btn {
   border-radius: 0.4rem;
   border: 1px solid var(--line);
   background: #fff;
+  color: var(--ink, #15202b);
 }
 
 .missions__form-hint {
@@ -2470,6 +2488,7 @@ a.more-drawer__btn {
   border-radius: 0.55rem;
   border: 1px solid rgba(21, 32, 43, 0.08);
   background: rgba(255, 255, 255, 0.55);
+  color: var(--ink, #15202b);
   cursor: pointer;
 }
 
@@ -2490,56 +2509,34 @@ a.more-drawer__btn {
   color: var(--ink, #15202b);
 }
 
-.missions__panel-head h3 {
-  margin: 0 0 0.25rem;
-  font-size: 1.2rem;
-  line-height: 1.25;
-  color: var(--ink, #15202b);
-}
-
-.missions__md {
-  font-size: 0.95rem;
-  line-height: 1.55;
-  color: var(--ink, #15202b);
-}
-
-.missions__md h1,
-.missions__md h2,
-.missions__md h3 {
-  color: var(--ink, #15202b);
-}
-
 .missions__item-meta {
   font-size: 0.78rem;
 }
 
-.missions__backdrop {
-  position: fixed;
-  inset: 0;
-  border: 0;
-  padding: 0;
-  margin: 0;
-  background: rgba(21, 32, 43, 0.28);
-  cursor: pointer;
-  z-index: 40;
-}
-
 .missions__panel {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: min(30rem, 94vw);
-  z-index: 41;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  padding: 1rem 1.1rem 1.5rem;
-  background: #f7f5f1;
+  padding: 0 0 0.5rem 1.1rem;
+  margin-left: 0.35rem;
   border-left: 1px solid rgba(21, 32, 43, 0.12);
-  box-shadow: -12px 0 40px rgba(21, 32, 43, 0.12);
   overflow: auto;
   box-sizing: border-box;
+  animation: missions-panel-in 0.22s ease;
+}
+
+@keyframes missions-panel-in {
+  from {
+    opacity: 0.4;
+    transform: translateX(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .missions__panel-bar {
@@ -2547,6 +2544,15 @@ a.more-drawer__btn {
   justify-content: space-between;
   align-items: center;
   gap: 0.5rem;
+  position: sticky;
+  top: 0;
+  background: linear-gradient(
+    to bottom,
+    var(--paper, #edf1f4) 70%,
+    transparent
+  );
+  padding-bottom: 0.35rem;
+  z-index: 1;
 }
 
 .missions__panel-actions {
@@ -2566,6 +2572,7 @@ a.more-drawer__btn {
   margin: 0 0 0.25rem;
   font-size: 1.2rem;
   line-height: 1.25;
+  color: var(--ink, #15202b);
 }
 
 .missions__panel-head p {
@@ -2580,19 +2587,22 @@ a.more-drawer__btn {
 }
 
 .missions__md h1 {
-  font-size: 1.4rem;
+  font-size: 1.35rem;
   margin: 0 0 0.75rem;
   line-height: 1.25;
+  color: var(--ink, #15202b);
 }
 
 .missions__md h2 {
   font-size: 1.1rem;
   margin: 1.2rem 0 0.45rem;
+  color: var(--ink, #15202b);
 }
 
 .missions__md h3 {
   font-size: 1rem;
   margin: 0.95rem 0 0.3rem;
+  color: var(--ink, #15202b);
 }
 
 .missions__md p {
@@ -2621,4 +2631,26 @@ a.more-drawer__btn {
   padding: 0.05em 0.3em;
   border-radius: 0.25rem;
   background: rgba(21, 32, 43, 0.06);
+}
+
+@media (max-width: 700px) {
+  .missions--panel {
+    flex-direction: column;
+  }
+
+  .missions--panel .missions__main {
+    flex: 0 0 auto;
+    max-width: none;
+    max-height: 40%;
+    padding-right: 0;
+    border-bottom: 1px solid rgba(21, 32, 43, 0.1);
+    padding-bottom: 0.75rem;
+  }
+
+  .missions__panel {
+    padding-left: 0;
+    margin-left: 0;
+    border-left: 0;
+    padding-top: 0.75rem;
+  }
 }
