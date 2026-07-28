@@ -34,6 +34,7 @@ Fricciones → ítems sueltos arriba o Parking. Misiones pausadas hasta que esto
 
 ## Parking
 
+- Misión: leer sent mail → perfil de tono “suena a Jon” para borradores de reply
 - Triage Gmail auto → labels/carpetas
 - Compose frío (mail nuevo sin reply)
 - Multi-cuenta / digest IA en Día
