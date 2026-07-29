@@ -9,6 +9,7 @@ type Props = {
   onClose: () => void
   onOpenDocs: () => void
   onOpenMemory: () => void
+  onOpenSpend: () => void
   onOpenPalette: () => void
   onLogout: () => void
 }
@@ -18,6 +19,7 @@ export function MoreDrawer({
   onClose,
   onOpenDocs,
   onOpenMemory,
+  onOpenSpend,
   onOpenPalette,
   onLogout,
 }: Props) {
@@ -56,8 +58,13 @@ export function MoreDrawer({
         <section className="more-drawer__section">
           <h3 className="more-drawer__h">Gasto LLM</h3>
           <UsageChip variant="block" />
-          <h3 className="more-drawer__h more-drawer__h--sub">Ledger (7 días)</h3>
-          <SpendLedgerPanel />
+          <SpendLedgerPanel
+            variant="summary"
+            onOpenDetail={() => {
+              onClose()
+              onOpenSpend()
+            }}
+          />
           <h3 className="more-drawer__h more-drawer__h--sub">Modelos</h3>
           <LlmRoutingTable />
         </section>

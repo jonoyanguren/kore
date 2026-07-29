@@ -10,6 +10,7 @@ import { DocsDrawer, type DocsSectionId } from './DocsDrawer'
 import { MemoryDrawer } from './MemoryDrawer'
 import { MissionsPanel } from './MissionsPanel'
 import { MoreDrawer } from './MoreDrawer'
+import { SpendDrawer } from './SpendDrawer'
 import { TaskBoard, type TaskBoardHandle } from './TaskBoard'
 import type { Task } from '../types'
 
@@ -47,6 +48,7 @@ export function Console({ onLogout }: Props) {
   )
   const [docsOpen, setDocsOpen] = useState(false)
   const [docsSection, setDocsSection] = useState<DocsSectionId>('que-es')
+  const [spendOpen, setSpendOpen] = useState(false)
   const [layout, setLayout] = useState<LayoutMode>(() => readLayout())
   const chatRef = useRef<ChatPanelHandle>(null)
   const boardRef = useRef<TaskBoardHandle>(null)
@@ -221,9 +223,11 @@ export function Console({ onLogout }: Props) {
         onClose={() => setMoreOpen(false)}
         onOpenDocs={() => openDocs()}
         onOpenMemory={() => openMemory('diary')}
+        onOpenSpend={() => setSpendOpen(true)}
         onOpenPalette={() => setPaletteOpen(true)}
         onLogout={() => void handleLogout()}
       />
+      <SpendDrawer open={spendOpen} onClose={() => setSpendOpen(false)} />
       <MemoryDrawer
         open={memoryOpen}
         initialTab={memoryTab}

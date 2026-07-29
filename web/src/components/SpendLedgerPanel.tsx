@@ -26,12 +26,20 @@ function shortModel(model: string): string {
 }
 
 function timeLabel(iso: string): string {
-  // SQLite datetime('now') is UTC-ish; show HH:MM if parseable
   const m = iso.match(/(\d{2}):(\d{2})/)
   return m ? `${m[1]}:${m[2]}` : iso.slice(0, 16)
 }
 
-export function SpendLedgerPanel() {
+type Props = {
+  /** summary = Más drawer; full = detalle */
+  variant?: 'summary' | 'full'
+  onOpenDetail?: () => void
+}
+
+export function SpendLedgerPanel({
+  variant = 'full',
+  onOpenDetail,
+}: Props) {
   const [data, setData] = useState<SpendLedger | null>(null)
   const [err, setErr] = useState(false)
 
@@ -55,6 +63,36 @@ export function SpendLedgerPanel() {
   }
 
   const { summary, events, today_usd } = data
+
+  if (variant === 'summary') {
+    return (
+      <div className="spend-ledger spend-ledger--summary">
+        <div className="spend-ledger__totals">
+          <div>
+            <span className="muted">Hoy</span>
+            <strong>{formatUsd(today_usd)}</strong>
+          </div>
+          <div>
+            <span className="muted">7 días</span>
+            <strong>{formatUsd(summary.usd)}</strong>
+          </div>
+          <div>
+            <span className="muted">Llamadas</span>
+            <strong>{summary.calls}</strong>
+          </div>
+        </div>
+        {onOpenDetail ? (
+          <button
+            type="button"
+            className="more-drawer__btn spend-ledger__link"
+            onClick={onOpenDetail}
+          >
+            Ver detalle de gasto
+          </button>
+        ) : null}
+      </div>
+    )
+  }
 
   return (
     <div className="spend-ledger">
@@ -92,7 +130,7 @@ export function SpendLedgerPanel() {
         </p>
       ) : (
         <ul className="spend-ledger__events">
-          {events.slice(0, 40).map((e) => (
+          {events.slice(0, 80).map((e) => (
             <li key={e.id}>
               <span className="spend-ledger__when muted">
                 {e.day.slice(5)} {timeLabel(e.created_at)}
