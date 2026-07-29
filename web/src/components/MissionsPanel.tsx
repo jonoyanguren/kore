@@ -65,6 +65,12 @@ function formatMissionCost(cost: MissionCostInfo): string {
   return cost.estimated ? `~${text}` : text
 }
 
+function missionListCost(m: Mission): string | null {
+  const cost = m.plan?.cost
+  if (!cost || cost.usd <= 0) return null
+  return formatMissionCost(cost)
+}
+
 export function MissionsPanel({ active = true }: Props) {
   const [missions, setMissions] = useState<Mission[]>([])
   const [hideDone, setHideDone] = useState(false)
@@ -432,7 +438,9 @@ export function MissionsPanel({ active = true }: Props) {
               Ninguna misión. Pulsa Nueva para crear una.
             </li>
           ) : (
-            visible.map((m) => (
+            visible.map((m) => {
+              const costLabel = missionListCost(m)
+              return (
               <li key={m.id}>
                 <button
                   type="button"
@@ -443,7 +451,20 @@ export function MissionsPanel({ active = true }: Props) {
                   }
                   onClick={() => setSelectedId(m.id)}
                 >
-                  <span className="missions__item-title">{m.title}</span>
+                  <div className="missions__item-top">
+                    <span className="missions__item-title">{m.title}</span>
+                    {costLabel ? (
+                      <span
+                        className={
+                          m.status === 'done'
+                            ? 'missions__item-cost'
+                            : 'missions__item-cost missions__item-cost--partial'
+                        }
+                      >
+                        {costLabel}
+                      </span>
+                    ) : null}
+                  </div>
                   <span className="missions__item-meta muted">
                     {STATUS_LABEL[m.status] || m.status}
                     {isActiveStatus(m.status) || m.status === 'done'
@@ -452,7 +473,8 @@ export function MissionsPanel({ active = true }: Props) {
                   </span>
                 </button>
               </li>
-            ))
+              )
+            })
           )}
         </ul>
       </div>
