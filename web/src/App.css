@@ -1816,6 +1816,84 @@ button.ghost:hover {
   font-size: 0.9rem;
 }
 
+.spend-ledger {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-top: 0.25rem;
+}
+
+.spend-ledger__totals {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.45rem;
+}
+
+.spend-ledger__totals > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 0.4rem;
+  background: rgba(21, 32, 43, 0.04);
+  font-size: 0.8rem;
+}
+
+.spend-ledger__totals strong {
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink, #15202b);
+}
+
+.spend-ledger__kinds {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+}
+
+.spend-ledger__kinds li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.spend-ledger__events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 14rem;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.75rem;
+}
+
+.spend-ledger__events li {
+  display: grid;
+  grid-template-columns: 4.6rem 3.4rem 3.6rem 1fr;
+  gap: 0.35rem;
+  align-items: baseline;
+  padding: 0.2rem 0;
+  border-bottom: 1px solid rgba(21, 32, 43, 0.06);
+}
+
+.spend-ledger__usd {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--accent, #2f6f5e);
+}
+
+.spend-ledger__model {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .more-drawer__actions {
   list-style: none;
   margin: 0;

@@ -12,7 +12,9 @@ import openai
 
 from app.llm.llm_assistant import resolve_model
 from app.llm.prompt_cache import openrouter_extra_body, with_system_cache_control
+from app.llm.spend_ledger import log_completion
 from app.llm.usage_cost import MissionCostInfo, UsageAccumulator, format_cost_usd
+from app.storage.memory import MemoryStore
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +157,8 @@ async def plan_mission(
     title: str,
     brief: str,
     usage_acc: UsageAccumulator | None = None,
+    spend_store: MemoryStore | None = None,
+    spend_ref: str | None = None,
 ) -> MissionPlan:
     model = resolve_model(strong=False)
     user = (
@@ -175,12 +179,21 @@ async def plan_mission(
         "max_tokens": 1200,
         "temperature": 0.3,
     }
-    extra = openrouter_extra_body(model=model, session_id=f"mission-plan-{title[:40]}")
+    session_id = f"mission-plan-{title[:40]}"
+    extra = openrouter_extra_body(model=model, session_id=session_id)
     if extra:
         kwargs["extra_body"] = extra
     resp = await llm.chat.completions.create(**kwargs)
     if usage_acc is not None:
         usage_acc.record_completion(resp, model=model)
+    await log_completion(
+        spend_store,
+        resp,
+        model=model,
+        kind="mission",
+        ref=spend_ref,
+        session_id=session_id,
+    )
     text = (resp.choices[0].message.content or "").strip()
     data = _extract_json(text)
     if not data:
@@ -201,6 +214,7 @@ async def generate_handoff(
     next_task: MissionTask,
     mission_id: int,
     usage_acc: UsageAccumulator | None = None,
+    spend_store: MemoryStore | None = None,
 ) -> str:
     model = resolve_model(strong=False)
     excerpt = (completed_task.output or "").strip()
@@ -229,15 +243,24 @@ async def generate_handoff(
         "max_tokens": 400,
         "temperature": 0.2,
     }
+    session_id = f"mission-{mission_id}-handoff"
     extra = openrouter_extra_body(
         model=model,
-        session_id=f"mission-{mission_id}-handoff",
+        session_id=session_id,
     )
     if extra:
         kwargs["extra_body"] = extra
     resp = await llm.chat.completions.create(**kwargs)
     if usage_acc is not None:
         usage_acc.record_completion(resp, model=model)
+    await log_completion(
+        spend_store,
+        resp,
+        model=model,
+        kind="mission",
+        ref=f"mission:{mission_id}",
+        session_id=session_id,
+    )
     text = (resp.choices[0].message.content or "").strip()
     if not text:
         return (

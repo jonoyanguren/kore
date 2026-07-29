@@ -7,6 +7,7 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 ## TODO
 
 - [ ] UI viva — rediseño aparte (Jon)
+- [ ] Ledger LLM: gmail/transcribe kinds + export CSV (parking fino)
 
 ## P0 — Dogfood (paralelo)
 

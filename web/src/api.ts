@@ -50,6 +50,56 @@ export async function apiUsage(force = false): Promise<UsageInfo | null> {
   return r.data.usage
 }
 
+export type SpendEvent = {
+  id: number
+  day: string
+  kind: string
+  ref: string | null
+  model: string
+  prompt_tokens: number
+  completion_tokens: number
+  usd: number
+  estimated: boolean
+  session_id: string | null
+  created_at: string
+}
+
+export type SpendSummary = {
+  usd: number
+  prompt_tokens: number
+  completion_tokens: number
+  calls: number
+  by_day: { day: string; usd: number; calls: number }[]
+  by_kind: { kind: string; usd: number; calls: number }[]
+}
+
+export type SpendLedger = {
+  day_from: string
+  day_to: string
+  today_usd: number
+  summary: SpendSummary
+  events: SpendEvent[]
+}
+
+export async function apiSpend(days = 7): Promise<SpendLedger | null> {
+  const r = await req<{
+    ok: boolean
+    day_from: string
+    day_to: string
+    today_usd: number
+    summary: SpendSummary
+    events: SpendEvent[]
+  }>(`/api/spend?days=${days}`)
+  if (!r.ok || !r.data.ok) return null
+  return {
+    day_from: r.data.day_from,
+    day_to: r.data.day_to,
+    today_usd: r.data.today_usd,
+    summary: r.data.summary,
+    events: r.data.events,
+  }
+}
+
 export type LlmRoutingRow = {
   role: string
   model: string

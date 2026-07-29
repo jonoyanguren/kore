@@ -15,6 +15,16 @@ _MODEL_PRICE_PER_M: dict[str, tuple[float, float]] = {
 }
 
 
+@dataclass(frozen=True)
+class UsageEvent:
+    """One completion's cost (for ledger + accumulators)."""
+
+    prompt_tokens: int
+    completion_tokens: int
+    usd: float
+    estimated: bool
+
+
 @dataclass
 class MissionCostInfo:
     usd: float = 0.0
@@ -97,6 +107,35 @@ def estimate_cost_usd(model: str, *, prompt_tokens: int, completion_tokens: int)
     return (prompt_tokens * pin + completion_tokens * pout) / 1_000_000
 
 
+def parse_completion_usage(response: Any, *, model: str) -> UsageEvent | None:
+    """Extract tokens/cost from an OpenRouter completion; None if nothing usable."""
+    usage = _usage_dict(response)
+    prompt = int(usage.get("prompt_tokens") or 0)
+    completion = int(usage.get("completion_tokens") or 0)
+    if prompt <= 0 and completion <= 0 and usage.get("cost") is None:
+        return None
+
+    estimated = False
+    usd = 0.0
+    reported = usage.get("cost")
+    if reported is not None:
+        try:
+            usd = float(reported)
+        except (TypeError, ValueError):
+            reported = None
+    if reported is None:
+        usd = estimate_cost_usd(
+            model, prompt_tokens=prompt, completion_tokens=completion
+        )
+        estimated = True
+    return UsageEvent(
+        prompt_tokens=prompt,
+        completion_tokens=completion,
+        usd=usd,
+        estimated=estimated,
+    )
+
+
 @dataclass
 class UsageAccumulator:
     """Running totals for one mission (persisted in plan_json between ticks)."""
@@ -108,25 +147,17 @@ class UsageAccumulator:
         if loaded is not None:
             self.cost = loaded
 
-    def record_completion(self, response: Any, *, model: str) -> None:
-        usage = _usage_dict(response)
-        prompt = int(usage.get("prompt_tokens") or 0)
-        completion = int(usage.get("completion_tokens") or 0)
-        self.cost.prompt_tokens += prompt
-        self.cost.completion_tokens += completion
+    def record_completion(self, response: Any, *, model: str) -> UsageEvent | None:
+        event = parse_completion_usage(response, model=model)
+        if event is None:
+            return None
+        self.cost.prompt_tokens += event.prompt_tokens
+        self.cost.completion_tokens += event.completion_tokens
         self.cost.llm_calls += 1
-
-        reported = usage.get("cost")
-        if reported is not None:
-            try:
-                self.cost.usd += float(reported)
-            except (TypeError, ValueError):
-                reported = None
-        if reported is None and (prompt or completion):
-            self.cost.usd += estimate_cost_usd(
-                model, prompt_tokens=prompt, completion_tokens=completion
-            )
+        self.cost.usd += event.usd
+        if event.estimated:
             self.cost.estimated = True
+        return event
 
     def set_account_start(self, usage_usd: float) -> None:
         self.cost.account_start_usd = usage_usd

@@ -100,12 +100,15 @@ async def _run_planning(
     llm: openai.AsyncOpenAI,
     mission: MissionRow,
     usage_acc: UsageAccumulator,
+    store: MemoryStore,
 ) -> MissionPlan:
     plan = await plan_mission(
         llm,
         title=mission.title,
         brief=mission.brief,
         usage_acc=usage_acc,
+        spend_store=store,
+        spend_ref=f"mission:{mission.id}",
     )
     for t in plan.tasks:
         t.status = "pending"
@@ -118,6 +121,7 @@ async def _execute_task(
     plan: MissionPlan,
     task_index: int,
     usage_acc: UsageAccumulator,
+    store: MemoryStore,
 ) -> str:
     task = plan.tasks[task_index]
     n = len(plan.tasks)
@@ -160,6 +164,9 @@ async def _execute_task(
         session_id=f"mission-{mission.id}-task-{task_index + 1}",
         usage_acc=usage_acc,
         synth_nudge=MISSION_TASK_SYNTH_NUDGE,
+        spend_store=store,
+        spend_kind="mission",
+        spend_ref=f"mission:{mission.id}",
     )
     if is_blank_report(text) or looks_like_tool_markup(text):
         raise RuntimeError(f"Tarea vacía o inválida: {task.title}")
@@ -194,7 +201,7 @@ async def run_mission_tick(
         await store.add_mission_event(mission.id, "plan_start", None)
         await _maybe_snapshot_account_start(usage_acc)
         try:
-            plan = await _run_planning(llm, mission, usage_acc)
+            plan = await _run_planning(llm, mission, usage_acc, store)
             apply_usage_to_plan(plan, usage_acc)
             plan_json = plan.to_json()
             n = len(plan.tasks)
@@ -258,7 +265,7 @@ async def run_mission_tick(
     )
 
     try:
-        output = await _execute_task(llm, mission, plan, task_index, usage_acc)
+        output = await _execute_task(llm, mission, plan, task_index, usage_acc, store)
         task.output = output
         task.status = "done"
 
@@ -271,6 +278,7 @@ async def run_mission_tick(
                 next_task=plan.tasks[task_index + 1],
                 mission_id=mission.id,
                 usage_acc=usage_acc,
+                spend_store=store,
             )
         else:
             plan.handoff = ""

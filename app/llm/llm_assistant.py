@@ -22,6 +22,7 @@ from app.config import settings
 from app.kernel.prompt_assembler import PromptAssembler
 from app.kernel.skill_registry import Skill
 from app.llm.prompt_cache import openrouter_extra_body, with_system_cache_control
+from app.llm.spend_ledger import log_completion
 from app.storage.memory import MemoryStore
 from app.timeutil import now_madrid
 
@@ -386,6 +387,14 @@ class LLMAssistant:
             if extra:
                 kwargs["extra_body"] = extra
             response = await self._client.chat.completions.create(**kwargs)
+            await log_completion(
+                self._memory,
+                response,
+                model=model,
+                kind="chat",
+                ref=session_id,
+                session_id=session_id,
+            )
             return response, None
         except openai.RateLimitError:
             logger.warning("OpenRouter rate limit hit")

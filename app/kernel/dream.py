@@ -154,6 +154,9 @@ async def run_dream(
             handlers=handlers,
             model=dream_model,
             session_id=f"dream-{target}",
+            spend_store=store,
+            spend_kind="dream",
+            spend_ref=f"dream:{target}",
         )
         if is_blank_report(report):
             raise RuntimeError(

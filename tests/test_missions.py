@@ -48,10 +48,10 @@ def test_mission_plan_then_tasks_to_done(monkeypatch):
         ]
     )
 
-    async def fake_plan(llm, *, title, brief, usage_acc=None):
+    async def fake_plan(llm, *, title, brief, usage_acc=None, **kwargs):
         return sample_plan
 
-    async def fake_execute(llm, mission, plan, task_index, usage_acc):
+    async def fake_execute(llm, mission, plan, task_index, usage_acc, store=None):
         task = plan.tasks[task_index]
         return f"## {task.title}\n\nHecho {task_index + 1}.\n"
 

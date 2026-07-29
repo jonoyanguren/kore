@@ -159,6 +159,36 @@ async def usage(force: bool = False) -> dict[str, Any]:
     return {"ok": True, "usage": snap.as_dict()}
 
 
+@router.get("/spend", dependencies=[Depends(require_console_auth)])
+async def spend_ledger(
+    request: Request,
+    days: int = Query(7, ge=1, le=90),
+    limit: int = Query(80, ge=1, le=300),
+) -> dict[str, Any]:
+    """Local LLM spend ledger: events + totals for the last N Madrid days."""
+    from datetime import timedelta
+
+    from app.timeutil import now_madrid, session_date_str
+
+    today = session_date_str()
+    start = (now_madrid().date() - timedelta(days=days - 1)).isoformat()
+    memory = request.app.state.memory
+    summary = await memory.summarize_llm_spend(day_from=start, day_to=today)
+    events = await memory.list_llm_spend(day_from=start, day_to=today, limit=limit)
+    today_usd = next(
+        (d["usd"] for d in summary["by_day"] if d["day"] == today),
+        0.0,
+    )
+    return {
+        "ok": True,
+        "day_from": start,
+        "day_to": today,
+        "today_usd": today_usd,
+        "summary": summary,
+        "events": events,
+    }
+
+
 @router.get("/llm-routing", dependencies=[Depends(require_console_auth)])
 async def llm_routing_endpoint() -> dict[str, Any]:
     """Daily/strong models + approx prices for the Más drawer."""

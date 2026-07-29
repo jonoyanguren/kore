@@ -214,6 +214,20 @@ CREATE TABLE IF NOT EXISTS mission_events (
     FOREIGN KEY (mission_id) REFERENCES missions(id)
 );
 
+CREATE TABLE IF NOT EXISTS llm_spend (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    day TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    ref TEXT,
+    model TEXT NOT NULL DEFAULT '',
+    prompt_tokens INTEGER NOT NULL DEFAULT 0,
+    completion_tokens INTEGER NOT NULL DEFAULT 0,
+    usd REAL NOT NULL DEFAULT 0,
+    estimated INTEGER NOT NULL DEFAULT 0,
+    session_id TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_memory_items_category ON memory_items(category);
 CREATE INDEX IF NOT EXISTS idx_diary_entries_day ON diary_entries(day);
 CREATE INDEX IF NOT EXISTS idx_messages_session_date ON messages(session_date);
@@ -222,6 +236,9 @@ CREATE INDEX IF NOT EXISTS idx_agenda_starts ON agenda_items(starts_at);
 CREATE INDEX IF NOT EXISTS idx_missions_status ON missions(status);
 CREATE INDEX IF NOT EXISTS idx_missions_next_run ON missions(next_run_at);
 CREATE INDEX IF NOT EXISTS idx_mission_events_mission ON mission_events(mission_id);
+CREATE INDEX IF NOT EXISTS idx_llm_spend_day ON llm_spend(day);
+CREATE INDEX IF NOT EXISTS idx_llm_spend_kind ON llm_spend(kind);
+CREATE INDEX IF NOT EXISTS idx_llm_spend_created ON llm_spend(created_at);
 """
 
 
@@ -1038,6 +1055,159 @@ class MemoryStore:
             )
             row = await cursor.fetchone()
             return int(row[0] if row else 0)
+
+    # --- LLM spend ledger ---------------------------------------------------
+
+    async def add_llm_spend(
+        self,
+        *,
+        kind: str,
+        model: str,
+        prompt_tokens: int = 0,
+        completion_tokens: int = 0,
+        usd: float = 0.0,
+        estimated: bool = False,
+        ref: str | None = None,
+        session_id: str | None = None,
+        day: str | None = None,
+    ) -> int:
+        day_v = (day or session_date_str()).strip()
+        kind_v = (kind or "other").strip().lower() or "other"
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                """
+                INSERT INTO llm_spend (
+                    day, kind, ref, model, prompt_tokens, completion_tokens,
+                    usd, estimated, session_id
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    day_v,
+                    kind_v,
+                    (ref or "").strip() or None,
+                    (model or "").strip(),
+                    max(0, int(prompt_tokens)),
+                    max(0, int(completion_tokens)),
+                    float(usd),
+                    1 if estimated else 0,
+                    (session_id or "").strip() or None,
+                ),
+            )
+            await db.commit()
+            return int(cursor.lastrowid)
+
+    async def list_llm_spend(
+        self,
+        *,
+        day_from: str | None = None,
+        day_to: str | None = None,
+        kind: str | None = None,
+        limit: int = 100,
+    ) -> list[dict]:
+        clauses: list[str] = []
+        params: list[object] = []
+        if day_from:
+            clauses.append("day >= ?")
+            params.append(day_from)
+        if day_to:
+            clauses.append("day <= ?")
+            params.append(day_to)
+        if kind:
+            clauses.append("kind = ?")
+            params.append(kind.strip().lower())
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        params.append(max(1, min(int(limit), 500)))
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                f"""
+                SELECT id, day, kind, ref, model, prompt_tokens, completion_tokens,
+                       usd, estimated, session_id, created_at
+                FROM llm_spend
+                {where}
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                params,
+            )
+            rows = await cursor.fetchall()
+        return [
+            {
+                "id": r[0],
+                "day": r[1],
+                "kind": r[2],
+                "ref": r[3],
+                "model": r[4],
+                "prompt_tokens": int(r[5] or 0),
+                "completion_tokens": int(r[6] or 0),
+                "usd": float(r[7] or 0),
+                "estimated": bool(r[8]),
+                "session_id": r[9],
+                "created_at": r[10],
+            }
+            for r in rows
+        ]
+
+    async def summarize_llm_spend(
+        self,
+        *,
+        day_from: str | None = None,
+        day_to: str | None = None,
+    ) -> dict:
+        """Totals overall + by day + by kind in the range."""
+        clauses: list[str] = []
+        params: list[object] = []
+        if day_from:
+            clauses.append("day >= ?")
+            params.append(day_from)
+        if day_to:
+            clauses.append("day <= ?")
+            params.append(day_to)
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                f"""
+                SELECT COALESCE(SUM(usd), 0), COALESCE(SUM(prompt_tokens), 0),
+                       COALESCE(SUM(completion_tokens), 0), COUNT(*)
+                FROM llm_spend {where}
+                """,
+                params,
+            )
+            total = await cursor.fetchone()
+            cursor = await db.execute(
+                f"""
+                SELECT day, COALESCE(SUM(usd), 0), COUNT(*)
+                FROM llm_spend {where}
+                GROUP BY day
+                ORDER BY day DESC
+                """,
+                params,
+            )
+            by_day = await cursor.fetchall()
+            cursor = await db.execute(
+                f"""
+                SELECT kind, COALESCE(SUM(usd), 0), COUNT(*)
+                FROM llm_spend {where}
+                GROUP BY kind
+                ORDER BY SUM(usd) DESC
+                """,
+                params,
+            )
+            by_kind = await cursor.fetchall()
+        return {
+            "usd": round(float(total[0] if total else 0), 4),
+            "prompt_tokens": int(total[1] if total else 0),
+            "completion_tokens": int(total[2] if total else 0),
+            "calls": int(total[3] if total else 0),
+            "by_day": [
+                {"day": d, "usd": round(float(u), 4), "calls": int(c)}
+                for d, u, c in by_day
+            ],
+            "by_kind": [
+                {"kind": k, "usd": round(float(u), 4), "calls": int(c)}
+                for k, u, c in by_kind
+            ],
+        }
 
     # --- Jobs (cron bookkeeping) --------------------------------------------
 

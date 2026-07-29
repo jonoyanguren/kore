@@ -10,6 +10,7 @@ import openai
 
 from app.config import settings
 from app.llm.prompt_cache import openrouter_extra_body, with_system_cache_control
+from app.llm.spend_ledger import log_completion
 from app.storage.memory import MemoryStore
 from app.storage.task_tools import build_task_tools
 from app.storage.tools import build_memory_tools
@@ -195,6 +196,9 @@ async def _synthesize_report(
     session_id: str | None = None,
     usage_acc: Any | None = None,
     synth_nudge: str | None = None,
+    spend_store: MemoryStore | None = None,
+    spend_kind: str | None = None,
+    spend_ref: str | None = None,
 ) -> str | None:
     """Forced text-only wrap-up when the model returns blank / only tools."""
     synth_messages = list(messages)
@@ -213,6 +217,15 @@ async def _synthesize_report(
     response = await client.chat.completions.create(**kwargs)
     if usage_acc is not None:
         usage_acc.record_completion(response, model=model)
+    if spend_store is not None:
+        await log_completion(
+            spend_store,
+            response,
+            model=model,
+            kind=spend_kind or "other",
+            ref=spend_ref,
+            session_id=session_id,
+        )
     choices = getattr(response, "choices", None) or []
     if not choices or choices[0] is None or choices[0].message is None:
         return None
@@ -234,6 +247,9 @@ async def run_tool_loop(
     session_id: str | None = None,
     usage_acc: Any | None = None,
     synth_nudge: str | None = None,
+    spend_store: MemoryStore | None = None,
+    spend_kind: str | None = None,
+    spend_ref: str | None = None,
 ) -> str:
     model_id = (model or settings.openrouter_model).strip()
     messages: list[dict[str, Any]] = [
@@ -263,6 +279,15 @@ async def run_tool_loop(
         response = await client.chat.completions.create(**kwargs)
         if usage_acc is not None:
             usage_acc.record_completion(response, model=model_id)
+        if spend_store is not None:
+            await log_completion(
+                spend_store,
+                response,
+                model=model_id,
+                kind=spend_kind or "other",
+                ref=spend_ref,
+                session_id=session_id,
+            )
         choice = response.choices[0]
         message = choice.message
         finish = getattr(choice, "finish_reason", None)
@@ -336,6 +361,9 @@ async def run_tool_loop(
                 session_id=session_id,
                 usage_acc=usage_acc,
                 synth_nudge=synth_nudge,
+                spend_store=spend_store,
+                spend_kind=spend_kind,
+                spend_ref=spend_ref,
             )
         except Exception:
             logger.exception("Review synthesis pass failed")

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { apiGmailDisconnect, apiGmailStatus, type GmailStatus } from '../api'
 import { LlmRoutingTable } from './LlmRoutingTable'
+import { SpendLedgerPanel } from './SpendLedgerPanel'
 import { UsageChip } from './UsageChip'
 
 type Props = {
@@ -55,6 +56,8 @@ export function MoreDrawer({
         <section className="more-drawer__section">
           <h3 className="more-drawer__h">Gasto LLM</h3>
           <UsageChip variant="block" />
+          <h3 className="more-drawer__h more-drawer__h--sub">Ledger (7 días)</h3>
+          <SpendLedgerPanel />
           <h3 className="more-drawer__h more-drawer__h--sub">Modelos</h3>
           <LlmRoutingTable />
         </section>
