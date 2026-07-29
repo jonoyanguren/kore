@@ -2812,6 +2812,16 @@ a.more-drawer__btn {
   line-height: 1.35;
 }
 
+.missions__cost {
+  margin: 0 0 0.65rem;
+  font-size: 0.82rem;
+}
+
+.missions__cost strong {
+  color: var(--ink, #15202b);
+  font-weight: 600;
+}
+
 @media (max-width: 700px) {
   .missions--panel {
     flex-direction: column;

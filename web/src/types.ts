@@ -34,6 +34,16 @@ export type MissionPlanView = {
   handoff: string | null
   completed: number
   total: number
+  cost?: MissionCostInfo | null
+}
+
+export type MissionCostInfo = {
+  usd: number
+  prompt_tokens: number
+  completion_tokens: number
+  llm_calls: number
+  estimated: boolean
+  account_delta_usd?: number | null
 }
 
 export type Mission = {

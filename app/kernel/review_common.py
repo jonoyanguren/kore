@@ -159,6 +159,7 @@ async def _synthesize_report(
     model: str,
     max_tokens: int,
     session_id: str | None = None,
+    usage_acc: Any | None = None,
 ) -> str | None:
     """Forced text-only wrap-up when the model returns blank / only tools."""
     synth_messages = list(messages)
@@ -173,6 +174,8 @@ async def _synthesize_report(
     if extra:
         kwargs["extra_body"] = extra
     response = await client.chat.completions.create(**kwargs)
+    if usage_acc is not None:
+        usage_acc.record_completion(response, model=model)
     choices = getattr(response, "choices", None) or []
     if not choices or choices[0] is None or choices[0].message is None:
         return None
@@ -192,6 +195,7 @@ async def run_tool_loop(
     max_tokens: int = 2500,
     model: str | None = None,
     session_id: str | None = None,
+    usage_acc: Any | None = None,
 ) -> str:
     model_id = (model or settings.openrouter_model).strip()
     messages: list[dict[str, Any]] = [
@@ -217,6 +221,8 @@ async def run_tool_loop(
         if extra:
             kwargs["extra_body"] = extra
         response = await client.chat.completions.create(**kwargs)
+        if usage_acc is not None:
+            usage_acc.record_completion(response, model=model_id)
         choice = response.choices[0]
         message = choice.message
         finish = getattr(choice, "finish_reason", None)
@@ -273,6 +279,7 @@ async def run_tool_loop(
                 model=model_id,
                 max_tokens=max_tokens,
                 session_id=session_id,
+                usage_acc=usage_acc,
             )
         except Exception:
             logger.exception("Review synthesis pass failed")

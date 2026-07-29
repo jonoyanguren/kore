@@ -9,7 +9,7 @@ import {
   type ClarifyHistoryItem,
 } from '../api'
 import { renderMissionMarkdown } from '../lib/missionMarkdown'
-import type { Mission } from '../types'
+import type { Mission, MissionCostInfo } from '../types'
 import { useToast } from './Toasts'
 
 type Props = {
@@ -53,6 +53,16 @@ function taskStatusMark(status: string): string {
   if (status === 'running') return '›'
   if (status === 'failed') return '✕'
   return '○'
+}
+
+function formatMissionCost(cost: MissionCostInfo): string {
+  const usd = cost.usd
+  if (usd <= 0) return '$0.00'
+  let text: string
+  if (usd < 0.01) text = `$${usd.toFixed(4)}`
+  else if (usd < 1) text = `$${usd.toFixed(3)}`
+  else text = `$${usd.toFixed(2)}`
+  return cost.estimated ? `~${text}` : text
 }
 
 export function MissionsPanel({ active = true }: Props) {
@@ -518,6 +528,23 @@ export function MissionsPanel({ active = true }: Props) {
                     </li>
                   ))}
                 </ol>
+              ) : null}
+              {detail.plan?.cost && detail.plan.cost.usd > 0 ? (
+                <p className="missions__cost muted">
+                  Gasto LLM:{' '}
+                  <strong>{formatMissionCost(detail.plan.cost)}</strong>
+                  {' · '}
+                  {detail.plan.cost.prompt_tokens.toLocaleString()} in /{' '}
+                  {detail.plan.cost.completion_tokens.toLocaleString()} out
+                  {detail.plan.cost.account_delta_usd != null &&
+                  detail.plan.cost.account_delta_usd > 0
+                    ? ` · cuenta +${formatMissionCost({
+                        ...detail.plan.cost,
+                        usd: detail.plan.cost.account_delta_usd,
+                        estimated: false,
+                      })}`
+                    : ''}
+                </p>
               ) : null}
               {md ? (
                 <div

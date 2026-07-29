@@ -457,6 +457,8 @@ def _mission_dict(row: MissionRow, *, markdown: str | None = None) -> dict[str, 
             "completed": plan.completed_count(),
             "total": len(plan.tasks),
         }
+        if plan.cost and (plan.cost.usd > 0 or plan.cost.llm_calls > 0):
+            plan_out["cost"] = plan.cost.to_dict()
     out: dict[str, Any] = {
         "id": row.id,
         "title": row.title,

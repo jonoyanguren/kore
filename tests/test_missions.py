@@ -48,19 +48,27 @@ def test_mission_plan_then_tasks_to_done(monkeypatch):
         ]
     )
 
-    async def fake_plan(llm, *, title, brief):
+    async def fake_plan(llm, *, title, brief, usage_acc=None):
         return sample_plan
 
-    async def fake_execute(llm, mission, plan, task_index):
+    async def fake_execute(llm, mission, plan, task_index, usage_acc):
         task = plan.tasks[task_index]
         return f"## {task.title}\n\nHecho {task_index + 1}.\n"
 
     async def fake_handoff(llm, **kwargs):
         return "Handoff breve para la siguiente."
 
+    async def fake_account_start(acc):
+        return None
+
+    async def fake_account_end(acc):
+        return None
+
     monkeypatch.setattr(mission_runner, "plan_mission", fake_plan)
     monkeypatch.setattr(mission_runner, "_execute_task", fake_execute)
     monkeypatch.setattr(mission_runner, "generate_handoff", fake_handoff)
+    monkeypatch.setattr(mission_runner, "_maybe_snapshot_account_start", fake_account_start)
+    monkeypatch.setattr(mission_runner, "_maybe_snapshot_account_end", fake_account_end)
 
     async def _run() -> None:
         with tempfile.TemporaryDirectory() as tmp:

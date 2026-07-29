@@ -11,12 +11,15 @@ import openai
 from app.integrations.web.tools import build_web_tools
 from app.kernel.mission_plan import (
     MissionPlan,
+    apply_usage_to_plan,
     generate_handoff,
     plan_mission,
     render_mission_markdown,
 )
 from app.kernel.review_common import is_blank_report, run_tool_loop
 from app.llm.llm_assistant import resolve_model
+from app.llm.openrouter_credits import fetch_usage
+from app.llm.usage_cost import UsageAccumulator, format_cost_usd
 from app.storage.memory import MemoryStore, MissionRow
 from app.storage.vault import Vault
 from app.timeutil import now_madrid
@@ -47,6 +50,27 @@ def _load_plan(mission: MissionRow) -> MissionPlan | None:
     return MissionPlan.from_json(mission.plan_json)
 
 
+def _usage_from_plan(plan: MissionPlan | None) -> UsageAccumulator:
+    acc = UsageAccumulator()
+    if plan is not None and plan.cost is not None:
+        acc.cost = plan.cost
+    return acc
+
+
+async def _maybe_snapshot_account_start(acc: UsageAccumulator) -> None:
+    if acc.cost.account_start_usd is not None:
+        return
+    snap = await fetch_usage(force=True)
+    if snap is not None:
+        acc.set_account_start(snap.usage_usd)
+
+
+async def _maybe_snapshot_account_end(acc: UsageAccumulator) -> None:
+    snap = await fetch_usage(force=True)
+    if snap is not None:
+        acc.set_account_end(snap.usage_usd)
+
+
 def _status_line(mission: MissionRow, plan: MissionPlan, *, phase: str) -> str:
     n = len(plan.tasks)
     done = plan.completed_count()
@@ -57,15 +81,24 @@ def _status_line(mission: MissionRow, plan: MissionPlan, *, phase: str) -> str:
         task = plan.tasks[idx]
         return f"Estado: tarea {idx + 1}/{n} · {task.title}"
     if phase == "done":
-        return f"Estado: hecho · {n} tareas"
+        base = f"Estado: hecho · {n} tareas"
+        if plan.cost and plan.cost.usd > 0:
+            base += f" · {format_cost_usd(plan.cost.usd, estimated=plan.cost.estimated)}"
+        return base
     return f"Estado: en curso · {done}/{n} tareas"
 
 
 async def _run_planning(
     llm: openai.AsyncOpenAI,
     mission: MissionRow,
+    usage_acc: UsageAccumulator,
 ) -> MissionPlan:
-    plan = await plan_mission(llm, title=mission.title, brief=mission.brief)
+    plan = await plan_mission(
+        llm,
+        title=mission.title,
+        brief=mission.brief,
+        usage_acc=usage_acc,
+    )
     for t in plan.tasks:
         t.status = "pending"
     return plan
@@ -76,6 +109,7 @@ async def _execute_task(
     mission: MissionRow,
     plan: MissionPlan,
     task_index: int,
+    usage_acc: UsageAccumulator,
 ) -> str:
     task = plan.tasks[task_index]
     n = len(plan.tasks)
@@ -116,6 +150,7 @@ async def _execute_task(
         model=model,
         max_tokens=5500,
         session_id=f"mission-{mission.id}-task-{task_index + 1}",
+        usage_acc=usage_acc,
     )
     if is_blank_report(text):
         raise RuntimeError(f"Tarea vacía: {task.title}")
@@ -144,11 +179,14 @@ async def run_mission_tick(
     await store.update_mission(mission.id, status="running", clear_error=True)
 
     plan = _load_plan(mission)
+    usage_acc = _usage_from_plan(plan)
 
     if plan is None:
         await store.add_mission_event(mission.id, "plan_start", None)
+        await _maybe_snapshot_account_start(usage_acc)
         try:
-            plan = await _run_planning(llm, mission)
+            plan = await _run_planning(llm, mission, usage_acc)
+            apply_usage_to_plan(plan, usage_acc)
             plan_json = plan.to_json()
             n = len(plan.tasks)
             md = render_mission_markdown(
@@ -211,7 +249,7 @@ async def run_mission_tick(
     )
 
     try:
-        output = await _execute_task(llm, mission, plan, task_index)
+        output = await _execute_task(llm, mission, plan, task_index, usage_acc)
         task.output = output
         task.status = "done"
 
@@ -223,12 +261,17 @@ async def run_mission_tick(
                 completed_task=task,
                 next_task=plan.tasks[task_index + 1],
                 mission_id=mission.id,
+                usage_acc=usage_acc,
             )
         else:
             plan.handoff = ""
 
+        apply_usage_to_plan(plan, usage_acc)
         next_index = task_index + 1
         is_done = next_index >= n
+        if is_done:
+            await _maybe_snapshot_account_end(usage_acc)
+            apply_usage_to_plan(plan, usage_acc)
         md = render_mission_markdown(
             mission.title,
             mission.brief,
@@ -257,7 +300,11 @@ async def run_mission_tick(
                 clear_next_run=True,
                 clear_error=True,
             )
-            await store.add_mission_event(mission.id, "done", f"tasks={n}")
+            await store.add_mission_event(
+                mission.id,
+                "done",
+                f"tasks={n}; usd={plan.cost.usd if plan.cost else 0:.4f}",
+            )
             logger.info("Mission %s done after %s tasks", mission.id, n)
             return
 
@@ -285,6 +332,7 @@ async def run_mission_tick(
     except Exception as exc:
         logger.exception("Mission %s task %s failed", mission.id, task_index + 1)
         task.status = "failed"
+        apply_usage_to_plan(plan, usage_acc)
         await store.update_mission(
             mission.id,
             status="failed",
