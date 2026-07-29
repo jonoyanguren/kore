@@ -162,17 +162,23 @@ async def plan_mission(
         f"Encargo:\n{(brief or '').strip() or '(vacío)'}\n\n"
         f"Genera {MIN_TASKS}–{MAX_TASKS} tareas ejecutables en JSON."
     )
-    extra = openrouter_extra_body(model=model, session_id=f"mission-plan-{title[:40]}")
-    resp = await llm.chat.completions.create(
-        model=model,
-        messages=[
-            with_system_cache_control(PLAN_SYSTEM),
+    messages = with_system_cache_control(
+        [
+            {"role": "system", "content": PLAN_SYSTEM},
             {"role": "user", "content": user},
         ],
-        max_tokens=1200,
-        temperature=0.3,
-        **extra,
+        model=model,
     )
+    kwargs: dict[str, Any] = {
+        "model": model,
+        "messages": messages,
+        "max_tokens": 1200,
+        "temperature": 0.3,
+    }
+    extra = openrouter_extra_body(model=model, session_id=f"mission-plan-{title[:40]}")
+    if extra:
+        kwargs["extra_body"] = extra
+    resp = await llm.chat.completions.create(**kwargs)
     if usage_acc is not None:
         usage_acc.record_completion(resp, model=model)
     text = (resp.choices[0].message.content or "").strip()
@@ -210,20 +216,26 @@ async def generate_handoff(
         f"Objetivo siguiente: {next_task.goal}\n\n"
         "Escribe el handoff para la siguiente tarea."
     )
+    messages = with_system_cache_control(
+        [
+            {"role": "system", "content": HANDOFF_SYSTEM},
+            {"role": "user", "content": user},
+        ],
+        model=model,
+    )
+    kwargs: dict[str, Any] = {
+        "model": model,
+        "messages": messages,
+        "max_tokens": 400,
+        "temperature": 0.2,
+    }
     extra = openrouter_extra_body(
         model=model,
         session_id=f"mission-{mission_id}-handoff",
     )
-    resp = await llm.chat.completions.create(
-        model=model,
-        messages=[
-            with_system_cache_control(HANDOFF_SYSTEM),
-            {"role": "user", "content": user},
-        ],
-        max_tokens=400,
-        temperature=0.2,
-        **extra,
-    )
+    if extra:
+        kwargs["extra_body"] = extra
+    resp = await llm.chat.completions.create(**kwargs)
     if usage_acc is not None:
         usage_acc.record_completion(resp, model=model)
     text = (resp.choices[0].message.content or "").strip()
