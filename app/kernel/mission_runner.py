@@ -1,4 +1,4 @@
-"""In-process mission runner: timed ticks with real web research (D21)."""
+"""In-process mission runner: plan → tasks with handoffs (D21/D22)."""
 
 from __future__ import annotations
 
@@ -9,6 +9,12 @@ from datetime import timedelta
 import openai
 
 from app.integrations.web.tools import build_web_tools
+from app.kernel.mission_plan import (
+    MissionPlan,
+    generate_handoff,
+    plan_mission,
+    render_mission_markdown,
+)
 from app.kernel.review_common import is_blank_report, run_tool_loop
 from app.llm.llm_assistant import resolve_model
 from app.storage.memory import MemoryStore, MissionRow
@@ -18,92 +24,89 @@ from app.timeutil import now_madrid
 logger = logging.getLogger(__name__)
 
 POLL_SECONDS = 5
-# Chain ticks quickly once a mission is running (research is the slow part).
 TICK_GAP_SECONDS = 8
 
 MISSION_SYSTEM = """Eres Jone, assistant de investigación de Jon.
 
-Trabajas en una MISIÓN en background. Escribes SOLO markdown útil en español.
+Trabajas UNA tarea concreta de una misión en background. Escribes SOLO markdown útil en español.
 
 Reglas:
 - Usa web_search y fetch_url para datos reales (precios, modelos, fuentes).
 - No inventes precios ni URLs. Si no hay dato sólido, dilo.
 - Cita fuentes con links markdown: [nombre](https://…).
+- Cumple SOLO el objetivo de esta tarea; no adelantes otras.
 - Tono: claro, accionable, sin relleno.
-- Cierra TODAS las secciones del informe; ninguna vacía ni cortada a medias.
-- Los "siguientes pasos" del encargo los ejecutas tú (más búsquedas, comparativas, borradores) — no dejes una lista de pendientes para Jon.
-- No digas que eres una IA ni menciones "stub" o "tick interno"."""
+- No digas que eres una IA ni menciones ticks internos."""
 
 
 def _iso(dt) -> str:
     return dt.replace(microsecond=0).isoformat()
 
 
-def _shell_markdown(mission: MissionRow, *, status_line: str, body: str) -> str:
-    return (
-        f"# {mission.title}\n\n"
-        f"> {status_line}\n\n"
-        f"## Encargo\n\n"
-        f"{mission.brief.strip() or '(sin brief)'}\n\n"
-        f"{body.strip()}\n"
-    )
+def _load_plan(mission: MissionRow) -> MissionPlan | None:
+    return MissionPlan.from_json(mission.plan_json)
 
 
-async def _research_tick(
+def _status_line(mission: MissionRow, plan: MissionPlan, *, phase: str) -> str:
+    n = len(plan.tasks)
+    done = plan.completed_count()
+    if phase == "planning":
+        return "Estado: planificando tareas…"
+    if phase == "running":
+        idx = min(mission.step_index, n - 1) if n else 0
+        task = plan.tasks[idx]
+        return f"Estado: tarea {idx + 1}/{n} · {task.title}"
+    if phase == "done":
+        return f"Estado: hecho · {n} tareas"
+    return f"Estado: en curso · {done}/{n} tareas"
+
+
+async def _run_planning(
     llm: openai.AsyncOpenAI,
     mission: MissionRow,
-    *,
-    step: int,
-    previous_md: str,
-) -> str:
-    tools, handlers = build_web_tools()
-    is_final = step >= mission.max_ticks
-    if is_final:
-        user = (
-            f"MISIÓN (tick final {step}/{mission.max_ticks}): sintetiza el INFORME FINAL.\n\n"
-            f"Título: {mission.title}\n"
-            f"Encargo:\n{mission.brief}\n\n"
-            f"--- Markdown actual ---\n{previous_md[:12000]}\n\n"
-            "Escribe el documento FINAL completo en markdown con:\n"
-            "## Resumen\n"
-            "## Hallazgos (con precios/datos concretos y links)\n"
-            "## Opciones recomendadas (tabla o lista comparativa)\n"
-            "## Riesgos / qué mirar\n"
-            "## Siguientes pasos (hechos en esta misión)\n"
-            "En la última sección incluye acciones concretas que YA ejecutaste aquí "
-            "(más búsquedas, comparativas, contactos, borradores). "
-            "No dejes esa sección vacía ni solo con pendientes.\n"
-            "Puedes hacer 2–4 búsquedas extras si falta un dato clave. "
-            "Respuesta = SOLO el markdown del informe completo (empieza por # título). "
-            "No cortes tablas ni listas a medias."
-        )
-    else:
-        user = (
-            f"MISIÓN (tick {step}/{mission.max_ticks}): investiga y actualiza el borrador.\n\n"
-            f"Título: {mission.title}\n"
-            f"Encargo:\n{mission.brief}\n\n"
-            f"--- Markdown actual ---\n{previous_md[:8000] or '(vacío)'}\n\n"
-            "Haz búsquedas web relevantes, lee 1–3 páginas útiles, y escribe un "
-            "borrador markdown actualizado con:\n"
-            "## Investigación\n"
-            "### Fuentes\n"
-            "### Notas / datos\n"
-            "### Preguntas abiertas\n"
-            "Respuesta = SOLO el markdown del borrador (puedes incluir # título)."
-        )
+) -> MissionPlan:
+    plan = await plan_mission(llm, title=mission.title, brief=mission.brief)
+    for t in plan.tasks:
+        t.status = "pending"
+    return plan
 
-    # Daily (DeepSeek) while dogfooding — Sonnet was ~$2+/mission with tool loops.
-    # Revisit: strong on final tick only if quality needs it.
+
+async def _execute_task(
+    llm: openai.AsyncOpenAI,
+    mission: MissionRow,
+    plan: MissionPlan,
+    task_index: int,
+) -> str:
+    task = plan.tasks[task_index]
+    n = len(plan.tasks)
+    handoff = (plan.handoff or "").strip()
+    if task_index == 0:
+        ctx = "(Primera tarea — sin handoff previo.)"
+    else:
+        ctx = handoff or "(Sin handoff previo.)"
+
+    user = (
+        f"MISIÓN — TAREA {task_index + 1}/{n}: {task.title}\n\n"
+        f"Título misión: {mission.title}\n"
+        f"Encargo original:\n{mission.brief}\n\n"
+        f"Handoff de la tarea anterior:\n{ctx}\n\n"
+        f"Objetivo de ESTA tarea:\n{task.goal}\n\n"
+        f"Ejecuta esta tarea con búsqueda web. "
+        f"Respuesta = SOLO markdown empezando por:\n"
+        f"## {task.title}\n"
+        f"(contenido con datos concretos y links; cierra la sección completa)"
+    )
+
+    tools, handlers = build_web_tools()
     model = resolve_model(strong=False)
     logger.info(
-        "Mission %s tick %s/%s model=%s final=%s",
+        "Mission %s task %s/%s model=%s title=%r",
         mission.id,
-        step,
-        mission.max_ticks,
+        task_index + 1,
+        n,
         model,
-        is_final,
+        task.title[:50],
     )
-    token_budget = 7000 if is_final else 4500
     text = await run_tool_loop(
         llm,
         system=MISSION_SYSTEM,
@@ -111,15 +114,17 @@ async def _research_tick(
         tools=tools,
         handlers=handlers,
         model=model,
-        max_tokens=token_budget,
-        session_id=f"mission-{mission.id}-tick-{step}",
+        max_tokens=5500,
+        session_id=f"mission-{mission.id}-task-{task_index + 1}",
     )
     if is_blank_report(text):
-        raise RuntimeError("El modelo devolvió informe vacío")
-    # Ensure title heading exists
+        raise RuntimeError(f"Tarea vacía: {task.title}")
     t = text.strip()
-    if not t.startswith("#"):
-        t = f"# {mission.title}\n\n{t}"
+    heading = f"## {task.title}"
+    if not t.startswith("##"):
+        t = f"{heading}\n\n{t}"
+    elif not t.startswith(heading):
+        t = f"{heading}\n\n{t.lstrip('#').strip()}"
     return t
 
 
@@ -137,93 +142,170 @@ async def run_mission_tick(
         return
 
     await store.update_mission(mission.id, status="running", clear_error=True)
-    await store.add_mission_event(mission.id, "tick_start", f"step={mission.step_index}")
 
-    step = mission.step_index + 1
-    previous = vault.read_mission(mission.id) or _shell_markdown(
-        mission,
-        status_line=f"Estado: en curso · tick 0/{mission.max_ticks}",
-        body="## Investigación\n\n_Arrancando…_\n",
+    plan = _load_plan(mission)
+
+    if plan is None:
+        await store.add_mission_event(mission.id, "plan_start", None)
+        try:
+            plan = await _run_planning(llm, mission)
+            plan_json = plan.to_json()
+            n = len(plan.tasks)
+            md = render_mission_markdown(
+                mission.title,
+                mission.brief,
+                plan,
+                status_line=_status_line(mission, plan, phase="planning"),
+                current_index=0,
+            )
+            path = vault.write_mission(mission.id, md)
+            rel = (
+                str(path.relative_to(vault.root))
+                if path.is_relative_to(vault.root)
+                else str(path)
+            )
+            nxt = _iso(now_madrid() + timedelta(seconds=TICK_GAP_SECONDS))
+            await store.update_mission(
+                mission.id,
+                plan_json=plan_json,
+                max_ticks=n,
+                step_index=0,
+                status="waiting",
+                next_run_at=nxt,
+                result_path=rel,
+            )
+            await store.add_mission_event(mission.id, "plan_done", f"tasks={n}")
+            logger.info("Mission %s planned with %s tasks", mission.id, n)
+        except Exception as exc:
+            logger.exception("Mission %s planning failed", mission.id)
+            await store.update_mission(
+                mission.id,
+                status="failed",
+                error=str(exc)[:500],
+                clear_next_run=True,
+            )
+            await store.add_mission_event(mission.id, "failed", f"plan:{exc}"[:300])
+            vault.write_mission(
+                mission.id,
+                f"# {mission.title}\n\n> Estado: falló (plan)\n\n## Error\n\n{exc}\n",
+            )
+        return
+
+    task_index = mission.step_index
+    n = len(plan.tasks)
+
+    if task_index >= n:
+        await store.update_mission(
+            mission.id,
+            status="done",
+            clear_next_run=True,
+            clear_error=True,
+        )
+        await store.add_mission_event(mission.id, "done", f"tasks={n}")
+        return
+
+    task = plan.tasks[task_index]
+    task.status = "running"
+    await store.add_mission_event(
+        mission.id, "task_start", f"{task_index + 1}/{n}:{task.title[:80]}"
     )
 
     try:
-        content = await _research_tick(llm, mission, step=step, previous_md=previous)
-        # Keep Encargo visible if model dropped it
-        if "## Encargo" not in content and mission.brief.strip():
-            content = _shell_markdown(
-                mission,
-                status_line=(
-                    f"Estado: {'hecho' if step >= mission.max_ticks else 'en curso'} · "
-                    f"tick {step}/{mission.max_ticks}"
-                ),
-                body=content.split("\n", 2)[-1] if content.startswith("#") else content,
+        output = await _execute_task(llm, mission, plan, task_index)
+        task.output = output
+        task.status = "done"
+
+        if task_index + 1 < n:
+            plan.handoff = await generate_handoff(
+                llm,
+                title=mission.title,
+                brief=mission.brief,
+                completed_task=task,
+                next_task=plan.tasks[task_index + 1],
+                mission_id=mission.id,
             )
         else:
-            # Refresh status line in blockquote if present
-            lines = content.splitlines()
-            for i, line in enumerate(lines[:8]):
-                if line.startswith(">"):
-                    lines[i] = (
-                        f"> Estado: {'hecho' if step >= mission.max_ticks else 'en curso'} · "
-                        f"tick {step}/{mission.max_ticks}"
-                    )
-                    content = "\n".join(lines)
-                    break
+            plan.handoff = ""
 
-        path = vault.write_mission(mission.id, content)
+        next_index = task_index + 1
+        is_done = next_index >= n
+        md = render_mission_markdown(
+            mission.title,
+            mission.brief,
+            plan,
+            status_line=_status_line(
+                mission,
+                plan,
+                phase="done" if is_done else "running",
+            ),
+            current_index=None if is_done else next_index,
+        )
+        path = vault.write_mission(mission.id, md)
         rel = (
             str(path.relative_to(vault.root))
             if path.is_relative_to(vault.root)
             else str(path)
         )
+
+        if is_done:
+            await store.update_mission(
+                mission.id,
+                status="done",
+                step_index=next_index,
+                plan_json=plan.to_json(),
+                result_path=rel,
+                clear_next_run=True,
+                clear_error=True,
+            )
+            await store.add_mission_event(mission.id, "done", f"tasks={n}")
+            logger.info("Mission %s done after %s tasks", mission.id, n)
+            return
+
+        nxt = _iso(now_madrid() + timedelta(seconds=TICK_GAP_SECONDS))
+        await store.update_mission(
+            mission.id,
+            status="waiting",
+            step_index=next_index,
+            plan_json=plan.to_json(),
+            result_path=rel,
+            next_run_at=nxt,
+        )
+        await store.add_mission_event(
+            mission.id,
+            "task_done",
+            f"{task_index + 1}/{n}; next={nxt}",
+        )
+        logger.info(
+            "Mission %s task %s/%s done; next %s",
+            mission.id,
+            task_index + 1,
+            n,
+            nxt,
+        )
     except Exception as exc:
-        logger.exception("Mission %s tick failed", mission.id)
+        logger.exception("Mission %s task %s failed", mission.id, task_index + 1)
+        task.status = "failed"
         await store.update_mission(
             mission.id,
             status="failed",
+            plan_json=plan.to_json(),
             error=str(exc)[:500],
             clear_next_run=True,
         )
-        await store.add_mission_event(mission.id, "failed", str(exc)[:300])
+        await store.add_mission_event(
+            mission.id, "failed", f"task:{task_index + 1}:{exc}"[:300]
+        )
         vault.write_mission(
             mission.id,
-            _shell_markdown(
-                mission,
-                status_line="Estado: falló",
-                body=f"## Error\n\n{exc}\n",
-            ),
+            render_mission_markdown(
+                mission.title,
+                mission.brief,
+                plan,
+                status_line=f"Estado: falló en tarea {task_index + 1}/{n}",
+                current_index=task_index,
+            )
+            + f"\n## Error\n\n{exc}\n",
         )
-        return
-
-    if step >= mission.max_ticks:
-        await store.update_mission(
-            mission.id,
-            status="done",
-            step_index=step,
-            result_path=rel,
-            clear_next_run=True,
-            clear_error=True,
-        )
-        await store.add_mission_event(mission.id, "done", f"ticks={step}")
-        logger.info("Mission %s done after %s ticks", mission.id, step)
-        return
-
-    nxt = _iso(now_madrid() + timedelta(seconds=TICK_GAP_SECONDS))
-    await store.update_mission(
-        mission.id,
-        status="waiting",
-        step_index=step,
-        result_path=rel,
-        next_run_at=nxt,
-    )
-    await store.add_mission_event(mission.id, "tick_done", f"step={step}; next={nxt}")
-    logger.info(
-        "Mission %s tick %s/%s; next %s",
-        mission.id,
-        step,
-        mission.max_ticks,
-        nxt,
-    )
 
 
 async def mission_runner_loop(
@@ -231,7 +313,7 @@ async def mission_runner_loop(
     vault: Vault,
     llm: openai.AsyncOpenAI,
 ) -> None:
-    logger.info("Mission runner started (poll=%ss, research=on)", POLL_SECONDS)
+    logger.info("Mission runner started (poll=%ss, tasks=on)", POLL_SECONDS)
     while True:
         try:
             now = _iso(now_madrid())

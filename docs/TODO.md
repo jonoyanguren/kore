@@ -17,7 +17,7 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 
 **Cerrado:** Nueva (form + aclaración) · 4º layout · SQLite/vault · ticks research · ocultar terminadas · cancelar · Relanzar.
 
-**Defaults v1:** form (no mini-chat) · DeepSeek en research · 3 ticks · skip “Lanzar sin aclarar”.
+**Defaults v1:** form · plan auto 2–6 tareas · handoff entre pasos · DeepSeek en research.
 
 **Build:**
 - [x] Tabla `missions` + `vault/missions/{id}.md`

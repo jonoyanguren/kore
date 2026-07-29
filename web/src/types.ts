@@ -23,6 +23,19 @@ export type MissionStatus =
   | 'failed'
   | 'cancelled'
 
+export type MissionTaskItem = {
+  title: string
+  goal: string
+  status: string
+}
+
+export type MissionPlanView = {
+  tasks: MissionTaskItem[]
+  handoff: string | null
+  completed: number
+  total: number
+}
+
 export type Mission = {
   id: number
   title: string
@@ -37,4 +50,5 @@ export type Mission = {
   created_at: string
   updated_at: string
   markdown?: string
+  plan?: MissionPlanView | null
 }

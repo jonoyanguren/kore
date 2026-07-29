@@ -46,6 +46,7 @@
 | D19 | Misiones UI: **4º layout**; lista + «Ocultar terminadas»; **Nueva** inicia el input (no chat-first) |
 | D20 | Persistencia: **SQLite** lista/estado · **vault** `missions/{id}.md` = output |
 | D21 | Loop: ticks en el tiempo (`next_run_at`); runner in-process; max 1 activa v1 |
+| D22 | Misiones: **plan → N tareas**; handoff corto entre tareas (no markdown entero) |
 
 ## Roadmap (lean)
 
@@ -96,6 +97,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-29 | D22: misiones por tareas (plan auto + handoff + checklist UI) |
 | 2026-07-29 | Misiones: markdown con links/tablas en panel; 3 ticks; informe no cortado |
 | 2026-07-29 | Misiones Nueva: aclaración 1–2 preguntas (DeepSeek) antes de Lanzar |
 | 2026-07-28 | Strong → Haiku 4.5 (dogfood); prompt cache + session_id en tool loops |

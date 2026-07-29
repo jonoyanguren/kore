@@ -42,6 +42,7 @@ from app.integrations.gmail.triage_log import (
 )
 from app.kernel.briefing import build_day_briefing
 from app.kernel.mission_clarify import clarify_mission
+from app.kernel.mission_plan import MissionPlan
 from app.llm.openrouter_credits import fetch_usage
 from app.llm.llm_routing import llm_routing
 from app.llm.transcribe import MAX_AUDIO_BYTES, transcribe_audio
@@ -424,7 +425,6 @@ class CreateMissionBody(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     brief: str = Field(default="", max_length=8000)
     launch: bool = True
-    max_ticks: int = Field(default=3, ge=1, le=20)
     tick_seconds: int = Field(default=10, ge=5, le=3600)
 
 
@@ -441,6 +441,22 @@ class ClarifyMissionBody(BaseModel):
 
 
 def _mission_dict(row: MissionRow, *, markdown: str | None = None) -> dict[str, Any]:
+    plan = MissionPlan.from_json(row.plan_json)
+    plan_out: dict[str, Any] | None = None
+    if plan is not None:
+        plan_out = {
+            "tasks": [
+                {
+                    "title": t.title,
+                    "goal": t.goal,
+                    "status": t.status,
+                }
+                for t in plan.tasks
+            ],
+            "handoff": plan.handoff or None,
+            "completed": plan.completed_count(),
+            "total": len(plan.tasks),
+        }
     out: dict[str, Any] = {
         "id": row.id,
         "title": row.title,
@@ -454,6 +470,7 @@ def _mission_dict(row: MissionRow, *, markdown: str | None = None) -> dict[str, 
         "error": row.error,
         "created_at": row.created_at,
         "updated_at": row.updated_at,
+        "plan": plan_out,
     }
     if markdown is not None:
         out["markdown"] = markdown
@@ -479,14 +496,14 @@ async def create_mission(request: Request, body: CreateMissionBody) -> dict[str,
         body.title.strip(),
         brief=body.brief.strip(),
         status=status_v,
-        max_ticks=body.max_ticks,
+        max_ticks=1,
         tick_seconds=body.tick_seconds,
         next_run_at=next_run,
     )
     path = vault.write_mission(
         mid,
         f"# {body.title.strip()}\n\n"
-        f"> Estado: {'en cola' if body.launch else 'borrador'}\n\n"
+        f"> Estado: {'en cola · planificando…' if body.launch else 'borrador'}\n\n"
         f"## Encargo\n\n{body.brief.strip() or '(sin brief)'}\n",
     )
     rel = str(path.relative_to(vault.root)) if path.is_relative_to(vault.root) else str(path)
@@ -568,6 +585,8 @@ async def relaunch_mission(request: Request, mission_id: int) -> dict[str, Any]:
         mission_id,
         status="queued",
         step_index=0,
+        max_ticks=1,
+        plan_json="",
         next_run_at=next_run,
         clear_error=True,
     )
@@ -575,7 +594,7 @@ async def relaunch_mission(request: Request, mission_id: int) -> dict[str, Any]:
     request.app.state.vault.write_mission(
         mission_id,
         f"# {updated.title}\n\n"
-        f"> Estado: en cola (relanzada)\n\n"
+        f"> Estado: en cola (relanzada) · planificando…\n\n"
         f"## Encargo\n\n{updated.brief.strip() or '(sin brief)'}\n",
     )
     await request.app.state.memory.add_mission_event(mission_id, "relaunch", None)

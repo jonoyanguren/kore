@@ -37,6 +37,24 @@ function isActiveStatus(s: string): boolean {
   return s === 'queued' || s === 'running' || s === 'waiting'
 }
 
+function missionProgressLabel(m: Mission): string {
+  const plan = m.plan
+  if (!plan?.total) {
+    if (isActiveStatus(m.status)) return 'planificando…'
+    return ''
+  }
+  if (m.status === 'done') return `${plan.total} tareas`
+  const current = Math.min(m.step_index + 1, plan.total)
+  return `tarea ${current}/${plan.total}`
+}
+
+function taskStatusMark(status: string): string {
+  if (status === 'done') return '✓'
+  if (status === 'running') return '›'
+  if (status === 'failed') return '✕'
+  return '○'
+}
+
 export function MissionsPanel({ active = true }: Props) {
   const [missions, setMissions] = useState<Mission[]>([])
   const [hideDone, setHideDone] = useState(false)
@@ -184,7 +202,6 @@ export function MissionsPanel({ active = true }: Props) {
         title: title.trim(),
         brief: finalBrief.trim(),
         launch: true,
-        max_ticks: 3,
         tick_seconds: 10,
       })
       toast.ok(`Misión #${m.id} en cola`)
@@ -297,8 +314,7 @@ export function MissionsPanel({ active = true }: Props) {
                   />
                 </label>
                 <p className="muted missions__form-hint">
-                  Primero aclaramos 1–2 puntos si hace falta; luego investiga en
-                  web (3 ticks).
+                  Plan automático → tareas en secuencia con handoff entre pasos.
                 </p>
                 <div className="missions__form-actions">
                   <button type="submit" disabled={busy || !title.trim()}>
@@ -420,8 +436,8 @@ export function MissionsPanel({ active = true }: Props) {
                   <span className="missions__item-title">{m.title}</span>
                   <span className="missions__item-meta muted">
                     {STATUS_LABEL[m.status] || m.status}
-                    {isActiveStatus(m.status)
-                      ? ` · ${m.step_index}/${m.max_ticks}`
+                    {isActiveStatus(m.status) || m.status === 'done'
+                      ? ` · ${missionProgressLabel(m) || `${m.step_index}/${m.max_ticks}`}`
                       : ''}
                   </span>
                 </button>
@@ -472,11 +488,37 @@ export function MissionsPanel({ active = true }: Props) {
                 <h3>{detail.title}</h3>
                 <p className="muted">
                   {STATUS_LABEL[detail.status] || detail.status}
-                  {isActiveStatus(detail.status)
-                    ? ` · tick ${detail.step_index}/${detail.max_ticks}`
+                  {isActiveStatus(detail.status) || detail.status === 'done'
+                    ? ` · ${missionProgressLabel(detail) || `tick ${detail.step_index}/${detail.max_ticks}`}`
                     : ''}
                 </p>
               </header>
+              {detail.plan?.tasks?.length ? (
+                <ol className="missions__tasks">
+                  {detail.plan.tasks.map((t, i) => (
+                    <li
+                      key={`${detail.id}-${i}-${t.title}`}
+                      className={
+                        t.status === 'done'
+                          ? 'missions__task missions__task--done'
+                          : t.status === 'running'
+                            ? 'missions__task missions__task--active'
+                            : t.status === 'failed'
+                              ? 'missions__task missions__task--failed'
+                              : 'missions__task'
+                      }
+                    >
+                      <span className="missions__task-mark" aria-hidden>
+                        {taskStatusMark(t.status)}
+                      </span>
+                      <span className="missions__task-body">
+                        <strong>{t.title}</strong>
+                        <span className="muted missions__task-goal">{t.goal}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              ) : null}
               {md ? (
                 <div
                   className="missions__md"

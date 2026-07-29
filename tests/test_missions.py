@@ -1,4 +1,4 @@
-"""Missions store + vault + stub tick (research mocked)."""
+"""Missions store + vault + task runner (plan + tasks mocked)."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock
 
 from app.kernel import mission_runner
+from app.kernel.mission_plan import MissionPlan, MissionTask
 from app.kernel.mission_runner import run_mission_tick
 from app.storage.memory import MemoryStore
 from app.storage.vault import Vault
@@ -26,7 +27,7 @@ def test_mission_crud_and_vault():
                 brief="3 hab, cerca del mar",
                 status="queued",
                 next_run_at=now_madrid().replace(microsecond=0).isoformat(),
-                max_ticks=2,
+                max_ticks=1,
                 tick_seconds=5,
             )
             row = await store.get_mission(mid)
@@ -39,16 +40,27 @@ def test_mission_crud_and_vault():
     asyncio.run(_run())
 
 
-def test_mission_ticks_to_done_with_fake_research(monkeypatch):
-    async def fake_research(llm, mission, *, step, previous_md):
-        return (
-            f"# {mission.title}\n\n"
-            f"> Estado: en curso · tick {step}/{mission.max_ticks}\n\n"
-            f"## Encargo\n\n{mission.brief}\n\n"
-            f"## Hallazgos\n\nDato fake tick {step}.\n"
-        )
+def test_mission_plan_then_tasks_to_done(monkeypatch):
+    sample_plan = MissionPlan(
+        tasks=[
+            MissionTask(title="T1", goal="g1"),
+            MissionTask(title="T2", goal="g2"),
+        ]
+    )
 
-    monkeypatch.setattr(mission_runner, "_research_tick", fake_research)
+    async def fake_plan(llm, *, title, brief):
+        return sample_plan
+
+    async def fake_execute(llm, mission, plan, task_index):
+        task = plan.tasks[task_index]
+        return f"## {task.title}\n\nHecho {task_index + 1}.\n"
+
+    async def fake_handoff(llm, **kwargs):
+        return "Handoff breve para la siguiente."
+
+    monkeypatch.setattr(mission_runner, "plan_mission", fake_plan)
+    monkeypatch.setattr(mission_runner, "_execute_task", fake_execute)
+    monkeypatch.setattr(mission_runner, "generate_handoff", fake_handoff)
 
     async def _run() -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -58,26 +70,39 @@ def test_mission_ticks_to_done_with_fake_research(monkeypatch):
             vault = Vault(Path(tmp) / "vault")
             mid = await store.add_mission(
                 "Stub",
-                brief="probar ticks",
+                brief="probar tareas",
                 status="queued",
                 next_run_at=now_madrid().replace(microsecond=0).isoformat(),
-                max_ticks=2,
+                max_ticks=1,
                 tick_seconds=5,
             )
             llm = AsyncMock()
             m = await store.get_mission(mid)
             assert m is not None
+
+            await run_mission_tick(store, vault, m, llm)
+            m = await store.get_mission(mid)
+            assert m is not None
+            assert m.max_ticks == 2
+            assert m.status == "waiting"
+            assert MissionPlan.from_json(m.plan_json) is not None
+
             await run_mission_tick(store, vault, m, llm)
             m = await store.get_mission(mid)
             assert m is not None
             assert m.step_index == 1
             assert m.status == "waiting"
-            assert "Dato fake tick 1" in (vault.read_mission(mid) or "")
+            md = vault.read_mission(mid) or ""
+            assert "Hecho 1" in md
+
             await run_mission_tick(store, vault, m, llm)
             m = await store.get_mission(mid)
             assert m is not None
             assert m.status == "done"
             assert m.step_index == 2
+            md = vault.read_mission(mid) or ""
+            assert "Hecho 2" in md
+            assert "## Plan" in md
 
     asyncio.run(_run())
 
