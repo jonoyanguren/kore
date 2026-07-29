@@ -113,13 +113,41 @@ class MissionPlan:
         return sum(1 for t in self.tasks if t.status == "done")
 
 
+def _completion_text(message: Any) -> str:
+    """Prefer content; DeepSeek V4 often parks JSON in reasoning fields."""
+    content = (getattr(message, "content", None) or "").strip()
+    if content:
+        return content
+    for attr in ("reasoning", "reasoning_content"):
+        raw = getattr(message, attr, None)
+        if isinstance(raw, str) and raw.strip():
+            return raw.strip()
+    extra = getattr(message, "model_extra", None) or {}
+    if isinstance(extra, dict):
+        for key in ("reasoning", "reasoning_content"):
+            raw = extra.get(key)
+            if isinstance(raw, str) and raw.strip():
+                return raw.strip()
+    return ""
+
+
 def _extract_json(text: str) -> dict[str, Any] | None:
     raw = (text or "").strip()
     if not raw:
         return None
     if raw.startswith("```"):
-        raw = re.sub(r"^```(?:json)?\s*", "", raw)
-        raw = re.sub(r"\s*```$", "", raw)
+        raw = re.sub(r"^```(?:json)?\s*", "", raw, count=1)
+        raw = re.sub(r"\s*```\s*$", "", raw)
+    # Prefer the object that contains "tasks"
+    for match in re.finditer(r"\{[\s\S]*\}", raw):
+        chunk = match.group(0)
+        # Trim to first { … last } balanced-ish via tasks key
+        try:
+            data = json.loads(chunk)
+            if isinstance(data, dict) and "tasks" in data:
+                return data
+        except json.JSONDecodeError:
+            pass
     try:
         data = json.loads(raw)
         return data if isinstance(data, dict) else None
@@ -131,7 +159,13 @@ def _extract_json(text: str) -> dict[str, Any] | None:
             data = json.loads(m.group(0))
             return data if isinstance(data, dict) else None
         except json.JSONDecodeError:
-            return None
+            # Trailing commas / soft cleanup
+            cleaned = re.sub(r",\s*([}\]])", r"\1", m.group(0))
+            try:
+                data = json.loads(cleaned)
+                return data if isinstance(data, dict) else None
+            except json.JSONDecodeError:
+                return None
 
 
 def _normalize_plan(data: dict[str, Any]) -> MissionPlan | None:
@@ -143,12 +177,81 @@ def _normalize_plan(data: dict[str, Any]) -> MissionPlan | None:
         if not isinstance(item, dict):
             continue
         title = str(item.get("title") or "").strip()[:120]
-        goal = str(item.get("goal") or "").strip()[:500]
+        goal = str(item.get("goal") or item.get("objetivo") or "").strip()[:500]
         if title and goal:
             tasks.append(MissionTask(title=title, goal=goal))
     if len(tasks) < MIN_TASKS:
         return None
     return MissionPlan(tasks=tasks)
+
+
+def _fallback_plan(title: str, brief: str) -> MissionPlan:
+    """Deterministic plan when the model fails JSON — keep the mission moving."""
+    snippet = (brief or title or "el encargo").strip()
+    if len(snippet) > 220:
+        snippet = snippet[:217] + "…"
+    return MissionPlan(
+        tasks=[
+            MissionTask(
+                title="Recopilar opciones clave",
+                goal=(
+                    f"Lista concreta de opciones/sitios relevantes para: {snippet}. "
+                    "Incluye por qué valen y links."
+                ),
+            ),
+            MissionTask(
+                title="Comparar y completar datos",
+                goal=(
+                    "Precios/accesos, logística práctica y comparación entre las "
+                    "mejores opciones de la tarea anterior."
+                ),
+            ),
+            MissionTask(
+                title="Síntesis y recomendación",
+                goal=(
+                    "Informe final priorizado, selección accionable e itinerario "
+                    "o siguientes pasos concretos."
+                ),
+            ),
+        ]
+    )
+
+
+async def _call_planner(
+    llm: openai.AsyncOpenAI,
+    *,
+    model: str,
+    messages: list[dict[str, Any]],
+    session_id: str,
+    usage_acc: UsageAccumulator | None,
+    spend_store: MemoryStore | None,
+    spend_ref: str | None,
+    temperature: float,
+) -> str:
+    kwargs: dict[str, Any] = {
+        "model": model,
+        "messages": messages,
+        "max_tokens": 1600,
+        "temperature": temperature,
+    }
+    extra = openrouter_extra_body(model=model, session_id=session_id)
+    if extra:
+        kwargs["extra_body"] = extra
+    resp = await llm.chat.completions.create(**kwargs)
+    if usage_acc is not None:
+        usage_acc.record_completion(resp, model=model)
+    await log_completion(
+        spend_store,
+        resp,
+        model=model,
+        kind="mission",
+        ref=spend_ref,
+        session_id=session_id,
+    )
+    choice = resp.choices[0] if resp.choices else None
+    if choice is None or choice.message is None:
+        return ""
+    return _completion_text(choice.message)
 
 
 async def plan_mission(
@@ -164,43 +267,63 @@ async def plan_mission(
     user = (
         f"Título: {title.strip()}\n"
         f"Encargo:\n{(brief or '').strip() or '(vacío)'}\n\n"
-        f"Genera {MIN_TASKS}–{MAX_TASKS} tareas ejecutables en JSON."
+        f"Genera {MIN_TASKS}–{MAX_TASKS} tareas ejecutables.\n"
+        'Responde SOLO JSON: {{"tasks":[{{"title":"…","goal":"…"}}]}}'
     )
-    messages = with_system_cache_control(
+    base_messages = with_system_cache_control(
         [
             {"role": "system", "content": PLAN_SYSTEM},
             {"role": "user", "content": user},
         ],
         model=model,
     )
-    kwargs: dict[str, Any] = {
-        "model": model,
-        "messages": messages,
-        "max_tokens": 1200,
-        "temperature": 0.3,
-    }
     session_id = f"mission-plan-{title[:40]}"
-    extra = openrouter_extra_body(model=model, session_id=session_id)
-    if extra:
-        kwargs["extra_body"] = extra
-    resp = await llm.chat.completions.create(**kwargs)
-    if usage_acc is not None:
-        usage_acc.record_completion(resp, model=model)
-    await log_completion(
-        spend_store,
-        resp,
+    text = await _call_planner(
+        llm,
         model=model,
-        kind="mission",
-        ref=spend_ref,
+        messages=base_messages,
         session_id=session_id,
+        usage_acc=usage_acc,
+        spend_store=spend_store,
+        spend_ref=spend_ref,
+        temperature=0.2,
     )
-    text = (resp.choices[0].message.content or "").strip()
     data = _extract_json(text)
-    if not data:
-        raise RuntimeError("El planner no devolvió JSON válido")
-    plan = _normalize_plan(data)
+    plan = _normalize_plan(data) if data else None
     if plan is None:
-        raise RuntimeError("Plan de tareas inválido o demasiado corto")
+        logger.warning(
+            "Mission plan JSON parse failed (len=%d); retrying. preview=%r",
+            len(text),
+            text[:240],
+        )
+        retry_messages = list(base_messages) + [
+            {"role": "assistant", "content": text or "(vacío)"},
+            {
+                "role": "user",
+                "content": (
+                    "Eso no es JSON válido. Responde OTRA VEZ solo con JSON, "
+                    'sin markdown ni texto alrededor: {"tasks":[{"title":"…","goal":"…"}]}'
+                ),
+            },
+        ]
+        text2 = await _call_planner(
+            llm,
+            model=model,
+            messages=retry_messages,
+            session_id=session_id + "-retry",
+            usage_acc=usage_acc,
+            spend_store=spend_store,
+            spend_ref=spend_ref,
+            temperature=0.0,
+        )
+        data2 = _extract_json(text2)
+        plan = _normalize_plan(data2) if data2 else None
+    if plan is None:
+        logger.warning(
+            "Mission plan still invalid; using fallback plan for %r",
+            title[:40],
+        )
+        plan = _fallback_plan(title, brief)
     logger.info("Mission plan: %s tasks for %r", len(plan.tasks), title[:40])
     return plan
 
@@ -261,7 +384,7 @@ async def generate_handoff(
         ref=f"mission:{mission_id}",
         session_id=session_id,
     )
-    text = (resp.choices[0].message.content or "").strip()
+    text = _completion_text(resp.choices[0].message).strip()
     if not text:
         return (
             f"Continuar con: {next_task.title}. "
