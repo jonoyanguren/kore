@@ -31,6 +31,48 @@ _DREAM_SYNTH_NUDGE = (
     "No respondas vacío ni digas solo '(vacío)'."
 )
 
+_TOOL_MARKUP_LEAK_MARKERS = (
+    "tool_calls",
+    "DSML",
+    "invoke name=",
+    "<｜｜DSML",
+    "function_call",
+    "<|>",
+)
+
+_TOOL_LEAK_NUDGE = (
+    "STOP. Has escrito llamadas a tools en texto plano (XML/DSML). "
+    "Eso no sirve. Escribe YA el entregable final en markdown en español, "
+    "con datos concretos y links. Sin tool_calls ni XML."
+)
+
+
+def looks_like_tool_markup(text: str | None) -> bool:
+    """True when the model dumped tool-call XML into content instead of using tools."""
+    t = (text or "").strip()
+    if not t:
+        return False
+    low = t.lower()
+    hits = sum(1 for m in _TOOL_MARKUP_LEAK_MARKERS if m.lower() in low)
+    if hits >= 1 and ("invoke" in low or "parameter" in low or "tool_call" in low):
+        return True
+    if t.count("<") >= 3 and ("invoke" in low or "tool_calls" in low):
+        return True
+    return False
+
+
+def is_blank_report(text: str | None) -> bool:
+    """True when the model produced nothing usable for a dream/briefing."""
+    t = (text or "").strip()
+    if not t:
+        return True
+    if t.lower() in EMPTY_REPORT_MARKERS:
+        return True
+    if looks_like_tool_markup(t):
+        return True
+    return False
+
+
 CAPTURE_TOOL_NAMES = {
     "save_memory",
     "add_diary_entry",
@@ -47,14 +89,6 @@ CAPTURE_TOOL_NAMES = {
 
 # Morning dream must NOT resurrect archived todos from chat chatter.
 DREAM_CAPTURE_TOOL_NAMES = CAPTURE_TOOL_NAMES - {"add_task"}
-
-
-def is_blank_report(text: str | None) -> bool:
-    """True when the model produced nothing usable for a dream/briefing."""
-    t = (text or "").strip()
-    if not t:
-        return True
-    return t.lower() in EMPTY_REPORT_MARKERS
 
 
 def build_capture_tools(
@@ -160,13 +194,16 @@ async def _synthesize_report(
     max_tokens: int,
     session_id: str | None = None,
     usage_acc: Any | None = None,
+    synth_nudge: str | None = None,
 ) -> str | None:
     """Forced text-only wrap-up when the model returns blank / only tools."""
     synth_messages = list(messages)
-    synth_messages.append({"role": "user", "content": _DREAM_SYNTH_NUDGE})
+    synth_messages.append(
+        {"role": "user", "content": synth_nudge or _DREAM_SYNTH_NUDGE}
+    )
     kwargs: dict[str, Any] = {
         "model": model,
-        "max_tokens": min(max(settings.llm_max_tokens, SYNTH_MAX_TOKENS), max_tokens * 2),
+        "max_tokens": min(max(settings.llm_max_tokens, SYNTH_MAX_TOKENS), max(max_tokens, SYNTH_MAX_TOKENS)),
         "messages": with_system_cache_control(synth_messages, model=model),
         "tools": None,
     }
@@ -196,6 +233,7 @@ async def run_tool_loop(
     model: str | None = None,
     session_id: str | None = None,
     usage_acc: Any | None = None,
+    synth_nudge: str | None = None,
 ) -> str:
     model_id = (model or settings.openrouter_model).strip()
     messages: list[dict[str, Any]] = [
@@ -204,6 +242,8 @@ async def run_tool_loop(
     ]
     final_text: str | None = None
     used_any_tool = False
+    # Allow mission callers to request more than the chat default.
+    token_budget = max(256, min(int(max_tokens), 8192))
 
     for iteration in range(MAX_TOOL_ITERS):
         # Last iter: force text (no tools) so we don't end on a bare tool chain.
@@ -213,7 +253,7 @@ async def run_tool_loop(
 
         kwargs: dict[str, Any] = {
             "model": model_id,
-            "max_tokens": min(settings.llm_max_tokens, max_tokens),
+            "max_tokens": token_budget,
             "messages": with_system_cache_control(messages, model=model_id),
             "tools": call_tools,
         }
@@ -229,6 +269,21 @@ async def run_tool_loop(
         tool_calls = message.tool_calls if call_tools else None
         if not tool_calls:
             text = _message_text(message)
+            if looks_like_tool_markup(text):
+                logger.warning(
+                    "Tool markup leaked into content model=%s iter=%d len=%d",
+                    model_id,
+                    iteration,
+                    len(text),
+                )
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "content": "(intento inválido: tool calls en texto)",
+                    }
+                )
+                messages.append({"role": "user", "content": _TOOL_LEAK_NUDGE})
+                continue
             if not is_blank_report(text):
                 final_text = text
             else:
@@ -277,14 +332,15 @@ async def run_tool_loop(
                 client,
                 messages,
                 model=model_id,
-                max_tokens=max_tokens,
+                max_tokens=token_budget,
                 session_id=session_id,
                 usage_acc=usage_acc,
+                synth_nudge=synth_nudge,
             )
         except Exception:
             logger.exception("Review synthesis pass failed")
             synth = None
-        if synth:
+        if synth and not looks_like_tool_markup(synth):
             final_text = synth
         elif final_text is None and used_any_tool:
             final_text = "Me enredé con demasiadas tools. Prueba otra vez."

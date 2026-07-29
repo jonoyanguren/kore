@@ -16,7 +16,7 @@ from app.kernel.mission_plan import (
     plan_mission,
     render_mission_markdown,
 )
-from app.kernel.review_common import is_blank_report, run_tool_loop
+from app.kernel.review_common import is_blank_report, looks_like_tool_markup, run_tool_loop
 from app.llm.llm_assistant import resolve_model
 from app.llm.openrouter_credits import fetch_usage
 from app.llm.usage_cost import UsageAccumulator, format_cost_usd
@@ -34,12 +34,20 @@ MISSION_SYSTEM = """Eres Jone, assistant de investigación de Jon.
 Trabajas UNA tarea concreta de una misión en background. Escribes SOLO markdown útil en español.
 
 Reglas:
-- Usa web_search y fetch_url para datos reales (precios, modelos, fuentes).
+- Usa web_search y fetch_url vía la API de tools (no escribas XML ni tool_calls en el texto).
 - No inventes precios ni URLs. Si no hay dato sólido, dilo.
 - Cita fuentes con links markdown: [nombre](https://…).
 - Cumple SOLO el objetivo de esta tarea; no adelantes otras.
 - Tono: claro, accionable, sin relleno.
+- La respuesta final = markdown empezando por ## título de la tarea.
 - No digas que eres una IA ni menciones ticks internos."""
+
+MISSION_TASK_SYNTH_NUDGE = (
+    "STOP. No llames más tools ni escribas XML. "
+    "Con el contexto de este turno, escribe YA el entregable de la tarea "
+    "en markdown en español (empieza por ##). Datos concretos y links. "
+    "Sin tool_calls, sin DSML, sin inventar."
+)
 
 
 def _iso(dt) -> str:
@@ -151,9 +159,10 @@ async def _execute_task(
         max_tokens=5500,
         session_id=f"mission-{mission.id}-task-{task_index + 1}",
         usage_acc=usage_acc,
+        synth_nudge=MISSION_TASK_SYNTH_NUDGE,
     )
-    if is_blank_report(text):
-        raise RuntimeError(f"Tarea vacía: {task.title}")
+    if is_blank_report(text) or looks_like_tool_markup(text):
+        raise RuntimeError(f"Tarea vacía o inválida: {task.title}")
     t = text.strip()
     heading = f"## {task.title}"
     if not t.startswith("##"):

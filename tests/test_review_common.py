@@ -6,7 +6,11 @@ import asyncio
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from app.kernel.review_common import is_blank_report, run_tool_loop
+from app.kernel.review_common import (
+    is_blank_report,
+    looks_like_tool_markup,
+    run_tool_loop,
+)
 
 
 def _msg(*, content: str | None = None, tool_calls=None, reasoning: str | None = None):
@@ -84,5 +88,59 @@ def test_run_tool_loop_uses_reasoning_when_content_blank():
 
         assert "Había datos" in text
         assert client.chat.completions.create.await_count == 1
+
+    asyncio.run(_run())
+
+
+def test_looks_like_tool_markup():
+    leak = (
+        "## Rutas\n"
+        "<｜｜DSML｜｜tool_calls>\n"
+        '<｜｜DSML｜｜invoke name="web_search">\n'
+        '<｜｜DSML｜｜parameter name="query">foo</｜｜DSML｜｜parameter>\n'
+    )
+    assert looks_like_tool_markup(leak)
+    assert is_blank_report(leak)
+    assert not looks_like_tool_markup("## Rutas\n- Lauterbrunnen con [link](https://x.com)")
+
+
+def test_run_tool_loop_retries_when_tool_markup_leaks():
+    async def _run():
+        leak = (
+            "Localizar rutas\n"
+            "<｜｜DSML｜｜tool_calls>\n"
+            '<｜｜DSML｜｜invoke name="web_search">\n'
+            '<｜｜DSML｜｜parameter name="query">camping</｜｜DSML｜｜parameter>\n'
+        )
+        client = MagicMock()
+        client.chat.completions.create = AsyncMock(
+            side_effect=[
+                _response(_msg(content=leak)),
+                _response(
+                    _msg(
+                        content=(
+                            "## Localizar rutas\n\n"
+                            "- Grimsel Pass · camping en Innertkirchen\n"
+                        )
+                    )
+                ),
+            ]
+        )
+
+        with patch("app.kernel.review_common.settings") as settings:
+            settings.openrouter_model = "test/model"
+            settings.llm_max_tokens = 2000
+            text = await run_tool_loop(
+                client,
+                system="sys",
+                user_payload="payload",
+                tools=[],
+                handlers={},
+                synth_nudge="escribe markdown",
+            )
+
+        assert "Grimsel" in text
+        assert "tool_calls" not in text
+        assert client.chat.completions.create.await_count == 2
 
     asyncio.run(_run())
