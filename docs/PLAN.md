@@ -97,6 +97,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-29 | Gasto LLM: Más = resumen + link; detalle en drawer propio |
 | 2026-07-29 | Ledger LLM: tabla `llm_spend` + Más drawer (hoy/7d/por kind) |
 | 2026-07-29 | D22: misiones por tareas (plan auto + handoff + checklist UI) |
 | 2026-07-29 | Misiones: markdown con links/tablas en panel; 3 ticks; informe no cortado |
