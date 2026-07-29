@@ -28,8 +28,10 @@ Trabajas en una MISIÓN en background. Escribes SOLO markdown útil en español.
 Reglas:
 - Usa web_search y fetch_url para datos reales (precios, modelos, fuentes).
 - No inventes precios ni URLs. Si no hay dato sólido, dilo.
-- Cita fuentes con links.
+- Cita fuentes con links markdown: [nombre](https://…).
 - Tono: claro, accionable, sin relleno.
+- Cierra TODAS las secciones del informe; ninguna vacía ni cortada a medias.
+- Los "siguientes pasos" del encargo los ejecutas tú (más búsquedas, comparativas, borradores) — no dejes una lista de pendientes para Jon.
 - No digas que eres una IA ni menciones "stub" o "tick interno"."""
 
 
@@ -67,9 +69,13 @@ async def _research_tick(
             "## Hallazgos (con precios/datos concretos y links)\n"
             "## Opciones recomendadas (tabla o lista comparativa)\n"
             "## Riesgos / qué mirar\n"
-            "## Siguiente paso\n"
-            "Puedes hacer 1–2 búsquedas extras si falta un dato clave. "
-            "Respuesta = SOLO el markdown del informe (empieza por # título)."
+            "## Siguientes pasos (hechos en esta misión)\n"
+            "En la última sección incluye acciones concretas que YA ejecutaste aquí "
+            "(más búsquedas, comparativas, contactos, borradores). "
+            "No dejes esa sección vacía ni solo con pendientes.\n"
+            "Puedes hacer 2–4 búsquedas extras si falta un dato clave. "
+            "Respuesta = SOLO el markdown del informe completo (empieza por # título). "
+            "No cortes tablas ni listas a medias."
         )
     else:
         user = (
@@ -97,6 +103,7 @@ async def _research_tick(
         model,
         is_final,
     )
+    token_budget = 7000 if is_final else 4500
     text = await run_tool_loop(
         llm,
         system=MISSION_SYSTEM,
@@ -104,7 +111,7 @@ async def _research_tick(
         tools=tools,
         handlers=handlers,
         model=model,
-        max_tokens=3500,
+        max_tokens=token_budget,
         session_id=f"mission-{mission.id}-tick-{step}",
     )
     if is_blank_report(text):

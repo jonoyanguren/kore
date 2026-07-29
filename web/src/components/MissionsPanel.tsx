@@ -8,6 +8,7 @@ import {
   apiRelaunchMission,
   type ClarifyHistoryItem,
 } from '../api'
+import { renderMissionMarkdown } from '../lib/missionMarkdown'
 import type { Mission } from '../types'
 import { useToast } from './Toasts'
 
@@ -34,90 +35,6 @@ function isDoneStatus(s: string): boolean {
 
 function isActiveStatus(s: string): boolean {
   return s === 'queued' || s === 'running' || s === 'waiting'
-}
-
-/** Minimal markdown → HTML for mission results (no extra deps). */
-function renderMarkdown(md: string): string {
-  const esc = (s: string) =>
-    s
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-  const lines = md.replace(/\r\n/g, '\n').split('\n')
-  const out: string[] = []
-  let inList = false
-  let inQuote = false
-
-  function closeList() {
-    if (inList) {
-      out.push('</ul>')
-      inList = false
-    }
-  }
-  function closeQuote() {
-    if (inQuote) {
-      out.push('</blockquote>')
-      inQuote = false
-    }
-  }
-
-  function inline(s: string): string {
-    return esc(s)
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-  }
-
-  for (const raw of lines) {
-    const line = raw
-    if (/^###\s+/.test(line)) {
-      closeList()
-      closeQuote()
-      out.push(`<h3>${inline(line.replace(/^###\s+/, ''))}</h3>`)
-      continue
-    }
-    if (/^##\s+/.test(line)) {
-      closeList()
-      closeQuote()
-      out.push(`<h2>${inline(line.replace(/^##\s+/, ''))}</h2>`)
-      continue
-    }
-    if (/^#\s+/.test(line)) {
-      closeList()
-      closeQuote()
-      out.push(`<h1>${inline(line.replace(/^#\s+/, ''))}</h1>`)
-      continue
-    }
-    if (/^>\s?/.test(line)) {
-      closeList()
-      if (!inQuote) {
-        out.push('<blockquote>')
-        inQuote = true
-      }
-      out.push(`<p>${inline(line.replace(/^>\s?/, ''))}</p>`)
-      continue
-    }
-    if (/^[-*]\s+/.test(line)) {
-      closeQuote()
-      if (!inList) {
-        out.push('<ul>')
-        inList = true
-      }
-      out.push(`<li>${inline(line.replace(/^[-*]\s+/, ''))}</li>`)
-      continue
-    }
-    if (!line.trim()) {
-      closeList()
-      closeQuote()
-      continue
-    }
-    closeList()
-    closeQuote()
-    out.push(`<p>${inline(line)}</p>`)
-  }
-  closeList()
-  closeQuote()
-  return out.join('\n')
 }
 
 export function MissionsPanel({ active = true }: Props) {
@@ -267,7 +184,7 @@ export function MissionsPanel({ active = true }: Props) {
         title: title.trim(),
         brief: finalBrief.trim(),
         launch: true,
-        max_ticks: 2,
+        max_ticks: 3,
         tick_seconds: 10,
       })
       toast.ok(`Misión #${m.id} en cola`)
@@ -381,7 +298,7 @@ export function MissionsPanel({ active = true }: Props) {
                 </label>
                 <p className="muted missions__form-hint">
                   Primero aclaramos 1–2 puntos si hace falta; luego investiga en
-                  web (2 ticks).
+                  web (3 ticks).
                 </p>
                 <div className="missions__form-actions">
                   <button type="submit" disabled={busy || !title.trim()}>
@@ -563,7 +480,7 @@ export function MissionsPanel({ active = true }: Props) {
               {md ? (
                 <div
                   className="missions__md"
-                  dangerouslySetInnerHTML={{ __html: renderMarkdown(md) }}
+                  dangerouslySetInnerHTML={{ __html: renderMissionMarkdown(md) }}
                 />
               ) : (
                 <p className="muted">Sin informe aún.</p>

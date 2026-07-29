@@ -424,7 +424,7 @@ class CreateMissionBody(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     brief: str = Field(default="", max_length=8000)
     launch: bool = True
-    max_ticks: int = Field(default=2, ge=1, le=20)
+    max_ticks: int = Field(default=3, ge=1, le=20)
     tick_seconds: int = Field(default=10, ge=5, le=3600)
 
 

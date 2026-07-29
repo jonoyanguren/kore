@@ -15,9 +15,9 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 
 ## P3 — Phase 3 Misiones (diseño → build)
 
-**Cerrado:** input vía **Nueva** (formulario v1) · 4º layout · SQLite lista · vault output · ticks · ocultar terminadas · cancelar · Jon prueba la 1ª misión real cuando quiera.
+**Cerrado:** Nueva (form + aclaración) · 4º layout · SQLite/vault · ticks research · ocultar terminadas · cancelar · Relanzar.
 
-**Defaults v1:** form (no mini-chat aún) · stub loop sin tools · cancelar en detalle · 3 ticks / 20–30s.
+**Defaults v1:** form (no mini-chat) · DeepSeek en research · 3 ticks · skip “Lanzar sin aclarar”.
 
 **Build:**
 - [x] Tabla `missions` + `vault/missions/{id}.md`
@@ -25,6 +25,8 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 - [x] Runner in-process (ticks, `next_run_at`, max 1) + **research web real**
 - [x] Relanzar misión desde el panel
 - [x] Aclaración con preguntas en Nueva
+
+**Abierto:** dogfood 1ª misión útil; fricciones → aquí.
 
 ## P4+ — Después
 

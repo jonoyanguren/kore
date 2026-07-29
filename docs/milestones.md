@@ -83,7 +83,14 @@ Pendiente 1.6 → UI viva (aparte) / fricciones dogfood.
 - SQLite `missions` / `mission_events` + `vault/missions/{id}.md`
 - Nueva (formulario) → cola → runner stub con ticks → markdown
 - Ocultar terminadas · cancelar · max 1 running
-- Pendiente: tools reales, aclaración Q&A, misión útil
+
+## 2026-07-28…29 — Phase 3 Misiones (loop real + coste)
+
+- Research web real (`web_search`/`fetch`) en ticks; Relanzar; detalle split
+- Coste: misiones → DeepSeek; strong dogfood → Haiku 4.5; prompt cache en loops
+- Más drawer: tabla Modelos (Daily/Strong + ~/1M)
+- Nueva: aclaración 1–2 preguntas (DeepSeek) antes de Lanzar
+- Pendiente: dogfood 1ª misión útil; tono sent (parking)
 
 ## Prompting (baseline cerrado)
 
@@ -92,4 +99,4 @@ Pendiente 1.6 → UI viva (aparte) / fricciones dogfood.
 
 ---
 
-*Última actualización del archivo: 2026-07-28*
+*Última actualización del archivo: 2026-07-29*

@@ -20,7 +20,7 @@
 - [x] Phase 1.5 — Consola web MVP (chat + board)
 - [ ] Phase 1.6 — UX personal *(parcial; UI viva aparte / fricciones)*
 - [x] Phase 2 — Gmail MVP
-- [ ] Phase 3 — Misiones *(esqueleto shipped: pantalla + stub runner)*
+- [ ] Phase 3 — Misiones *(build MVP shipped; dogfood aclaración + 1ª útil)*
 - [ ] Phase 4 — Git / código
 - [ ] Phase 5+ — Calendar, PDF, media web…
 
@@ -86,8 +86,8 @@ Detalle de lo ya shipped → [`milestones.md`](./milestones.md).
 
 ## Next steps
 
-1. Probar layout **Misiones** en Fly (Nueva → ver ticks → markdown)
-2. Siguiente: tools en el loop / aclaración / primera misión útil
+1. Dogfood **Nueva** en Fly (Continuar → preguntas → Lanzar → informe)
+2. Mirar gasto OpenRouter (Haiku strong + DeepSeek misiones)
 3. Dogfood Gmail reply en paralelo
 
 No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
@@ -96,6 +96,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-29 | Misiones: markdown con links/tablas en panel; 3 ticks; informe no cortado |
 | 2026-07-29 | Misiones Nueva: aclaración 1–2 preguntas (DeepSeek) antes de Lanzar |
 | 2026-07-28 | Strong → Haiku 4.5 (dogfood); prompt cache + session_id en tool loops |
 | 2026-07-28 | Misiones: ticks con **daily** (DeepSeek) mientras dogfood — Sonnet salía ~$2+/misión |
