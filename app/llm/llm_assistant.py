@@ -239,17 +239,33 @@ class LLMAssistant:
                     session_id=cache_session,
                 )
                 if err == "rate_limit":
-                    return (
+                    final_text = (
                         "Estoy con rate limit ahora mismo — prueba de nuevo en un minuto."
                     )
+                    break
                 if err == "connection":
-                    return "No logro conectar con el modelo ahora mismo. Prueba en un rato."
+                    final_text = (
+                        "No logro conectar con el modelo ahora mismo. Prueba en un rato."
+                    )
+                    break
                 if err == "upstream":
-                    return "El servicio está teniendo problemas — prueba en un rato."
+                    final_text = (
+                        "El servicio está teniendo problemas — prueba en un rato."
+                    )
+                    break
+                if err == "key_limit":
+                    final_text = (
+                        "Límite de la key OpenRouter alcanzado (Key limit exceeded). "
+                        "Sube el límite o recarga en openrouter.ai/settings/keys "
+                        "y vuelve a escribir."
+                    )
+                    break
                 if err == "api":
-                    return "Algo falló hablando con el modelo."
+                    final_text = "Algo falló hablando con el modelo."
+                    break
                 if err == "unexpected":
-                    return "Algo salió mal de forma inesperada. Perdón por eso."
+                    final_text = "Algo salió mal de forma inesperada. Perdón por eso."
+                    break
                 if err == "no_credits":
                     if not used_fallback:
                         logger.warning(
@@ -259,9 +275,11 @@ class LLMAssistant:
                         model = FALLBACK_MODEL
                         used_fallback = True
                         continue
-                    return "Sin saldo en OpenRouter — recarga y reintenta."
+                    final_text = "Sin saldo en OpenRouter — recarga y reintenta."
+                    break
                 if response is None:
-                    return "Algo falló hablando con el modelo."
+                    final_text = "Algo falló hablando con el modelo."
+                    break
 
                 choices = getattr(response, "choices", None) or []
                 if not choices or choices[0] is None:
@@ -272,7 +290,8 @@ class LLMAssistant:
 
                 choice = choices[0]
                 if choice.finish_reason == "content_filter":
-                    return "No puedo ayudarte con eso."
+                    final_text = "No puedo ayudarte con eso."
+                    break
 
                 message = choice.message
                 if message is None:
@@ -326,7 +345,7 @@ class LLMAssistant:
                     )
         except Exception:
             logger.exception("Unexpected error in tool loop")
-            return "Me he tropezado a mitad de la respuesta — prueba otra vez."
+            final_text = "Me he tropezado a mitad de la respuesta — prueba otra vez."
 
         if _is_blank_reply(final_text):
             await status("Resumiendo…")
@@ -359,7 +378,9 @@ class LLMAssistant:
                 if image_bytes is not None:
                     history_user = f"[imagen] {history_user}".strip()
                 await self._memory.add_message("user", history_user)
-                await self._memory.add_message("assistant", final_text)
+                await self._memory.add_message(
+                    "assistant", final_text or "(sin respuesta)"
+                )
             except Exception:
                 logger.exception("Failed to persist session messages")
 
@@ -405,6 +426,11 @@ class LLMAssistant:
         except openai.APIStatusError as e:
             if e.status_code == 402:
                 return None, "no_credits"
+            if e.status_code == 403:
+                msg = str(getattr(e, "message", "") or e).lower()
+                if "limit" in msg or "key limit" in msg:
+                    logger.warning("OpenRouter key limit exceeded: %s", e)
+                    return None, "key_limit"
             if e.status_code >= 500:
                 logger.warning("OpenRouter upstream error: %s", e)
                 return None, "upstream"
