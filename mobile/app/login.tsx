@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -22,6 +23,7 @@ export default function LoginScreen() {
   const [secret, setSecret] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const inputRef = useRef<TextInput>(null)
 
   async function onSubmit() {
     setBusy(true)
@@ -40,54 +42,77 @@ export default function LoginScreen() {
       style={[styles.root, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={[styles.card, { backgroundColor: colors.card }]}>
-        <Text style={[styles.brand, { color: colors.tint }]}>Kore</Text>
-        <Text style={[styles.lede, { color: colors.muted }]}>
-          Consola móvil · mismo secret que la web
-        </Text>
-        <TextInput
-          value={secret}
-          onChangeText={setSecret}
-          placeholder="CONSOLE_SECRET"
-          placeholderTextColor={colors.tabIconDefault}
-          secureTextEntry
-          autoCapitalize="none"
-          autoCorrect={false}
-          editable={!busy}
-          style={[
-            styles.input,
-            { color: colors.text, borderColor: 'rgba(21,32,43,0.12)' },
-          ]}
-          onSubmitEditing={() => void onSubmit()}
-        />
-        {error ? (
-          <Text style={[styles.error, { color: colors.danger }]}>{error}</Text>
-        ) : null}
-        <Pressable
-          onPress={() => void onSubmit()}
-          disabled={busy || !secret.trim()}
-          style={[
-            styles.btn,
-            {
-              backgroundColor: colors.tint,
-              opacity: busy || !secret.trim() ? 0.5 : 1,
-            },
-          ]}
-        >
-          {busy ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.btnText}>Entrar</Text>
-          )}
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        contentContainerStyle={styles.scroll}
+        bounces={false}
+      >
+        <Pressable onPress={() => inputRef.current?.focus()}>
+          <View style={[styles.card, { backgroundColor: colors.card }]}>
+            <Text style={[styles.brand, { color: colors.tint }]}>Kore</Text>
+            <Text style={[styles.lede, { color: colors.muted }]}>
+              Consola móvil · mismo secret que la web
+            </Text>
+            <TextInput
+              ref={inputRef}
+              value={secret}
+              onChangeText={setSecret}
+              placeholder="CONSOLE_SECRET"
+              placeholderTextColor={colors.tabIconDefault}
+              secureTextEntry
+              textContentType="password"
+              autoComplete="password"
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoFocus
+              editable={!busy}
+              importantForAutofill="yes"
+              style={[
+                styles.input,
+                {
+                  color: colors.text,
+                  borderColor: 'rgba(21,32,43,0.12)',
+                  backgroundColor: '#fff',
+                },
+              ]}
+              onSubmitEditing={() => void onSubmit()}
+            />
+            {error ? (
+              <Text style={[styles.error, { color: colors.danger }]}>{error}</Text>
+            ) : null}
+            <Pressable
+              onPress={() => void onSubmit()}
+              disabled={busy || !secret.trim()}
+              style={[
+                styles.btn,
+                {
+                  backgroundColor: colors.tint,
+                  opacity: busy || !secret.trim() ? 0.5 : 1,
+                },
+              ]}
+            >
+              {busy ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.btnText}>Entrar</Text>
+              )}
+            </Pressable>
+            <Text style={[styles.hint, { color: colors.muted }]}>{API_BASE}</Text>
+          </View>
         </Pressable>
-        <Text style={[styles.hint, { color: colors.muted }]}>{API_BASE}</Text>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   )
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, justifyContent: 'center', padding: 24 },
+  root: { flex: 1 },
+  scroll: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 24,
+  },
   card: {
     borderRadius: 16,
     padding: 22,
@@ -103,8 +128,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 14,
     fontSize: 16,
+    minHeight: 48,
   },
   btn: {
     borderRadius: 10,

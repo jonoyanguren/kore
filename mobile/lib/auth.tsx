@@ -27,19 +27,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
+    const boot = async () => {
       try {
-        const stored = await SecureStore.getItemAsync(SECRET_KEY)
+        // Don't hang forever on SecureStore (blocks UI under overlay).
+        const stored = await Promise.race([
+          SecureStore.getItemAsync(SECRET_KEY),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
+        ])
         if (cancelled) return
-        if (!stored) {
-          setReady(true)
-          return
-        }
+        if (!stored) return
         const ok = await apiMe(stored)
         if (cancelled) return
         if (ok) setToken(stored)
         else {
-          setToken(null)
           try {
             await SecureStore.deleteItemAsync(SECRET_KEY)
           } catch {
@@ -51,7 +51,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } finally {
         if (!cancelled) setReady(true)
       }
-    })()
+    }
+    void boot()
     return () => {
       cancelled = true
     }

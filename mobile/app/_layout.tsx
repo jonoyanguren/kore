@@ -36,7 +36,6 @@ function RootNavigator() {
     if (ready) void SplashScreen.hideAsync().catch(() => {})
   }, [ready])
 
-  // Keep Stack mounted — Redirect-without-navigator crashes Expo Go.
   useEffect(() => {
     if (!ready) return
     const inLogin = segments[0] === 'login'
@@ -60,28 +59,28 @@ function RootNavigator() {
     },
   }
 
+  // Don't put an absolute overlay on top of Stack — it steals TextInput focus/touches.
+  if (!ready) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: colors.background,
+        }}
+      >
+        <ActivityIndicator color={colors.tint} />
+      </View>
+    )
+  }
+
   return (
     <ThemeProvider value={theme}>
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="login" />
+        <Stack.Screen name="login" options={{ gestureEnabled: false }} />
         <Stack.Screen name="(tabs)" />
       </Stack>
-      {!ready ? (
-        <View
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            top: 0,
-            bottom: 0,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: colors.background,
-          }}
-        >
-          <ActivityIndicator color={colors.tint} />
-        </View>
-      ) : null}
     </ThemeProvider>
   )
 }
