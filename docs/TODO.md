@@ -59,10 +59,12 @@ No bloquea el dogfood web; se puede avanzar sin “romper” el día a día.
 
 ### Abierto
 
-- [ ] **App móvil** — trabajar el día a día (después de UI web estable; spike cuando toque)
+- [ ] **Spike móvil PWA** — instalar consola en el teléfono · [`docs/spikes/mobile-pwa.md`](./spikes/mobile-pwa.md) *(en curso: manifest + SW)*
+- [ ] **App móvil** — si PWA no basta; Capacitor/Expo después
 - [ ] Hardening servidor / ops *(cuando haga falta; no inventar trabajo)*
 
 ### Parking (plataforma)
 
 - Clientes / canales extra más allá de web + Telegram captura
 - CI / DX gordo (si duele el ship diario)
+- Offline-first / push nativo

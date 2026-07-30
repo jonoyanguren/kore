@@ -105,6 +105,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-30 | Spike móvil PWA: manifest + SW + iconos (Plataforma) |
 | 2026-07-30 | TODO: carriles Producto vs Plataforma (dogfood/deploy vs paralelo) |
 | 2026-07-30 | Backlog: rediseño UI (diseñadora → maquetar) + app móvil día a día |
 | 2026-07-30 | Misiones: calidad Normal/Pro (Flash/Pro) + dropdown + imágenes en markdown |
