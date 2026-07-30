@@ -92,6 +92,10 @@ function RootNavigator() {
       <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
         <Stack.Screen name="login" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="mission/[id]"
+          options={{ headerShown: true, animation: 'default' }}
+        />
       </Stack>
     </ThemeProvider>
   )

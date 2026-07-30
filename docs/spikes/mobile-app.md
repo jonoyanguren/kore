@@ -51,26 +51,18 @@ app/             FastAPI — transcribe/diary/memory/tasks ya existen;
 ## Plan por fases
 
 ### M0 — Scaffold ✅
-- Expo Router + tabs Día | Audio | Tareas | Misiones
-- Login + SecureStore + `GET /api/me`
-- iOS + Android targets en `app.json`
+### M1 — Día + Tareas + Captura + Misiones ✅ (texto; voz = M2)
 
-```bash
-cd mobile && npm start
-```
+- Día desde `/api/day`
+- Captura: **Notas** → diario · **Chat** → `/api/chat`
+- Tareas: lista + Hecha
+- Misiones: lista + detalle markdown
 
-### M1 — Día + Tareas
-- `GET /api/day`, lista tareas + complete
+### M2 — Modo audio (voz)
+- Grabación → `/transcribe` → ingest multi-destino
 
-### M2 — Modo audio
-- Grabación → `/transcribe` → ingest multi-destino (diario/memoria/tareas)
-- Decidir PTT vs continuo en implementación
-
-### M3 — Misiones
-- Lista + detalle + crear/relanzar
-
+### M3 — Misiones create/relanzar (fino)
 ### M4 — Pulido
-- Push, Gmail corto, resumen sesión audio, EAS prod
 
 ## Open questions (quedan)
 

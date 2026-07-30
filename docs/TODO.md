@@ -61,7 +61,8 @@ No bloquea el dogfood web; se puede avanzar sin “romper” el día a día.
 ### Abierto
 
 - [x] **M0 scaffold Expo** — `mobile/` login + tabs (Día/Audio/Tareas/Misiones)
-- [ ] **App móvil** — M1 Día/tareas · M2 audio ingest · M3 misiones · [`docs/spikes/mobile-app.md`](./spikes/mobile-app.md)
+- [x] **Móvil contenido** — Día · Captura (notas/chat) · Tareas · Misiones
+- [ ] **App móvil** — M2 audio voz · crear misión · pulido · [`docs/spikes/mobile-app.md`](./spikes/mobile-app.md)
 - [ ] Hardening servidor / ops *(cuando haga falta; no inventar trabajo)*
 
 ### Hecho / no cuenta como app

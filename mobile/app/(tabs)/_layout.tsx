@@ -46,7 +46,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="audio"
         options={{
-          title: 'Audio',
+          title: 'Captura',
           tabBarIcon: () => <TabIcon label="🎙" />,
         }}
       />
