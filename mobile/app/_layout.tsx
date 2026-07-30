@@ -1,11 +1,9 @@
 import {
   DarkTheme,
   DefaultTheme,
-  Stack,
   ThemeProvider,
-  useRouter,
-  useSegments,
-} from 'expo-router'
+} from '@react-navigation/native'
+import { Stack, useRouter, useSegments } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { useEffect } from 'react'
 import { ActivityIndicator, View } from 'react-native'
@@ -38,7 +36,7 @@ function RootNavigator() {
     if (ready) void SplashScreen.hideAsync().catch(() => {})
   }, [ready])
 
-  // Always keep Stack mounted — Redirect-without-navigator crashes Expo Go.
+  // Keep Stack mounted — Redirect-without-navigator crashes Expo Go.
   useEffect(() => {
     if (!ready) return
     const inLogin = segments[0] === 'login'
@@ -71,7 +69,11 @@ function RootNavigator() {
       {!ready ? (
         <View
           style={{
-            ...StyleSheetAbsolute,
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: colors.background,
@@ -82,12 +84,4 @@ function RootNavigator() {
       ) : null}
     </ThemeProvider>
   )
-}
-
-const StyleSheetAbsolute = {
-  position: 'absolute' as const,
-  left: 0,
-  right: 0,
-  top: 0,
-  bottom: 0,
 }

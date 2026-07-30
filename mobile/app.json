@@ -7,6 +7,12 @@
     "icon": "./assets/images/icon.png",
     "scheme": "kore",
     "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#edf1f4"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "dev.kore.app",
@@ -17,12 +23,11 @@
     "android": {
       "package": "dev.kore.app",
       "adaptiveIcon": {
-        "backgroundColor": "#1f6f5b",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#1f6f5b"
       },
       "permissions": ["RECORD_AUDIO"],
+      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -32,14 +37,6 @@
     },
     "plugins": [
       "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "resizeMode": "contain",
-          "backgroundColor": "#edf1f4"
-        }
-      ],
       "expo-secure-store"
     ],
     "experiments": {
