@@ -12,17 +12,19 @@
 | Deploy | Fly.io · `/data` |
 | LLM | OpenRouter · diario `deepseek/deepseek-v4-pro` · strong `claude-haiku-4.5` · misiones Normal=`deepseek-v4-flash` / Pro=`deepseek-v4-pro` · prompt cache en tool loops |
 | Diseño largo | `companion-plan.md` · Consola 1.5: `web-console-plan.md` |
+| Backlog | `TODO.md` en dos carriles: **Producto** (uso/Fly) · **Plataforma** (móvil/base, paralelo) |
 
 ## Estado
 
 - [x] Phase 0 — Kernel + captura
 - [x] Phase 1 — Vault / tasks / dream (cron 09:00 Madrid in-process)
 - [x] Phase 1.5 — Consola web MVP (chat + board)
-- [ ] Phase 1.6 — UX personal *(parcial; UI viva aparte / fricciones)*
+- [ ] Phase 1.6 — UX personal *(parcial; rediseño en curso con diseñadora → luego maquetar)*
 - [x] Phase 2 — Gmail MVP
-- [ ] Phase 3 — Misiones *(build MVP shipped; dogfood aclaración + 1ª útil)*
+- [ ] Phase 3 — Misiones *(build MVP shipped; dogfood + calidad Flash/Pro)*
 - [ ] Phase 4 — Git / código
 - [ ] Phase 5+ — Calendar, PDF, media web…
+- [ ] App móvil — trabajar el día a día (después de consolida web / UI)
 
 ## Decisiones (cerradas)
 
@@ -71,7 +73,9 @@
 
 **Gmail:** cerrado. Dogfood reply en paralelo.
 
-**1.6:** dogfood OK; UI viva = rediseño aparte; fricciones = miguitas.
+**1.6 / UI:** rediseño en curso (diseñadora); cuando llegue el diseño → maquetar en consola. Fricciones = miguitas.
+
+**Más adelante:** app móvil para el día a día (no ahora; tras web + UI nueva).
 
 Detalle de lo ya shipped → [`milestones.md`](./milestones.md).
 
@@ -84,12 +88,16 @@ Detalle de lo ya shipped → [`milestones.md`](./milestones.md).
 - [x] Phase 2 Gmail MVP cerrado
 - [ ] Misiones (Phase 3)
 - [ ] Git (Phase 4)
+- [ ] Rediseño UI (diseño externo → maquetar)
+- [ ] App móvil día a día
 
 ## Next steps
 
-1. Dogfood **Nueva** en Fly (Continuar → preguntas → Lanzar → informe)
-2. Mirar gasto OpenRouter (Haiku strong + DeepSeek misiones)
+1. Dogfood **Misiones** en Fly (crear → preguntas → Lanzar → informe; Normal vs Pro + imágenes)
+2. Mirar gasto OpenRouter (Flash misiones + Haiku strong)
 3. Dogfood Gmail reply en paralelo
+4. Cuando llegue el diseño: plan de maquetación UI
+5. App móvil: aparcada hasta UI web estable
 
 No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
@@ -97,6 +105,8 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-30 | TODO: carriles Producto vs Plataforma (dogfood/deploy vs paralelo) |
+| 2026-07-30 | Backlog: rediseño UI (diseñadora → maquetar) + app móvil día a día |
 | 2026-07-30 | Misiones: calidad Normal/Pro (Flash/Pro) + dropdown + imágenes en markdown |
 | 2026-07-29 | Gasto LLM: Más = resumen + link; detalle en drawer propio |
 | 2026-07-29 | Ledger LLM: tabla `llm_spend` + Más drawer (hoy/7d/por kind) |

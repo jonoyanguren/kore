@@ -1,42 +1,48 @@
 # Kore — TODO
 
-Backlog **abierto**. Histórico: `[milestones.md](./milestones.md)` · Plan: `[PLAN.md](./PLAN.md)`
+Backlog **abierto**. Histórico: [`milestones.md`](./milestones.md) · Plan: [`PLAN.md`](./PLAN.md)
 
 Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 
-## TODO
+## Cómo priorizar
 
-- [ ] UI viva — rediseño aparte (Jon)
-- [ ] Ledger LLM: gmail/transcribe kinds + export CSV (parking fino)
+| Carril | Qué es | Dogfood / deploy |
+|--------|--------|------------------|
+| **Producto** | Lo que Jon vive en la consola: respuestas, misiones, Gmail, UI, fricciones | Sí — ship a Fly |
+| **Plataforma** | Base / nuevos canales: app móvil, servidor, CI, clientes | Puede ir en paralelo; web sigue usable |
 
-## P0 — Dogfood (paralelo)
+Dogfood primero → fricciones a **Producto**. Sin fricción clara ni diseño listo → se puede meter un slice de **Plataforma**.
 
-- [ ] Gmail reply: Resp. → editar → Enviar; anotar tono / OAuth
-- Fricciones → aquí o Parking
+---
 
-## P3 — Phase 3 Misiones (diseño → build)
+## Ahora
 
-**Cerrado:** Nueva (form + aclaración) · 4º layout · SQLite/vault · ticks research · ocultar terminadas · cancelar · Relanzar.
+- [ ] **Dogfood Misiones** (Jon) — Normal/Pro, imágenes, gasto; fricciones ↓ Producto
+- [ ] **Dogfood Gmail reply** — Resp. → editar → Enviar; anotar tono / OAuth
 
-**Defaults v1:** form · plan auto 2–6 tareas · handoff · calidad Normal (Flash) / Pro · DeepSeek · imágenes markdown si aportan.
+---
 
-**Build:**
-- [x] Tabla `missions` + `vault/missions/{id}.md`
-- [x] Layout Misiones: lista, ocultar terminadas, detalle md, Nueva
-- [x] Runner in-process (ticks, `next_run_at`, max 1) + **research web real**
-- [x] Relanzar misión desde el panel
-- [x] Aclaración con preguntas en Nueva
+## Producto
 
-**Abierto:** dogfood 1ª misión útil; fricciones → aquí.
+Cambia el uso diario en Fly.
 
-## P4+ — Después
+### Abierto
 
-- [ ] Git/código con confirmación
-- [ ] Calendar / PDF / …
+- [ ] Fricciones del dogfood de Misiones *(sacar de uso real)*
+- [ ] **Rediseño UI** — diseñadora en curso; luego **maquetar** en consola (1.6)
+- [ ] Ledger LLM: kinds gmail/transcribe + export CSV (fino)
+- [ ] Git / código con confirmación (Phase 4)
+- [ ] Calendar / PDF / … (Phase 5+)
 
-## Parking
+### Misiones — build cerrado
 
-- Misión: leer sent mail → perfil de tono “suena a Jon” para borradores de reply
+Form + aclaración · plan → tareas · handoff · calidad Normal (Flash) / Pro · imágenes md · Relanzar · layout 4º.
+
+Defaults v1: 2–6 tareas · DeepSeek por calidad · max 1 activa.
+
+### Parking (producto)
+
+- Perfil de tono “suena a Jon” desde sent mail (reply)
 - Triage Gmail auto → labels/carpetas
 - Compose frío (mail nuevo sin reply)
 - Multi-cuenta / digest IA en Día
@@ -44,3 +50,19 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 - Agresividad de captura
 - Multi-modelo (imagen / code)
 - Autorrelleno tareas en chat (sale del dogfood)
+
+---
+
+## Plataforma
+
+No bloquea el dogfood web; se puede avanzar sin “romper” el día a día.
+
+### Abierto
+
+- [ ] **App móvil** — trabajar el día a día (después de UI web estable; spike cuando toque)
+- [ ] Hardening servidor / ops *(cuando haga falta; no inventar trabajo)*
+
+### Parking (plataforma)
+
+- Clientes / canales extra más allá de web + Telegram captura
+- CI / DX gordo (si duele el ship diario)

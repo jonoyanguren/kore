@@ -1,0 +1,16 @@
+---
+description: Terminología de Misiones — hablar del flujo, no del botón Nueva
+alwaysApply: true
+---
+
+# Misiones — lenguaje
+
+Al hablar con Jon del producto / plan / open / close / next steps:
+
+- El flujo se llama **Misiones** (layout) o **una misión** (instancia).
+- Preferir: “lanzar una misión”, “flujo de Misiones”, “crear misión”, “dogfood de misión”.
+- **No** usar “Nueva” como nombre del feature o del flujo (“dogfood Nueva”, “probar Nueva”).
+  - `Nueva` es solo el **botón/acción UI** dentro del layout Misiones, si hace falta citar la UI.
+- Copy en chat: “abre Misiones → crea / lanza una misión”, no “abre Nueva”.
+
+En código/docs técnicos el botón puede seguir llamándose `Nueva` / `missions__new`; eso no cambia el lenguaje hacia Jon.
