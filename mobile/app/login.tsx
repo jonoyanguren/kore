@@ -48,12 +48,13 @@ export default function LoginScreen() {
           onChangeText={setSecret}
           placeholder="CONSOLE_SECRET"
           placeholderTextColor={colors.tabIconDefault}
-          secureTextEntry={false}
+          secureTextEntry
+          textContentType="password"
+          autoComplete="password"
           autoCapitalize="none"
           autoCorrect={false}
           autoFocus
           spellCheck={false}
-          caretHidden={false}
           style={[
             styles.input,
             {
@@ -88,9 +89,6 @@ export default function LoginScreen() {
         </Pressable>
 
         <Text style={[styles.hint, { color: colors.muted }]}>{API_BASE}</Text>
-        <Text style={[styles.hint, { color: colors.muted }]}>
-          chars: {secret.length}
-        </Text>
       </View>
     </SafeAreaView>
   )
