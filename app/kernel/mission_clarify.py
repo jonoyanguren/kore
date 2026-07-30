@@ -10,7 +10,7 @@ from typing import Any
 
 import openai
 
-from app.llm.llm_assistant import resolve_model
+from app.llm.mission_quality import resolve_mission_model
 from app.llm.prompt_cache import openrouter_extra_body, with_system_cache_control
 
 logger = logging.getLogger(__name__)
@@ -150,10 +150,11 @@ async def clarify_mission(
     brief: str,
     history: list[dict[str, str]] | None = None,
     round_n: int = 1,
+    quality: str = "normal",
 ) -> ClarifyResult:
     hist = history or []
     round_n = max(1, min(int(round_n), MAX_CLARIFY_ROUNDS))
-    model = resolve_model(strong=False)
+    model = resolve_mission_model(quality)
     user = build_clarify_user_payload(
         title=title, brief=brief, history=hist, round_n=round_n
     )

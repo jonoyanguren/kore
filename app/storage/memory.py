@@ -36,6 +36,7 @@ class MissionRow:
     title: str
     status: str
     brief: str
+    quality: str
     plan_json: str | None
     step_index: int
     max_ticks: int
@@ -194,6 +195,7 @@ CREATE TABLE IF NOT EXISTS missions (
     title TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'draft',
     brief TEXT NOT NULL DEFAULT '',
+    quality TEXT NOT NULL DEFAULT 'normal',
     plan_json TEXT,
     step_index INTEGER NOT NULL DEFAULT 0,
     max_ticks INTEGER NOT NULL DEFAULT 3,
@@ -252,7 +254,16 @@ class MemoryStore:
             await db.executescript(SCHEMA_SQL)
             await self._migrate_notes(db)
             await self._migrate_task_columns(db)
+            await self._migrate_mission_quality(db)
             await db.commit()
+
+    async def _migrate_mission_quality(self, db: aiosqlite.Connection) -> None:
+        cursor = await db.execute("PRAGMA table_info(missions)")
+        cols = {row[1] for row in await cursor.fetchall()}
+        if "quality" not in cols:
+            await db.execute(
+                "ALTER TABLE missions ADD COLUMN quality TEXT NOT NULL DEFAULT 'normal'"
+            )
 
     async def _migrate_task_columns(self, db: aiosqlite.Connection) -> None:
         cursor = await db.execute("PRAGMA table_info(tasks)")
@@ -823,21 +834,28 @@ class MemoryStore:
 
     # --- Missions -----------------------------------------------------------
 
+    _MISSION_COLS = (
+        "id, title, status, brief, quality, plan_json, step_index, "
+        "max_ticks, tick_seconds, next_run_at, result_path, "
+        "error, created_at, updated_at"
+    )
+
     def _mission_from_row(self, row: tuple) -> MissionRow:
         return MissionRow(
             id=row[0],
             title=row[1],
             status=row[2],
             brief=row[3] or "",
-            plan_json=row[4],
-            step_index=int(row[5] or 0),
-            max_ticks=int(row[6] or 3),
-            tick_seconds=int(row[7] or 30),
-            next_run_at=row[8],
-            result_path=row[9],
-            error=row[10],
-            created_at=row[11],
-            updated_at=row[12],
+            quality=(row[4] or "normal"),
+            plan_json=row[5],
+            step_index=int(row[6] or 0),
+            max_ticks=int(row[7] or 3),
+            tick_seconds=int(row[8] or 30),
+            next_run_at=row[9],
+            result_path=row[10],
+            error=row[11],
+            created_at=row[12],
+            updated_at=row[13],
         )
 
     async def add_mission(
@@ -845,25 +863,30 @@ class MemoryStore:
         title: str,
         *,
         brief: str = "",
+        quality: str = "normal",
         status: str = "draft",
         max_ticks: int = 3,
         tick_seconds: int = 30,
         next_run_at: str | None = None,
         result_path: str | None = None,
     ) -> int:
+        q = (quality or "normal").strip().lower()
+        if q not in ("normal", "pro"):
+            q = "normal"
         async with aiosqlite.connect(self._db_path) as db:
             cursor = await db.execute(
                 """
                 INSERT INTO missions (
-                    title, status, brief, max_ticks, tick_seconds,
+                    title, status, brief, quality, max_ticks, tick_seconds,
                     next_run_at, result_path
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     title.strip(),
                     status,
                     brief.strip(),
+                    q,
                     max(1, max_ticks),
                     max(5, tick_seconds),
                     next_run_at,
@@ -876,10 +899,8 @@ class MemoryStore:
     async def get_mission(self, mission_id: int) -> MissionRow | None:
         async with aiosqlite.connect(self._db_path) as db:
             cursor = await db.execute(
-                """
-                SELECT id, title, status, brief, plan_json, step_index,
-                       max_ticks, tick_seconds, next_run_at, result_path,
-                       error, created_at, updated_at
+                f"""
+                SELECT {self._MISSION_COLS}
                 FROM missions WHERE id = ?
                 """,
                 (mission_id,),
@@ -896,10 +917,8 @@ class MemoryStore:
         async with aiosqlite.connect(self._db_path) as db:
             if include_done:
                 cursor = await db.execute(
-                    """
-                    SELECT id, title, status, brief, plan_json, step_index,
-                           max_ticks, tick_seconds, next_run_at, result_path,
-                           error, created_at, updated_at
+                    f"""
+                    SELECT {self._MISSION_COLS}
                     FROM missions
                     ORDER BY
                       CASE status
@@ -920,9 +939,7 @@ class MemoryStore:
                 placeholders = ",".join("?" for _ in MISSION_ACTIVE_STATUSES)
                 cursor = await db.execute(
                     f"""
-                    SELECT id, title, status, brief, plan_json, step_index,
-                           max_ticks, tick_seconds, next_run_at, result_path,
-                           error, created_at, updated_at
+                    SELECT {self._MISSION_COLS}
                     FROM missions
                     WHERE status IN ({placeholders})
                     ORDER BY
@@ -950,6 +967,7 @@ class MemoryStore:
         title: str | None = None,
         status: str | None = None,
         brief: str | None = None,
+        quality: str | None = None,
         plan_json: str | None = None,
         step_index: int | None = None,
         max_ticks: int | None = None,
@@ -973,6 +991,10 @@ class MemoryStore:
         new_error = None if clear_error else current.error
         if error is not None:
             new_error = error
+        new_quality = current.quality
+        if quality is not None:
+            q = quality.strip().lower()
+            new_quality = q if q in ("normal", "pro") else "normal"
         async with aiosqlite.connect(self._db_path) as db:
             await db.execute(
                 """
@@ -980,6 +1002,7 @@ class MemoryStore:
                     title = ?,
                     status = ?,
                     brief = ?,
+                    quality = ?,
                     plan_json = ?,
                     step_index = ?,
                     max_ticks = ?,
@@ -994,6 +1017,7 @@ class MemoryStore:
                     title if title is not None else current.title,
                     status if status is not None else current.status,
                     brief if brief is not None else current.brief,
+                    new_quality,
                     plan_json if plan_json is not None else current.plan_json,
                     step_index if step_index is not None else current.step_index,
                     max_ticks if max_ticks is not None else current.max_ticks,
@@ -1028,10 +1052,8 @@ class MemoryStore:
         """Missions ready to tick (queued/waiting/running with next_run_at <= now)."""
         async with aiosqlite.connect(self._db_path) as db:
             cursor = await db.execute(
-                """
-                SELECT id, title, status, brief, plan_json, step_index,
-                       max_ticks, tick_seconds, next_run_at, result_path,
-                       error, created_at, updated_at
+                f"""
+                SELECT {self._MISSION_COLS}
                 FROM missions
                 WHERE status IN ('queued', 'waiting', 'running')
                   AND next_run_at IS NOT NULL

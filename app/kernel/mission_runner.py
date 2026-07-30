@@ -17,7 +17,7 @@ from app.kernel.mission_plan import (
     render_mission_markdown,
 )
 from app.kernel.review_common import is_blank_report, looks_like_tool_markup, run_tool_loop
-from app.llm.llm_assistant import resolve_model
+from app.llm.mission_quality import resolve_mission_model
 from app.llm.openrouter_credits import fetch_usage
 from app.llm.usage_cost import UsageAccumulator, format_cost_usd
 from app.storage.memory import MemoryStore, MissionRow
@@ -37,6 +37,10 @@ Reglas:
 - Usa web_search y fetch_url vía la API de tools (no escribas XML ni tool_calls en el texto).
 - No inventes precios ni URLs. Si no hay dato sólido, dilo.
 - Cita fuentes con links markdown: [nombre](https://…).
+- Cuando ayude (producto, casa, sitio, UI, mapa, foto de referencia): incluye 1–3 imágenes
+  con markdown ![descripción corta](https://url-directa).
+  Solo URLs https reales a imagen (jpg/png/webp/gif o CDN). Sácalas de search/fetch
+  (og:image, img src). Si no tienes URL real, no inventes ni pongas placeholder.
 - Cumple SOLO el objetivo de esta tarea; no adelantes otras.
 - Tono: claro, accionable, sin relleno.
 - La respuesta final = markdown empezando por ## título de la tarea.
@@ -45,8 +49,8 @@ Reglas:
 MISSION_TASK_SYNTH_NUDGE = (
     "STOP. No llames más tools ni escribas XML. "
     "Con el contexto de este turno, escribe YA el entregable de la tarea "
-    "en markdown en español (empieza por ##). Datos concretos y links. "
-    "Sin tool_calls, sin DSML, sin inventar."
+    "en markdown en español (empieza por ##). Datos concretos, links e imágenes "
+    "reales si aportan. Sin tool_calls, sin DSML, sin inventar."
 )
 
 
@@ -106,6 +110,7 @@ async def _run_planning(
         llm,
         title=mission.title,
         brief=mission.brief,
+        quality=mission.quality,
         usage_acc=usage_acc,
         spend_store=store,
         spend_ref=f"mission:{mission.id}",
@@ -140,11 +145,12 @@ async def _execute_task(
         f"Ejecuta esta tarea con búsqueda web. "
         f"Respuesta = SOLO markdown empezando por:\n"
         f"## {task.title}\n"
-        f"(contenido con datos concretos y links; cierra la sección completa)"
+        f"(contenido con datos concretos, links e imágenes reales si aportan; "
+        f"cierra la sección completa)"
     )
 
     tools, handlers = build_web_tools()
-    model = resolve_model(strong=False)
+    model = resolve_mission_model(mission.quality)
     logger.info(
         "Mission %s task %s/%s model=%s title=%r",
         mission.id,
@@ -277,6 +283,7 @@ async def run_mission_tick(
                 completed_task=task,
                 next_task=plan.tasks[task_index + 1],
                 mission_id=mission.id,
+                quality=mission.quality,
                 usage_acc=usage_acc,
                 spend_store=store,
             )

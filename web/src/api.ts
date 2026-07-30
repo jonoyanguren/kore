@@ -443,6 +443,7 @@ export async function apiCreateMission(input: {
   launch?: boolean
   max_ticks?: number
   tick_seconds?: number
+  quality?: 'normal' | 'pro'
 }): Promise<Mission> {
   const r = await req<{ mission: Mission }>('/api/missions', {
     method: 'POST',
@@ -467,6 +468,7 @@ export async function apiClarifyMission(input: {
   brief?: string
   history?: ClarifyHistoryItem[]
   round?: number
+  quality?: 'normal' | 'pro'
 }): Promise<ClarifyResult> {
   const r = await req<{
     ok: boolean
@@ -487,6 +489,16 @@ export async function apiClarifyMission(input: {
     round: r.data.round,
     rounds_left: r.data.rounds_left,
   }
+}
+
+export async function apiMissionQualityOptions(): Promise<
+  import('./types').MissionQualityOption[]
+> {
+  const r = await req<{ options: import('./types').MissionQualityOption[] }>(
+    '/api/missions/quality-options',
+  )
+  if (!r.ok) throw new Error(`mission quality ${r.status}`)
+  return r.data.options
 }
 
 export async function apiCancelMission(id: number): Promise<Mission> {

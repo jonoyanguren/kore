@@ -51,6 +51,8 @@ export type Mission = {
   title: string
   status: MissionStatus | string
   brief: string
+  quality?: 'normal' | 'pro' | string
+  model?: string
   step_index: number
   max_ticks: number
   tick_seconds: number
@@ -61,4 +63,13 @@ export type Mission = {
   updated_at: string
   markdown?: string
   plan?: MissionPlanView | null
+}
+
+export type MissionQualityOption = {
+  id: 'normal' | 'pro' | string
+  label: string
+  model: string
+  blurb: string
+  approx_usd: number
+  approx_label: string
 }

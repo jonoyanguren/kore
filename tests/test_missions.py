@@ -25,6 +25,7 @@ def test_mission_crud_and_vault():
             mid = await store.add_mission(
                 "Casas Cantabria",
                 brief="3 hab, cerca del mar",
+                quality="pro",
                 status="queued",
                 next_run_at=now_madrid().replace(microsecond=0).isoformat(),
                 max_ticks=1,
@@ -33,6 +34,7 @@ def test_mission_crud_and_vault():
             row = await store.get_mission(mid)
             assert row is not None
             assert row.title == "Casas Cantabria"
+            assert row.quality == "pro"
             path = vault.write_mission(mid, f"# {row.title}\n\nhola\n")
             assert path.is_file()
             assert "hola" in (vault.read_mission(mid) or "")

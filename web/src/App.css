@@ -2650,6 +2650,17 @@ a.more-drawer__btn {
   font-size: 0.8rem;
 }
 
+.missions__quality select {
+  width: 100%;
+  max-width: 22rem;
+}
+
+.missions__quality-hint {
+  display: block;
+  font-size: 0.78rem;
+  margin-top: 0.15rem;
+}
+
 .missions__list {
   list-style: none;
   margin: 0;
@@ -2848,6 +2859,27 @@ a.more-drawer__btn {
 
 .missions__md a:hover {
   color: var(--ink, #15202b);
+}
+
+.missions__figure {
+  margin: 0.75rem 0;
+  padding: 0;
+  max-width: 100%;
+}
+
+.missions__figure img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(21, 32, 43, 0.04);
+}
+
+.missions__figure figcaption {
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--muted);
 }
 
 .missions__md hr {

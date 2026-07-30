@@ -3,9 +3,9 @@ from app.llm.llm_routing import llm_routing
 
 def test_llm_routing_rows():
     data = llm_routing()
-    assert len(data["rows"]) == 2
+    assert len(data["rows"]) == 4
     roles = {r["role"] for r in data["rows"]}
-    assert roles == {"Daily", "Strong"}
+    assert roles == {"Daily", "Strong", "Misión Normal", "Misión Pro"}
     for row in data["rows"]:
         assert row["model"]
         assert "price_in" in row and "price_out" in row

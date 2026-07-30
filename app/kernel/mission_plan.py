@@ -10,7 +10,7 @@ from typing import Any
 
 import openai
 
-from app.llm.llm_assistant import resolve_model
+from app.llm.mission_quality import resolve_mission_model
 from app.llm.prompt_cache import openrouter_extra_body, with_system_cache_control
 from app.llm.spend_ledger import log_completion
 from app.llm.usage_cost import MissionCostInfo, UsageAccumulator, format_cost_usd
@@ -37,7 +37,7 @@ Responde SOLO JSON válido (sin markdown):
 Reglas:
 - Entre 2 y 6 tareas, orden lógico (explorar → profundizar → comparar → concluir).
 - La ÚLTIMA tarea sintetiza: informe comparativo / recomendación / decisión.
-- Títulos cortos (≤8 palabras). goal = qué entregar (datos, tabla, lista, conclusión).
+- Títulos cortos (≤8 palabras). goal = qué entregar (datos, tabla, lista, conclusión; imágenes si aportan).
 - No tareas vagas ("investigar más"). Sí accionables ("Comparar 5 modelos en rango de precio X").
 - Español. No inventes datos del encargo."""
 
@@ -259,11 +259,12 @@ async def plan_mission(
     *,
     title: str,
     brief: str,
+    quality: str = "normal",
     usage_acc: UsageAccumulator | None = None,
     spend_store: MemoryStore | None = None,
     spend_ref: str | None = None,
 ) -> MissionPlan:
-    model = resolve_model(strong=False)
+    model = resolve_mission_model(quality)
     user = (
         f"Título: {title.strip()}\n"
         f"Encargo:\n{(brief or '').strip() or '(vacío)'}\n\n"
@@ -336,10 +337,11 @@ async def generate_handoff(
     completed_task: MissionTask,
     next_task: MissionTask,
     mission_id: int,
+    quality: str = "normal",
     usage_acc: UsageAccumulator | None = None,
     spend_store: MemoryStore | None = None,
 ) -> str:
-    model = resolve_model(strong=False)
+    model = resolve_mission_model(quality)
     excerpt = (completed_task.output or "").strip()
     if len(excerpt) > 2500:
         excerpt = excerpt[:2490] + "…"

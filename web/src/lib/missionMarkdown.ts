@@ -1,4 +1,4 @@
-/** Markdown → HTML for mission reports (links, tables, headings, lists). */
+/** Markdown → HTML for mission reports (links, images, tables, headings, lists). */
 
 function esc(s: string): string {
   return s
@@ -8,19 +8,60 @@ function esc(s: string): string {
     .replace(/"/g, '&quot;')
 }
 
+function isSafeHttpUrl(url: string): boolean {
+  return /^https?:\/\//i.test(url.trim())
+}
+
+export function renderImageHtml(alt: string, url: string): string {
+  const href = url.trim()
+  if (!isSafeHttpUrl(href)) {
+    return esc(`![${alt}](${url})`)
+  }
+  const caption = alt.trim()
+    ? `<figcaption>${esc(alt)}</figcaption>`
+    : ''
+  return (
+    `<figure class="missions__figure">` +
+    `<img src="${esc(href)}" alt="${esc(alt)}" loading="lazy" referrerpolicy="no-referrer" />` +
+    caption +
+    `</figure>`
+  )
+}
+
+/** Inline formatting; images become figures (block-ish inside paragraphs OK). */
 export function inlineMarkdown(s: string): string {
-  if (!/[\[*`]/.test(s)) return esc(s)
-  return s
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text: string, url: string) => {
-      const href = url.trim()
-      if (!/^https?:\/\//i.test(href) && !/^mailto:/i.test(href)) {
-        return esc(`[${text}](${url})`)
-      }
-      return `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(text)}</a>`
-    })
-    .replace(/\*\*(.+?)\*\*/g, (_, t: string) => `<strong>${esc(t)}</strong>`)
-    .replace(/\*(.+?)\*/g, (_, t: string) => `<em>${esc(t)}</em>`)
-    .replace(/`([^`]+)`/g, (_, t: string) => `<code>${esc(t)}</code>`)
+  const slots: string[] = []
+  const withSlots = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt: string, url: string) => {
+    const i = slots.length
+    slots.push(renderImageHtml(alt, url))
+    return `\u0000IMG${i}\u0000`
+  })
+
+  // Escape everything first, then re-apply safe HTML for markdown + restore images.
+  // Placeholders survive esc() (\u0000 and digits/letters).
+  let html = esc(withSlots)
+  html = html
+    .replace(
+      /\[([^\]]+)\]\(([^)]+)\)/g,
+      (_, text: string, url: string) => {
+        // text/url already escaped; unescape for validation then re-esc href
+        const hrefRaw = url
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .trim()
+        if (!isSafeHttpUrl(hrefRaw) && !/^mailto:/i.test(hrefRaw)) {
+          return `[${text}](${url})`
+        }
+        return `<a href="${esc(hrefRaw)}" target="_blank" rel="noopener noreferrer">${text}</a>`
+      },
+    )
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+
+  return html.replace(/\u0000IMG(\d+)\u0000/g, (_, n: string) => slots[Number(n)] || '')
 }
 
 function isTableRow(line: string): boolean {
@@ -57,6 +98,8 @@ function renderTable(rows: string[][]): string {
       : ''
   return `<table>${thead}${tbody}</table>`
 }
+
+const IMAGE_ONLY = /^\s*!\[([^\]]*)\]\(([^)]+)\)\s*$/
 
 export function renderMissionMarkdown(md: string): string {
   const lines = md.replace(/\r\n/g, '\n').split('\n')
@@ -96,6 +139,14 @@ export function renderMissionMarkdown(md: string): string {
       continue
     }
     flushTable()
+
+    const imgOnly = line.match(IMAGE_ONLY)
+    if (imgOnly) {
+      closeList()
+      closeQuote()
+      out.push(renderImageHtml(imgOnly[1], imgOnly[2]))
+      continue
+    }
 
     if (/^---+$|^\*\*\*+$|^___+$/.test(line.trim())) {
       closeList()

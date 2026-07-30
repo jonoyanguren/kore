@@ -10,7 +10,7 @@
 | Fase actual | **3 — Misiones** (D18: input → loop → output + pantalla) |
 | Canal | Consola web = operar / día · Telegram = captura móvil opcional |
 | Deploy | Fly.io · `/data` |
-| LLM | OpenRouter · diario `deepseek/deepseek-v4-pro` · strong `claude-haiku-4.5` (dogfood; alt Kimi/Sonnet) · prompt cache en tool loops |
+| LLM | OpenRouter · diario `deepseek/deepseek-v4-pro` · strong `claude-haiku-4.5` · misiones Normal=`deepseek-v4-flash` / Pro=`deepseek-v4-pro` · prompt cache en tool loops |
 | Diseño largo | `companion-plan.md` · Consola 1.5: `web-console-plan.md` |
 
 ## Estado
@@ -97,6 +97,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-30 | Misiones: calidad Normal/Pro (Flash/Pro) + dropdown + imágenes en markdown |
 | 2026-07-29 | Gasto LLM: Más = resumen + link; detalle en drawer propio |
 | 2026-07-29 | Ledger LLM: tabla `llm_spend` + Más drawer (hoy/7d/por kind) |
 | 2026-07-29 | D22: misiones por tareas (plan auto + handoff + checklist UI) |

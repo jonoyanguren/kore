@@ -30,7 +30,7 @@ def llm_routing() -> dict:
                 "model": daily,
                 "price_in": d_in,
                 "price_out": d_out,
-                "uses": "Chat normal · misiones",
+                "uses": "Chat normal",
             },
             {
                 "role": "Strong",
@@ -39,9 +39,24 @@ def llm_routing() -> dict:
                 "price_out": s_out,
                 "uses": "Dream · Gmail · chat gordo",
             },
+            {
+                "role": "Misión Normal",
+                "model": "deepseek/deepseek-v4-flash",
+                "price_in": _price("deepseek/deepseek-v4-flash")[0],
+                "price_out": _price("deepseek/deepseek-v4-flash")[1],
+                "uses": "Misiones (calidad Normal)",
+            },
+            {
+                "role": "Misión Pro",
+                "model": "deepseek/deepseek-v4-pro",
+                "price_in": _price("deepseek/deepseek-v4-pro")[0],
+                "price_out": _price("deepseek/deepseek-v4-pro")[1],
+                "uses": "Misiones (calidad Pro)",
+            },
         ],
         "notes": [
             "Precios ~$/1M tokens (lista OpenRouter).",
             "Prompt cache en tool loops (session sticky).",
+            "Calidad de misión se elige al crear (Nueva).",
         ],
     }

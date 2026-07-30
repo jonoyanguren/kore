@@ -5,11 +5,12 @@ import {
   apiCreateMission,
   apiGetMission,
   apiListMissions,
+  apiMissionQualityOptions,
   apiRelaunchMission,
   type ClarifyHistoryItem,
 } from '../api'
 import { renderMissionMarkdown } from '../lib/missionMarkdown'
-import type { Mission, MissionCostInfo } from '../types'
+import type { Mission, MissionCostInfo, MissionQualityOption } from '../types'
 import { useToast } from './Toasts'
 
 type Props = {
@@ -85,11 +86,16 @@ export function MissionsPanel({ active = true }: Props) {
   const [history, setHistory] = useState<ClarifyHistoryItem[]>([])
   const [round, setRound] = useState(1)
   const [refinedBrief, setRefinedBrief] = useState('')
+  const [quality, setQuality] = useState<'normal' | 'pro'>('normal')
+  const [qualityOptions, setQualityOptions] = useState<MissionQualityOption[]>(
+    [],
+  )
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const toast = useToast()
 
   const panelOpen = selectedId != null
+  const selectedQuality = qualityOptions.find((o) => o.id === quality)
 
   function resetForm() {
     setTitle('')
@@ -100,6 +106,7 @@ export function MissionsPanel({ active = true }: Props) {
     setHistory([])
     setRound(1)
     setRefinedBrief('')
+    setQuality('normal')
   }
 
   async function loadList() {
@@ -118,6 +125,20 @@ export function MissionsPanel({ active = true }: Props) {
     const id = window.setInterval(() => void loadList(), 4000)
     return () => window.clearInterval(id)
   }, [active, hideDone])
+
+  useEffect(() => {
+    let cancelled = false
+    void apiMissionQualityOptions()
+      .then((opts) => {
+        if (!cancelled && opts.length) setQualityOptions(opts)
+      })
+      .catch(() => {
+        /* fallback UI labels below */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (!active || selectedId == null) {
@@ -164,6 +185,7 @@ export function MissionsPanel({ active = true }: Props) {
       brief: brief.trim(),
       history: nextHistory,
       round: nextRound,
+      quality,
     })
     setRound(result.round)
     setRefinedBrief(result.refined_brief)
@@ -219,6 +241,7 @@ export function MissionsPanel({ active = true }: Props) {
         brief: finalBrief.trim(),
         launch: true,
         tick_seconds: 10,
+        quality,
       })
       toast.ok(`Misión #${m.id} en cola`)
       resetForm()
@@ -239,6 +262,39 @@ export function MissionsPanel({ active = true }: Props) {
 
   async function onSkipClarify() {
     await launchWithBrief(brief)
+  }
+
+  function qualityField() {
+    const approx =
+      selectedQuality?.approx_label ||
+      (quality === 'pro' ? '~$0.10–0.30' : '~$0.02–0.06')
+    const blurb =
+      selectedQuality?.blurb ||
+      (quality === 'pro'
+        ? 'V4 Pro — más profundo'
+        : 'Flash — barato y rápido')
+    return (
+      <label className="missions__quality">
+        Calidad
+        <select
+          value={quality}
+          onChange={(e) =>
+            setQuality(e.target.value === 'pro' ? 'pro' : 'normal')
+          }
+          disabled={busy}
+        >
+          <option value="normal">
+            Normal · {qualityOptions.find((o) => o.id === 'normal')?.approx_label || '~$0.02–0.06'}
+          </option>
+          <option value="pro">
+            Pro · {qualityOptions.find((o) => o.id === 'pro')?.approx_label || '~$0.10–0.30'}
+          </option>
+        </select>
+        <span className="muted missions__quality-hint">
+          {blurb} · estimado {approx} / misión
+        </span>
+      </label>
+    )
   }
 
   async function onCancel(id: number) {
@@ -329,6 +385,7 @@ export function MissionsPanel({ active = true }: Props) {
                     disabled={busy}
                   />
                 </label>
+                {qualityField()}
                 <p className="muted missions__form-hint">
                   Plan automático → tareas en secuencia con handoff entre pasos.
                 </p>
@@ -353,6 +410,7 @@ export function MissionsPanel({ active = true }: Props) {
                 <p className="missions__clarify-lede">
                   Antes de lanzar, unas preguntas:
                 </p>
+                {qualityField()}
                 {questions.map((q, i) => (
                   <label key={`${round}-${i}`}>
                     {q}
@@ -403,6 +461,7 @@ export function MissionsPanel({ active = true }: Props) {
                     disabled={busy}
                   />
                 </label>
+                {qualityField()}
                 <div className="missions__form-actions">
                   <button
                     type="submit"
@@ -467,6 +526,7 @@ export function MissionsPanel({ active = true }: Props) {
                   </div>
                   <span className="missions__item-meta muted">
                     {STATUS_LABEL[m.status] || m.status}
+                    {m.quality === 'pro' ? ' · Pro' : ' · Normal'}
                     {isActiveStatus(m.status) || m.status === 'done'
                       ? ` · ${missionProgressLabel(m) || `${m.step_index}/${m.max_ticks}`}`
                       : ''}
@@ -520,6 +580,8 @@ export function MissionsPanel({ active = true }: Props) {
                 <h3>{detail.title}</h3>
                 <p className="muted">
                   {STATUS_LABEL[detail.status] || detail.status}
+                  {` · ${detail.quality === 'pro' ? 'Pro' : 'Normal'}`}
+                  {detail.model ? ` · ${detail.model.split('/').pop()}` : ''}
                   {isActiveStatus(detail.status) || detail.status === 'done'
                     ? ` · ${missionProgressLabel(detail) || `tick ${detail.step_index}/${detail.max_ticks}`}`
                     : ''}
