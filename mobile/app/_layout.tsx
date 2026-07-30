@@ -5,7 +5,7 @@ import {
 } from '@react-navigation/native'
 import { Stack, useRouter, useSegments } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { ActivityIndicator, View } from 'react-native'
 import 'react-native-reanimated'
 
@@ -14,6 +14,10 @@ import Colors from '@/constants/Colors'
 import { AuthProvider, useAuth } from '@/lib/auth'
 
 export { ErrorBoundary } from 'expo-router'
+
+export const unstable_settings = {
+  initialRouteName: 'login',
+}
 
 void SplashScreen.preventAutoHideAsync().catch(() => {})
 
@@ -31,18 +35,27 @@ function RootNavigator() {
   const segments = useSegments()
   const router = useRouter()
   const colors = Colors[colorScheme]
+  const navigating = useRef(false)
 
   useEffect(() => {
     if (ready) void SplashScreen.hideAsync().catch(() => {})
   }, [ready])
 
   useEffect(() => {
-    if (!ready) return
+    if (!ready || navigating.current) return
     const inLogin = segments[0] === 'login'
     if (!token && !inLogin) {
+      navigating.current = true
       router.replace('/login')
+      requestAnimationFrame(() => {
+        navigating.current = false
+      })
     } else if (token && inLogin) {
+      navigating.current = true
       router.replace('/(tabs)/day')
+      requestAnimationFrame(() => {
+        navigating.current = false
+      })
     }
   }, [ready, token, segments, router])
 
@@ -59,7 +72,6 @@ function RootNavigator() {
     },
   }
 
-  // Don't put an absolute overlay on top of Stack — it steals TextInput focus/touches.
   if (!ready) {
     return (
       <View
@@ -77,8 +89,8 @@ function RootNavigator() {
 
   return (
     <ThemeProvider value={theme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="login" options={{ gestureEnabled: false }} />
+      <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
+        <Stack.Screen name="login" />
         <Stack.Screen name="(tabs)" />
       </Stack>
     </ThemeProvider>
