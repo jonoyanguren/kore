@@ -19,3 +19,8 @@ data/*
 # Web console
 web/node_modules/
 web/dist/
+
+# Mobile (Expo)
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/

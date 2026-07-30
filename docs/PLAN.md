@@ -105,6 +105,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-30 | Móvil M0: Expo scaffold iOS+Android; audio → ingest multi-destino |
 | 2026-07-30 | Móvil: audio = UX nueva; tareas/misiones ≈ web adaptada |
 | 2026-07-30 | Móvil: modo audio = notas encadenadas sin chat (idea producto) |
 | 2026-07-30 | App móvil = UX propia (Expo path); PWA solo atajo, no el producto |
