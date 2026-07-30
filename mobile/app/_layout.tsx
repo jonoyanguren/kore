@@ -1,4 +1,11 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider, Redirect, useSegments } from 'expo-router'
+import {
+  DarkTheme,
+  DefaultTheme,
+  Stack,
+  ThemeProvider,
+  useRouter,
+  useSegments,
+} from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { useEffect } from 'react'
 import { ActivityIndicator, View } from 'react-native'
@@ -10,7 +17,7 @@ import { AuthProvider, useAuth } from '@/lib/auth'
 
 export { ErrorBoundary } from 'expo-router'
 
-SplashScreen.preventAutoHideAsync()
+void SplashScreen.preventAutoHideAsync().catch(() => {})
 
 export default function RootLayout() {
   return (
@@ -24,34 +31,23 @@ function RootNavigator() {
   const colorScheme = useColorScheme() ?? 'light'
   const { ready, token } = useAuth()
   const segments = useSegments()
+  const router = useRouter()
   const colors = Colors[colorScheme]
 
   useEffect(() => {
-    if (ready) void SplashScreen.hideAsync()
+    if (ready) void SplashScreen.hideAsync().catch(() => {})
   }, [ready])
 
-  if (!ready) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: colors.background,
-        }}
-      >
-        <ActivityIndicator color={colors.tint} />
-      </View>
-    )
-  }
-
-  const inLogin = segments[0] === 'login'
-  if (!token && !inLogin) {
-    return <Redirect href="/login" />
-  }
-  if (token && inLogin) {
-    return <Redirect href="/(tabs)/day" />
-  }
+  // Always keep Stack mounted — Redirect-without-navigator crashes Expo Go.
+  useEffect(() => {
+    if (!ready) return
+    const inLogin = segments[0] === 'login'
+    if (!token && !inLogin) {
+      router.replace('/login')
+    } else if (token && inLogin) {
+      router.replace('/(tabs)/day')
+    }
+  }, [ready, token, segments, router])
 
   const navTheme = colorScheme === 'dark' ? DarkTheme : DefaultTheme
   const theme = {
@@ -62,7 +58,7 @@ function RootNavigator() {
       background: colors.background,
       card: colors.card,
       text: colors.text,
-      border: 'rgba(21,32,43,0.09)',
+      border: 'rgba(21, 32, 43, 0.09)',
     },
   }
 
@@ -72,6 +68,26 @@ function RootNavigator() {
         <Stack.Screen name="login" />
         <Stack.Screen name="(tabs)" />
       </Stack>
+      {!ready ? (
+        <View
+          style={{
+            ...StyleSheetAbsolute,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: colors.background,
+          }}
+        >
+          <ActivityIndicator color={colors.tint} />
+        </View>
+      ) : null}
     </ThemeProvider>
   )
+}
+
+const StyleSheetAbsolute = {
+  position: 'absolute' as const,
+  left: 0,
+  right: 0,
+  top: 0,
+  bottom: 0,
 }

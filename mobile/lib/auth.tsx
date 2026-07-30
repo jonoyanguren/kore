@@ -30,14 +30,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ;(async () => {
       try {
         const stored = await SecureStore.getItemAsync(SECRET_KEY)
+        if (cancelled) return
         if (!stored) {
-          if (!cancelled) setReady(true)
+          setReady(true)
           return
         }
         const ok = await apiMe(stored)
-        if (!cancelled) {
-          setToken(ok ? stored : null)
-          if (!ok) await SecureStore.deleteItemAsync(SECRET_KEY)
+        if (cancelled) return
+        if (ok) setToken(stored)
+        else {
+          setToken(null)
+          try {
+            await SecureStore.deleteItemAsync(SECRET_KEY)
+          } catch {
+            /* ignore */
+          }
         }
       } catch {
         if (!cancelled) setToken(null)
@@ -55,12 +62,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!trimmed) throw new Error('Secret vacío')
     const ok = await apiMe(trimmed)
     if (!ok) throw new Error('Secret incorrecto')
-    await SecureStore.setItemAsync(SECRET_KEY, trimmed)
+    try {
+      await SecureStore.setItemAsync(SECRET_KEY, trimmed)
+    } catch {
+      // Still allow session in memory if SecureStore fails (rare).
+    }
     setToken(trimmed)
   }, [])
 
   const logout = useCallback(async () => {
-    await SecureStore.deleteItemAsync(SECRET_KEY)
+    try {
+      await SecureStore.deleteItemAsync(SECRET_KEY)
+    } catch {
+      /* ignore */
+    }
     setToken(null)
   }, [])
 

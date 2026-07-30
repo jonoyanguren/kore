@@ -41,11 +41,19 @@ async function request<T>(
 
 export async function apiMe(token: string): Promise<boolean> {
   try {
-    await request<{ ok?: boolean }>('/api/me', { token })
-    return true
-  } catch (e) {
-    if (e instanceof ApiError && e.status === 401) return false
-    throw e
+    const ctrl = new AbortController()
+    const t = setTimeout(() => ctrl.abort(), 12_000)
+    try {
+      const res = await fetch(`${API_BASE}/api/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: ctrl.signal,
+      })
+      return res.ok
+    } finally {
+      clearTimeout(t)
+    }
+  } catch {
+    return false
   }
 }
 
