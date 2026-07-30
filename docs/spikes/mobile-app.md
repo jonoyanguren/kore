@@ -14,10 +14,22 @@ El móvil prioriza captura + día + lo que se hace andando / en el sofá.
 | En móvil | En web (sigue) |
 |----------|----------------|
 | Briefing / Día | Layouts Día + Focus + Operate + Misiones |
-| Captura rápida (voz/texto/foto) | Chat completo + tools |
+| **Modo audio** — notas de voz encadenadas, sin chat; le cuentas el rollo a Kore | Chat completo + tools |
+| Captura rápida (texto/foto si hace falta) | Chat + voz one-tap en consola |
 | Tareas del día (check / una acción) | Board rico, editor, proyectos |
 | Inbox Gmail ligero (leer / reply corto) | Triage + reply editable largo |
 | Estado de misiones (seguir, no diseñar) | Crear / relanzar / leer informe largo |
+
+### Modo audio (idea fuerte)
+
+No es “mic en el chat”. Es una **pantalla aparte**:
+
+- Grabas / sueltas notas una detrás de otra.
+- Sin hilo de mensajes, sin burbujas, sin “esperar respuesta” a cada frase.
+- Kore escucha el rollo (transcribe → memoria/diario/tareas según reglas).
+- Feedback mínimo: “grabado”, contador, quizá un resumen al cerrar la sesión de audio — no conversación.
+
+Encaja móvil (manos libres, andar, coche). En web el chat sigue siendo el canal de diálogo.
 
 **Fuera de v1 móvil (salvo que digamos lo contrario):** maquetar el rediseño desktop, Git, drawers densos, ledger completo.
 
@@ -32,8 +44,8 @@ Alternativa más tarde: Capacitor solo si quisiéramos reutilizar mucho React we
 ## Spike siguiente (cuando toque build)
 
 1. Repo/app Expo mínima: login + Día (read) + lista tareas open.
-2. Una captura (texto → mismo chat/API).
-3. Decidir navegación (tabs: Día | Captura | Tareas).
+2. **Modo audio** stub: grabar N notas → transcribe → diario/memoria (sin UI de chat).
+3. Decidir navegación (tabs: Día | Audio | Tareas).
 
 Hasta entonces: dogfood web; diseñadora en desktop; este doc es la brújula.
 

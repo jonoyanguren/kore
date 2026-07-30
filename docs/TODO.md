@@ -59,7 +59,7 @@ No bloquea el dogfood web; se puede avanzar sin “romper” el día a día.
 
 ### Abierto
 
-- [ ] **App móvil** — UX propia (no wrapper de la consola) · [`docs/spikes/mobile-app.md`](./spikes/mobile-app.md)
+- [ ] **App móvil** — UX propia · modo audio (notas sin chat) · [`docs/spikes/mobile-app.md`](./spikes/mobile-app.md)
 - [ ] Hardening servidor / ops *(cuando haga falta; no inventar trabajo)*
 
 ### Hecho / no cuenta como app
