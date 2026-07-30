@@ -1,59 +1,100 @@
-# App móvil Kore — producto (no wrapper)
+# App móvil Kore — producto (Expo)
 
 Carril: **Plataforma**. Distinto de la consola web / PWA.
+
+Jon = experto Expo → **stack cerrado: Expo (RN)**.
 
 ## Intención
 
 App de **uso diario en el teléfono** con UX propia — no “la consola en chiquito”.
 
-La web sigue siendo el sitio de operar (board, misiones gordas, Gmail, Más…).
-El móvil prioriza captura + día + lo que se hace andando / en el sofá.
+- Web = operar (board, misiones gordas, Gmail, Más…).
+- Móvil = captura + día + tareas/misiones reconocibles.
+- **Modo audio** = la superficie que no existe en web (notas sin chat).
 
-## Hipótesis de superficie (v1 a validar con Jon)
+## Superficies
 
-| En móvil | En web (sigue) |
-|----------|----------------|
-| Briefing / Día | Layouts Día + Focus + Operate + Misiones |
-| **Modo audio** — notas de voz encadenadas, sin chat; le cuentas el rollo a Kore | Chat completo + tools |
-| Captura rápida (texto/foto si hace falta) | Chat + voz one-tap en consola |
-| **Tareas** — parecido a la web (lista / check / lo esencial); sin board denso | Board rico, editor, proyectos |
-| **Misiones** — parecido a la web (lista + estado + leer informe); crear/relanzar OK | Crear / aclarar / checklist / informe largo |
-| Inbox Gmail ligero (leer / reply corto) | Triage + reply editable largo |
+| Tab / pantalla | Rol |
+|----------------|-----|
+| **Día** | Briefing compacto + lo de hoy |
+| **Audio** | Notas de voz encadenadas, sin chat |
+| **Tareas** | Lista / check ≈ web (sin board denso) |
+| **Misiones** | Lista + estado + informe ≈ web |
 
-Donde el móvil **cambia de verdad**: modo audio (+ Día compacto).  
-Tareas y misiones: **misma idea / flujos reconocibles**, UI adaptada a pantalla pequeña — no reinventar el producto ahí.
+Gmail ligero = phase 2 móvil. Rediseño desktop = paralelo Producto, no bloquea.
 
-### Modo audio (idea fuerte)
+## Arquitectura
 
-No es “mic en el chat”. Es una **pantalla aparte**:
+```
+mobile/          Expo app (este repo, carpeta hermana de web/)
+  └── API        https://kore.fly.dev/api/*  (Bearer CONSOLE_SECRET)
+web/             Consola (sin cambios de layout compartido)
+app/             FastAPI — endpoints ya listos; audio session = slice fino si hace falta
+```
 
-- Grabas / sueltas notas una detrás de otra.
-- Sin hilo de mensajes, sin burbujas, sin “esperar respuesta” a cada frase.
-- Kore escucha el rollo (transcribe → memoria/diario/tareas según reglas).
-- Feedback mínimo: “grabado”, contador, quizá un resumen al cerrar la sesión de audio — no conversación.
+- Auth: **Bearer** en `SecureStore` (la consola ya acepta cookie o Bearer).
+- Audio path v0: `POST /api/transcribe` → `POST /api/diary` (y/o memoria) por nota.
+- Más adelante: `POST /api/audio-session` (cerrar sesión → resumen opcional) si el flujo lo pide.
+- No compartir componentes UI con Vite; sí tipos/contratos API (opcional `packages/api-types` luego).
 
-Encaja móvil (manos libres, andar, coche). En web el chat sigue siendo el canal de diálogo.
+## Plan por fases
 
-**Fuera de v1 móvil (salvo que digamos lo contrario):** maquetar el rediseño desktop, Git, drawers densos, ledger completo.
+### M0 — Scaffold (½ día)
+- `npx create-expo-app` en `mobile/` (Expo Router + TS).
+- Tabs: Día | Audio | Tareas | Misiones (stubs).
+- Login (secret → SecureStore) + `GET /api/me`.
+- Dev: apunta a Fly o a local tunnel; EAS build cuando haga falta dispositivo real.
 
-## Stack (propuesta, no cerrado)
+**Hecho:** abre la app, login, 4 tabs vacías.
 
-1. **Expo (React Native)** — app nativa de verdad, cambios de UI significativos fáciles.
-2. Mismo backend Fly (`/api/*` + cookie/Bearer).
-3. Web y móvil comparten API; **no** comparten layout.
+### M1 — Día + Tareas (1–2 días)
+- `GET /api/day` → pantalla Día.
+- `GET/PATCH/complete` tareas → lista + check.
+- Pull-to-refresh.
 
-Alternativa más tarde: Capacitor solo si quisiéramos reutilizar mucho React web (choca con “cambios significativos”).
+**Hecho:** dogfood matutino en el tren sin abrir Safari.
 
-## Spike siguiente (cuando toque build)
+### M2 — Modo audio (estrella, 2–3 días)
+- Pantalla sin chat: hold/tap → grabar → soltar → “guardado”.
+- Cola de notas de la sesión (contador, lista mínima de clips).
+- Por nota: upload audio → `/transcribe` → `/diary` (tag `audio` / sesión id).
+- Al salir: opcional “sesión cerrada · N notas” (sin LLM reply en v1; resumen = M2.5).
 
-1. Repo/app Expo mínima: login + Día (read) + lista tareas open.
-2. **Modo audio** stub: grabar N notas → transcribe → diario/memoria (sin UI de chat).
-3. Decidir navegación (tabs: Día | Audio | Tareas).
+**Hecho:** le cuentas el rollo andando; aparece en diario web.
 
-Hasta entonces: dogfood web; diseñadora en desktop; este doc es la brújula.
+### M3 — Misiones (1–2 días)
+- Lista + detalle markdown (mismo espíritu que web).
+- Crear misión simple (título/brief/calidad) + Relanzar/Cancelar.
+- Sin editor de markdown fancy; WebView o markdown lite.
 
-## Open questions
+**Hecho:** seguir misiones desde el móvil.
 
-- ¿iOS only primero o iOS+Android?
-- ¿Sustituye Telegram captura o convive?
-- ¿Push para dream 09:00 / misión done?
+### M4 — Pulido (cuando duela)
+- Push (dream 09:00 / misión done) — opcional.
+- Gmail reply corto.
+- Resumen al cerrar sesión audio (1 call LLM).
+- Icono / splash / EAS production.
+
+## Orden recomendado
+
+**M0 → M2 temprano** (audio es la razón de la app) → M1 en paralelo o justo antes → M3 → M4.
+
+Si quieres validar API ya: M0+M1 primero (½–1 día) y M2 encima.
+
+## Fuera de alcance (ahora)
+
+- Wrapper PWA / Capacitor como producto.
+- Offline-first gordo.
+- Paridad total con Más / ledger / drawers.
+- Sustituir Telegram el día 1 (conviven hasta que audio gane).
+
+## Open questions (Jon)
+
+1. ¿iOS first o iOS+Android desde M0?
+2. ¿Audio: push-to-talk o grabación continua con pausas?
+3. ¿Cada nota → solo diario, o también “extrae tareas” (LLM) en v1?
+
+## Relación con dogfood web
+
+Seguir dogfood Misiones/Gmail en web (Producto).  
+Móvil = carril Plataforma en paralelo cuando digamos “dale a M0”.
