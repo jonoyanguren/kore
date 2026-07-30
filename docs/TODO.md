@@ -59,12 +59,16 @@ No bloquea el dogfood web; se puede avanzar sin “romper” el día a día.
 
 ### Abierto
 
-- [ ] **Spike móvil PWA** — instalar consola en el teléfono · [`docs/spikes/mobile-pwa.md`](./spikes/mobile-pwa.md) *(en curso: manifest + SW)*
-- [ ] **App móvil** — si PWA no basta; Capacitor/Expo después
+- [ ] **App móvil** — UX propia (no wrapper de la consola) · [`docs/spikes/mobile-app.md`](./spikes/mobile-app.md)
 - [ ] Hardening servidor / ops *(cuando haga falta; no inventar trabajo)*
+
+### Hecho / no cuenta como app
+
+- [x] PWA install de la consola (atajo) · [`docs/spikes/mobile-pwa.md`](./spikes/mobile-pwa.md) — **no** es el producto móvil
 
 ### Parking (plataforma)
 
 - Clientes / canales extra más allá de web + Telegram captura
 - CI / DX gordo (si duele el ship diario)
 - Offline-first / push nativo
+- Capacitor wrapper (solo si algún día quisiéramos web embebida)

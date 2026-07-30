@@ -75,7 +75,7 @@
 
 **1.6 / UI:** rediseño en curso (diseñadora); cuando llegue el diseño → maquetar en consola. Fricciones = miguitas.
 
-**Más adelante:** app móvil para el día a día (no ahora; tras web + UI nueva).
+**Más adelante:** **app móvil con UX propia** (no PWA wrapper) — ver `docs/spikes/mobile-app.md`. PWA install = solo atajo a la consola.
 
 Detalle de lo ya shipped → [`milestones.md`](./milestones.md).
 
@@ -105,6 +105,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-07-30 | App móvil = UX propia (Expo path); PWA solo atajo, no el producto |
 | 2026-07-30 | Spike móvil PWA: manifest + SW + iconos (Plataforma) |
 | 2026-07-30 | TODO: carriles Producto vs Plataforma (dogfood/deploy vs paralelo) |
 | 2026-07-30 | Backlog: rediseño UI (diseñadora → maquetar) + app móvil día a día |
