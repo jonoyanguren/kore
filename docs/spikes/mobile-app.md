@@ -16,9 +16,12 @@ El móvil prioriza captura + día + lo que se hace andando / en el sofá.
 | Briefing / Día | Layouts Día + Focus + Operate + Misiones |
 | **Modo audio** — notas de voz encadenadas, sin chat; le cuentas el rollo a Kore | Chat completo + tools |
 | Captura rápida (texto/foto si hace falta) | Chat + voz one-tap en consola |
-| Tareas del día (check / una acción) | Board rico, editor, proyectos |
+| **Tareas** — parecido a la web (lista / check / lo esencial); sin board denso | Board rico, editor, proyectos |
+| **Misiones** — parecido a la web (lista + estado + leer informe); crear/relanzar OK | Crear / aclarar / checklist / informe largo |
 | Inbox Gmail ligero (leer / reply corto) | Triage + reply editable largo |
-| Estado de misiones (seguir, no diseñar) | Crear / relanzar / leer informe largo |
+
+Donde el móvil **cambia de verdad**: modo audio (+ Día compacto).  
+Tareas y misiones: **misma idea / flujos reconocibles**, UI adaptada a pantalla pequeña — no reinventar el producto ahí.
 
 ### Modo audio (idea fuerte)
 
