@@ -1,8 +1,10 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { formatWhen } from '../dates'
+import { copyToClipboard } from '../lib/clipboard'
 import type { Task } from '../types'
 import { ProjectChip } from './ProjectChip'
+import { useToast } from './Toasts'
 
 type Props = {
   task: Task
@@ -19,8 +21,10 @@ export function TaskListRow({
   onEdit,
   onDelete,
 }: Props) {
+  const toast = useToast()
   const done = task.status === 'done'
   const starred = task.status === 'in_progress'
+  const hasUrl = Boolean(task.url?.trim())
   const {
     attributes,
     listeners,
@@ -28,12 +32,22 @@ export function TaskListRow({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: String(task.id), data: { status: task.status } })
+  } = useSortable({
+    id: String(task.id),
+    data: { status: task.status },
+    disabled: hasUrl,
+  })
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.45 : 1,
+  }
+
+  async function onCopyUrl() {
+    const ok = await copyToClipboard(task.url || '')
+    if (ok) toast.ok('URL copiada')
+    else toast.err('No se pudo copiar')
   }
 
   return (
@@ -42,16 +56,28 @@ export function TaskListRow({
       style={style}
       className={`task-list__row${done ? ' is-done' : ''}${starred ? ' is-starred' : ''}`}
     >
-      <button
-        type="button"
-        className="task-list__grip"
-        title="Arrastrar"
-        aria-label="Arrastrar"
-        {...attributes}
-        {...listeners}
-      >
-        ⋮⋮
-      </button>
+      {hasUrl ? (
+        <button
+          type="button"
+          className="task-list__copy"
+          title="Copiar URL"
+          aria-label="Copiar URL"
+          onClick={() => void onCopyUrl()}
+        >
+          Copiar
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="task-list__grip"
+          title="Arrastrar"
+          aria-label="Arrastrar"
+          {...attributes}
+          {...listeners}
+        >
+          ⋮⋮
+        </button>
+      )}
       <label className="task-list__check">
         <input
           type="checkbox"
