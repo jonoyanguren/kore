@@ -114,6 +114,21 @@ export function TaskCard({
         >
           {task.title}
         </h3>
+        {hasUrl ? (
+          <button
+            type="button"
+            className="task-card__edit"
+            title="Copiar URL"
+            aria-label="Copiar URL"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation()
+              void onCopyUrl()
+            }}
+          >
+            <CopyIcon />
+          </button>
+        ) : null}
         {onEdit ? (
           <button
             type="button"
@@ -147,32 +162,17 @@ export function TaskCard({
         <ProjectChip project={task.project} />
         {task.due_at ? <span>{formatWhen(task.due_at)}</span> : null}
       </div>
-      {task.url ? (
-        <div
-          className="task-card__url"
+      {hasUrl && task.url ? (
+        <a
+          href={task.url}
+          target="_blank"
+          rel="noreferrer"
           onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          title={task.url}
         >
-          <a
-            href={task.url}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            title={task.url}
-          >
-            {shortUrlLabel(task.url)}
-          </a>
-          <button
-            type="button"
-            className="task-card__copy"
-            title="Copiar URL"
-            onClick={(e) => {
-              e.stopPropagation()
-              void onCopyUrl()
-            }}
-          >
-            Copiar
-          </button>
-        </div>
+          {shortUrlLabel(task.url)}
+        </a>
       ) : null}
       {task.notes ? <p className="task-card__notes">{task.notes}</p> : null}
     </article>
