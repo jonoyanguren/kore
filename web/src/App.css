@@ -1244,7 +1244,7 @@ button.ghost:hover {
 
 .task-list__row {
   display: grid;
-  grid-template-columns: auto auto auto 1fr auto auto auto;
+  grid-template-columns: auto auto auto 1fr auto auto;
   gap: 0.45rem 0.45rem;
   align-items: center;
   padding: 0.55rem 0.65rem;
@@ -1260,24 +1260,11 @@ button.ghost:hover {
   width: min(28rem, 90vw);
 }
 
-.task-list__copy {
-  font: inherit;
-  font-size: 0.68rem;
-  font-weight: 500;
-  padding: 0.2rem 0.4rem;
-  min-width: 2.6rem;
-  height: 1.55rem;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--accent);
-  cursor: pointer;
-  line-height: 1;
-}
-
-.task-list__copy:hover {
-  border-color: var(--accent);
-  background: rgba(31, 111, 91, 0.08);
+.task-list__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex: none;
 }
 
 .task-list__grip {
@@ -1383,6 +1370,7 @@ button.ghost:hover {
   border: 1px solid transparent;
 }
 
+.task-list__copy,
 .task-list__edit,
 .task-list__del {
   width: 1.55rem;
@@ -1390,6 +1378,17 @@ button.ghost:hover {
   padding: 0;
   line-height: 1;
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.task-list__copy {
+  color: var(--muted);
+}
+
+.task-list__copy:hover {
+  color: var(--accent);
 }
 
 .task-list__empty {
@@ -1553,37 +1552,6 @@ button.ghost:hover {
   font-size: 0.8rem;
   color: var(--accent);
   word-break: break-all;
-}
-
-.task-card__url {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin-top: 0.4rem;
-  min-width: 0;
-}
-
-.task-card__url a {
-  margin-top: 0;
-  flex: 1;
-  min-width: 0;
-}
-
-.task-card__copy {
-  flex-shrink: 0;
-  font: inherit;
-  font-size: 0.72rem;
-  padding: 0.15rem 0.45rem;
-  border: 1px solid var(--line);
-  background: transparent;
-  color: var(--ink);
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.task-card__copy:hover {
-  border-color: var(--accent);
-  color: var(--accent);
 }
 
 .task-card__notes {
