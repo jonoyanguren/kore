@@ -91,6 +91,13 @@ async def _run():
         msgs = await store.list_messages_for_day("2026-07-25")
         assert msgs == [("user", "hola dream"), ("assistant", "hey")]
 
+        from app.storage.tools import build_memory_tools
+
+        _, mem_handlers = build_memory_tools(store, vault)
+        listed = await mem_handlers["list_memory"]({"category": "work", "limit": 10})
+        assert "hablé con el equipo" in listed
+        assert "[work]" in listed
+
 
 def test_phase1_store_and_vault():
     import asyncio

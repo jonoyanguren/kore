@@ -37,6 +37,27 @@ def build_memory_tools(
         deleted = await store.delete_memory(int(args["memory_id"]))
         return "Memoria eliminada." if deleted else "No encontré esa memoria."
 
+    async def _list_memory(args: dict[str, Any]) -> str:
+        category = (args.get("category") or "").strip().lower() or None
+        try:
+            limit = int(args.get("limit") or 40)
+        except (TypeError, ValueError):
+            limit = 40
+        limit = max(1, min(limit, 80))
+        rows = await store.list_memory(category=category, limit=limit)
+        if not rows:
+            scope = f"categoría '{category}'" if category else "memoria"
+            return f"No hay items en {scope}."
+        lines = [
+            f"- (id {mid}) [{cat}] {text}" for mid, cat, text in rows
+        ]
+        header = (
+            f"Memoria ({category}, {len(rows)}):"
+            if category
+            else f"Memoria reciente ({len(rows)}):"
+        )
+        return header + "\n" + "\n".join(lines)
+
     # Legacy aliases — same handlers under old names so older prompts still work.
     async def _remember_note(args: dict[str, Any]) -> str:
         return await _save_memory({"category": "general", "text": args["text"]})
@@ -67,6 +88,34 @@ def build_memory_tools(
                         },
                     },
                     "required": ["category", "text"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "list_memory",
+                "description": (
+                    "List durable memory items from the vault/SQLite "
+                    "(optionally one category). Use to find thin or missing context "
+                    "before asking interview questions — not for task board status."
+                ),
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "category": {
+                            "type": "string",
+                            "description": (
+                                "Optional slug: work, people, projects, health, "
+                                "preferences, general, … Omit for recent across all."
+                            ),
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "Max items (default 40, max 80)",
+                        },
+                    },
+                    "additionalProperties": False,
                 },
             },
         },
@@ -134,6 +183,7 @@ def build_memory_tools(
 
     handlers: dict[str, ToolHandler] = {
         "save_memory": _save_memory,
+        "list_memory": _list_memory,
         "add_diary_entry": _add_diary_entry,
         "forget_memory": _forget_memory,
         "remember_note": _remember_note,
