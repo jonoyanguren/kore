@@ -40,6 +40,7 @@ const QUICK: { label: string; send: string }[] = [
   { label: '/agenda', send: '/agenda' },
   { label: '/diario', send: '/diario' },
   { label: '/dream', send: '/dream' },
+  { label: '/entrevista', send: '/entrevista' },
 ]
 
 function looksLikeTaskClaim(text: string): boolean {

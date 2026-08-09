@@ -134,6 +134,13 @@ const STATIC: Item[] = [
     action: { kind: 'chat', text: '/diario' },
   },
   {
+    id: 'entrevista',
+    label: 'Entrevista',
+    hint: '/entrevista',
+    keywords: 'entrevista interview huecos preguntas gaps',
+    action: { kind: 'chat', text: '/entrevista' },
+  },
+  {
     id: 'new',
     label: 'Nueva tarea',
     hint: 'foco en el board',
