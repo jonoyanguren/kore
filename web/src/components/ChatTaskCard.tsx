@@ -1,6 +1,8 @@
 import { formatWhen } from '../dates'
+import { copyToClipboard, shortUrlLabel } from '../lib/clipboard'
 import type { Task } from '../types'
 import { ProjectChip } from './ProjectChip'
+import { useToast } from './Toasts'
 
 const STATUS_ES: Record<string, string> = {
   open: 'abierta',
@@ -17,7 +19,14 @@ type Props = {
 }
 
 export function ChatTaskCard({ task, onOpen, onComplete, onStart }: Props) {
+  const toast = useToast()
   const canAct = task.status !== 'done' && task.status !== 'cancelled'
+
+  async function onCopyUrl() {
+    const ok = await copyToClipboard(task.url || '')
+    if (ok) toast.ok('URL copiada')
+    else toast.err('No se pudo copiar')
+  }
 
   return (
     <div className="chat-task">
@@ -32,9 +41,19 @@ export function ChatTaskCard({ task, onOpen, onComplete, onStart }: Props) {
         {task.due_at ? <span>{formatWhen(task.due_at)}</span> : null}
       </div>
       {task.url ? (
-        <a href={task.url} target="_blank" rel="noreferrer">
-          {task.url.replace(/^https?:\/\//, '').slice(0, 40)}
-        </a>
+        <div className="chat-task__url">
+          <a href={task.url} target="_blank" rel="noreferrer" title={task.url}>
+            {shortUrlLabel(task.url, 40)}
+          </a>
+          <button
+            type="button"
+            className="chat-task__btn"
+            title="Copiar URL"
+            onClick={() => void onCopyUrl()}
+          >
+            Copiar
+          </button>
+        </div>
       ) : null}
       <div className="chat-task__actions">
         {onOpen ? (

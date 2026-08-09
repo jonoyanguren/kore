@@ -809,6 +809,21 @@ button.ghost:hover {
   font-size: 0.75rem;
 }
 
+.chat-task__url {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+  min-width: 0;
+}
+
+.chat-task__url a {
+  margin-top: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.8rem;
+}
+
 .chat-task__actions {
   display: flex;
   flex-wrap: wrap;
@@ -1518,6 +1533,37 @@ button.ghost:hover {
   font-size: 0.8rem;
   color: var(--accent);
   word-break: break-all;
+}
+
+.task-card__url {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.4rem;
+  min-width: 0;
+}
+
+.task-card__url a {
+  margin-top: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.task-card__copy {
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 0.72rem;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.task-card__copy:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .task-card__notes {

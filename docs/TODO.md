@@ -29,6 +29,7 @@ Cambia el uso diario en Fly.
 ### Abierto
 
 - [ ] Fricciones del dogfood de Misiones *(sacar de uso real)*
+- [ ] Dogfood `/entrevista` — comando + 1Q en chat normal
 - [ ] **Logo Kore** — icono/marca (web, PWA, Expo)
 - [ ] **Rediseño UI** — diseñadora en curso; luego **maquetar** en consola (1.6)
 - [ ] Ledger LLM: kinds gmail/transcribe + export CSV (fino)

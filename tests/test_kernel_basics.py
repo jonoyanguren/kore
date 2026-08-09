@@ -22,6 +22,7 @@ def test_skills_load_and_catalog():
         "brainstorm",
         "capture",
         "dream",
+        "entrevista",
         "execute",
         "inbox",
         "plan",
@@ -48,6 +49,9 @@ def test_command_router_builtins_and_skills():
     assert router.match("/hora@SomeBot").skill.name == "time-madrid"
     assert router.match("/captura esto").skill.name == "capture"
     assert router.match("/captura esto").args == "esto"
+    assert router.match("/entrevista").skill.name == "entrevista"
+    assert router.match("/interview presupuesto").skill.name == "entrevista"
+    assert router.match("/interview presupuesto").args == "presupuesto"
 
 
 def test_resolve_relative_dates():

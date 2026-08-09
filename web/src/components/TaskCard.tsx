@@ -1,8 +1,10 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { formatWhen } from '../dates'
+import { copyToClipboard, shortUrlLabel } from '../lib/clipboard'
 import type { Task } from '../types'
 import { ProjectChip } from './ProjectChip'
+import { useToast } from './Toasts'
 
 type Props = {
   task: Task
@@ -19,6 +21,7 @@ export function TaskCard({
   onEdit,
   onDelete,
 }: Props) {
+  const toast = useToast()
   const {
     attributes,
     listeners,
@@ -35,6 +38,12 @@ export function TaskCard({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.55 : 1,
+  }
+
+  async function onCopyUrl() {
+    const ok = await copyToClipboard(task.url || '')
+    if (ok) toast.ok('URL copiada')
+    else toast.err('No se pudo copiar')
   }
 
   return (
@@ -119,15 +128,31 @@ export function TaskCard({
         {task.due_at ? <span>{formatWhen(task.due_at)}</span> : null}
       </div>
       {task.url ? (
-        <a
-          href={task.url}
-          target="_blank"
-          rel="noreferrer"
+        <div
+          className="task-card__url"
           onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => e.stopPropagation()}
         >
-          {task.url.replace(/^https?:\/\//, '').slice(0, 48)}
-        </a>
+          <a
+            href={task.url}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            title={task.url}
+          >
+            {shortUrlLabel(task.url)}
+          </a>
+          <button
+            type="button"
+            className="task-card__copy"
+            title="Copiar URL"
+            onClick={(e) => {
+              e.stopPropagation()
+              void onCopyUrl()
+            }}
+          >
+            Copiar
+          </button>
+        </div>
       ) : null}
       {task.notes ? <p className="task-card__notes">{task.notes}</p> : null}
     </article>

@@ -52,6 +52,12 @@ const COMPANION_SKILLS: SkillRow[] = [
     tone: 'blue',
   },
   {
+    name: 'entrevista',
+    cmds: ['/entrevista', '/interview'],
+    desc: 'Rellenar información con preguntas (comando = entrevista; chat = max 1 Q).',
+    tone: 'blue',
+  },
+  {
     name: 'time-madrid',
     cmds: ['/hora'],
     desc: 'Hora y fechas en Europe/Madrid, en lenguaje natural.',
@@ -90,6 +96,8 @@ const CHAT_COMMANDS: CmdRow[] = [
   { cmd: '/sueno', desc: 'Alias de /dream' },
   { cmd: '/inbox', desc: 'Gmail unread / marcar leído' },
   { cmd: '/captura', desc: 'Guardar en memoria o diario' },
+  { cmd: '/entrevista', desc: 'Entrevista: preguntas para rellenar datos' },
+  { cmd: '/interview', desc: 'Alias de /entrevista' },
   { cmd: '/diario', desc: 'Ver / añadir diario del día' },
   { cmd: '/hora', desc: 'Hora actual en Madrid' },
   { cmd: '/brainstorm', desc: 'Modo brainstorm' },

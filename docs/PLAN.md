@@ -105,6 +105,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-08-09 | Tareas: botón Copiar URL (board/chat); skill `/entrevista` (entrevista + max 1Q chat) |
 | 2026-07-30 | Móvil M0: Expo scaffold iOS+Android; audio → ingest multi-destino |
 | 2026-07-30 | Móvil: audio = UX nueva; tareas/misiones ≈ web adaptada |
 | 2026-07-30 | Móvil: modo audio = notas encadenadas sin chat (idea producto) |
