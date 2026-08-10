@@ -501,16 +501,6 @@ export async function apiCalendarEventPrep(
   return { prep: r.data.prep, event: r.data.event }
 }
 
-export type CalendarProposal = {
-  title: string
-  starts_at: string
-  ends_at: string
-  reason?: string
-  description?: string
-  conflicts?: { title: string; starts_at: string; ends_at: string }[]
-  can_write?: boolean
-}
-
 export type CalendarMeeting = {
   id: string
   starts_at: string
@@ -735,7 +725,7 @@ export type ChatResult = {
   tasks_created: Task[]
   tasks_listed: Task[]
   tasks_changed: boolean
-  calendar_proposal: CalendarProposal | null
+  calendar_created: CalendarMeeting | null
 }
 
 export async function apiChat(text: string): Promise<ChatResult> {
@@ -753,7 +743,7 @@ export async function apiChat(text: string): Promise<ChatResult> {
       tasks_created: r.data.tasks_created ?? [],
       tasks_listed: r.data.tasks_listed ?? r.data.tasks_created ?? [],
       tasks_changed: Boolean(r.data.tasks_changed),
-      calendar_proposal: r.data.calendar_proposal ?? null,
+      calendar_created: r.data.calendar_created ?? null,
     }
   } finally {
     window.clearTimeout(timer)
@@ -809,7 +799,7 @@ export async function apiChatLive(
           tasks_created?: Task[]
           tasks_listed?: Task[]
           tasks_changed?: boolean
-          calendar_proposal?: CalendarProposal | null
+          calendar_created?: CalendarMeeting | null
           detail?: string
         }
         try {
@@ -825,7 +815,7 @@ export async function apiChatLive(
             tasks_created: ev.tasks_created ?? [],
             tasks_listed: ev.tasks_listed ?? ev.tasks_created ?? [],
             tasks_changed: Boolean(ev.tasks_changed),
-            calendar_proposal: ev.calendar_proposal ?? null,
+            calendar_created: ev.calendar_created ?? null,
           }
         } else if (ev.type === 'error') {
           err = String(ev.detail ?? 'error')

@@ -52,7 +52,7 @@
 | D22 | Misiones: **plan → N tareas**; handoff corto; summary pass → `## Resultado` |
 | D23 | Dogfood Phase 0–3 **cerrado** (2026-08-10); siguiente = features nuevas, no más “vivir el MVP” |
 | D24 | **Google Calendar read-only** vía mismo OAuth (`calendar.readonly`); solo calendario **primary** (no suscripciones); eventos live en Día + dream + tool chat; **no** duplicar a SQLite en v1; agenda local sigue para captura chat |
-| D25 | **Chat → crear bloque Calendar**: tool `propose_calendar_block` + card confirm + `calendar.events` write en primary |
+| D25 | **Chat → crear bloque Calendar**: tool `create_calendar_block` escribe ya en primary; pregunta solo si hay duda real |
 
 ## Roadmap (lean)
 
@@ -63,9 +63,9 @@
 | Slice | Qué |
 |-------|-----|
 | OAuth | `calendar.events` (+ readonly); Reconectar |
-| Tool | `propose_calendar_block` (stash → UI) |
-| API | `POST /api/calendar/events` |
-| Chat | Card editable → Crear |
+| Tool | `create_calendar_block` (directo) |
+| API | `POST /api/calendar/events` (también usable) |
+| Chat | Sin card de confirmación; toast al crear |
 
 **No v1:** attendees, recurrencia, multi-cal, Telegram confirm.
 
@@ -99,7 +99,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
-| 2026-08-10 | **D25:** chat → propose → card → create event (primary) |
+| 2026-08-10 | **D25:** create directo en chat (sin propose/card); pregunta solo si ambiguo |
 | 2026-08-10 | Calendar Día: acciones **Abrir / Tarea / Prep**; spike write desde chat (`docs/spikes/calendar-write.md`) |
 | 2026-08-10 | **D24 shipped (code):** Calendar read — primary only; Día/dream/tool |
 | 2026-08-10 | **D24** siguiente = Google Calendar read (mismo OAuth Gmail); Git sigue fuera |

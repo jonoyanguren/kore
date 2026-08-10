@@ -101,8 +101,8 @@ Pendiente 1.6 → UI viva (aparte) / fricciones dogfood.
 ## 2026-08-10 — Chat → crear bloque Calendar (D25)
 
 - OAuth `calendar.events` (+ readonly); flag `calendar_can_write`
-- Tool `propose_calendar_block` → card editable en chat → `POST /api/calendar/events`
-- Solo primary; conflictos advisory; sin attendees/recurrencia
+- Tool `create_calendar_block` crea en primary al momento (sin card confirm)
+- Pregunta solo si día/hora ambiguos; no validar con `list_calendar` antes
 - Tras deploy: **Reconectar** Google una vez
 
 ## 2026-08-10 — Google Calendar read (D24)

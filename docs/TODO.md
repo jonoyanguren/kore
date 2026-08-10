@@ -15,7 +15,7 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 
 ## Ahora
 
-- [ ] Dogfood: chat → **Crear en Calendar** (propuesta + confirmar)
+- [ ] Dogfood: chat → **crear bloque Calendar** (directo)
 - [ ] Cuando llegue diseño: plan de maquetación UI 1.6
 
 ---

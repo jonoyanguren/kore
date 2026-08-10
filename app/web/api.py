@@ -41,8 +41,8 @@ from app.integrations.google_calendar.actions import (
 )
 from app.integrations.google_calendar.client import meeting_dict_from_event
 from app.integrations.google_calendar.propose_stash import (
-    set_calendar_proposal,
-    take_calendar_proposal,
+    set_calendar_created,
+    take_calendar_created,
 )
 from app.integrations.gmail.triage_log import (
     list_marked_read,
@@ -884,14 +884,14 @@ async def _run_chat(
         tasks_created: list[dict[str, Any]] | None = None,
         tasks_listed: list[dict[str, Any]] | None = None,
         tasks_changed: bool = False,
-        calendar_proposal: dict[str, Any] | None = None,
+        calendar_created: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         return {
             "reply": reply,
             "tasks_created": tasks_created or [],
             "tasks_listed": tasks_listed if tasks_listed is not None else (tasks_created or []),
             "tasks_changed": tasks_changed,
-            "calendar_proposal": calendar_proposal,
+            "calendar_created": calendar_created,
         }
 
     memory = request.app.state.memory
@@ -937,7 +937,7 @@ async def _run_chat(
     if llm is None:
         raise HTTPException(status_code=503, detail="llm not ready")
 
-    set_calendar_proposal(None)
+    set_calendar_created(None)
     before = {t.id for t in await memory.list_tasks(status="open", limit=100)}
     reply = await llm.ask(
         ask_text,
@@ -947,7 +947,7 @@ async def _run_chat(
     after_rows = await memory.list_tasks(status="open", limit=100)
     after = {t.id for t in after_rows}
     created = [_task_dict(t) for t in after_rows if t.id in (after - before)]
-    proposal = take_calendar_proposal()
+    cal_created = take_calendar_created()
     # Only attach cards for tasks created this turn — do NOT scrape numbered
     # lists from the reply (list_tasks format "12. title" was flooding the UI).
     return pack(
@@ -955,7 +955,7 @@ async def _run_chat(
         tasks_created=created,
         tasks_listed=list(created),
         tasks_changed=bool(created) or before != after,
-        calendar_proposal=proposal,
+        calendar_created=cal_created,
     )
 
 
