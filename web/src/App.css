@@ -884,35 +884,6 @@ a.day-cal__ev:hover {
   font-variant-numeric: tabular-nums;
 }
 
-.day-cal__list {
-  list-style: none;
-  margin: 0.75rem 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.day-cal__list li {
-  display: flex;
-  gap: 0.55rem;
-  align-items: baseline;
-  font-size: 0.88rem;
-  line-height: 1.35;
-}
-
-.day-cal__list-when {
-  flex: 0 0 5.2rem;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
-}
-
-.day-cal__list a {
-  color: inherit;
-  font-weight: 500;
-}
-
 @media (max-width: 520px) {
   .day-cal__grid {
     grid-template-columns: 2.35rem 1fr;
@@ -920,10 +891,6 @@ a.day-cal__ev:hover {
 
   .day-cal__ev-title {
     font-size: 0.76rem;
-  }
-
-  .day-cal__list-when {
-    flex-basis: 4.6rem;
   }
 }
 

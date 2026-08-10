@@ -342,36 +342,6 @@ export function DayCalendar({ today, meetings }: Props) {
           </div>
         </div>
       )}
-
-      {dayEvents.length > 0 ? (
-        <ul className="day-cal__list">
-          {dayEvents.map((ev) => {
-            const title = (ev.title || '').trim() || '(sin título)'
-            const when = isAllDay(ev)
-              ? 'todo el día'
-              : (() => {
-                  const s = parseMinutes(ev.starts_at)
-                  if (s == null) return ''
-                  const e = eventEndMinutes(ev, s)
-                  const a = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
-                  const b = `${String(Math.floor(e / 60)).padStart(2, '0')}:${String(e % 60).padStart(2, '0')}`
-                  return `${a}–${b}`
-                })()
-            return (
-              <li key={`list-${String(ev.id)}`}>
-                <span className="day-cal__list-when">{when}</span>
-                {ev.html_link ? (
-                  <a href={ev.html_link} target="_blank" rel="noopener noreferrer">
-                    {title}
-                  </a>
-                ) : (
-                  <span>{title}</span>
-                )}
-              </li>
-            )
-          })}
-        </ul>
-      ) : null}
     </div>
   )
 }
