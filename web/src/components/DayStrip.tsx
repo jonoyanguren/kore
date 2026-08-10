@@ -5,11 +5,13 @@ import {
   apiGmailReplyDraft,
   apiGmailReplySend,
   apiGmailToTask,
+  apiCalendarEventToTask,
+  apiCalendarEventPrep,
   type DaySnapshot,
   type GmailReplyDraft,
 } from '../api'
 import { formatWhen } from '../dates'
-import { DayCalendar } from './DayCalendar'
+import { DayCalendar, type DayMeeting } from './DayCalendar'
 import { ProjectChip } from './ProjectChip'
 import { useToast } from './Toasts'
 
@@ -82,7 +84,17 @@ export function DayStrip({
   const [day, setDay] = useState<DaySnapshot | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
-  const [busyKind, setBusyKind] = useState<'reply' | 'task' | null>(null)
+  const [busyKind, setBusyKind] = useState<'reply' | 'task' | 'prep' | null>(
+    null,
+  )
+  const [calBusyId, setCalBusyId] = useState<string | null>(null)
+  const [calBusyKind, setCalBusyKind] = useState<'task' | 'prep' | null>(null)
+  const [calPrep, setCalPrep] = useState<{
+    title: string
+    starts_at?: string | null
+    html_link?: string | null
+    text: string
+  } | null>(null)
   const [reply, setReply] = useState<GmailReplyDraft | null>(null)
   const [replyBody, setReplyBody] = useState('')
   const [replyBusy, setReplyBusy] = useState(false)
@@ -198,6 +210,43 @@ export function DayStrip({
     } finally {
       setBusyId(null)
       setBusyKind(null)
+    }
+  }
+
+  async function calToTask(ev: DayMeeting) {
+    if (calBusyId) return
+    const id = String(ev.id)
+    setCalBusyId(id)
+    setCalBusyKind('task')
+    try {
+      const { task } = await apiCalendarEventToTask(ev)
+      toast.ok(`Tarea: ${task.title}`)
+    } catch (e) {
+      toast.err(String(e))
+    } finally {
+      setCalBusyId(null)
+      setCalBusyKind(null)
+    }
+  }
+
+  async function runCalPrep(ev: DayMeeting) {
+    if (calBusyId) return
+    const id = String(ev.id)
+    setCalBusyId(id)
+    setCalBusyKind('prep')
+    try {
+      const { prep, event } = await apiCalendarEventPrep(ev)
+      setCalPrep({
+        title: String(event?.title || ev.title || 'Cita'),
+        starts_at: event?.starts_at ?? ev.starts_at,
+        html_link: event?.html_link ?? ev.html_link,
+        text: prep,
+      })
+    } catch (e) {
+      toast.err(String(e))
+    } finally {
+      setCalBusyId(null)
+      setCalBusyKind(null)
     }
   }
 
@@ -368,7 +417,46 @@ export function DayStrip({
             </p>
           ) : null}
           {meetings.length > 0 ? (
-            <DayCalendar today={day.today} meetings={meetings} />
+            <DayCalendar
+              today={day.today}
+              meetings={meetings}
+              busyId={calBusyId}
+              busyKind={calBusyKind}
+              onToTask={calToTask}
+              onPrep={runCalPrep}
+            />
+          ) : null}
+          {calPrep ? (
+            <div className="day-cal__prep">
+              <div className="day-cal__prep-head">
+                <strong>Prep · {calPrep.title}</strong>
+                <button
+                  type="button"
+                  className="ghost day-cal__act"
+                  onClick={() => setCalPrep(null)}
+                >
+                  Cerrar
+                </button>
+              </div>
+              {calPrep.starts_at ? (
+                <p className="muted day-cal__prep-when">
+                  {formatWhen(calPrep.starts_at)}
+                  {calPrep.html_link ? (
+                    <>
+                      {' · '}
+                      <a
+                        href={calPrep.html_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Abrir
+                      </a>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
+              <pre className="day-cal__prep-body">{calPrep.text}</pre>
+            </div>
           ) : null}
         </div>
 

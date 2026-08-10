@@ -15,7 +15,8 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 
 ## Ahora
 
-- [ ] **Google Calendar** — en Fly: habilitar Calendar API en GCP + **Reconectar** en Más → Gmail; verificar Día
+- [ ] Dogfood Calendar Día: **Abrir / Tarea / Prep** en eventos
+- [ ] Spike write: crear hueco desde chat · [`spikes/calendar-write.md`](./spikes/calendar-write.md)
 - [ ] Cuando llegue diseño: plan de maquetación UI 1.6
 
 ---

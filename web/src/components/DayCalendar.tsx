@@ -15,11 +15,15 @@ export type DayMeeting = {
 type Props = {
   today: string
   meetings: DayMeeting[]
+  busyId?: string | null
+  busyKind?: 'task' | 'prep' | null
+  onToTask?: (ev: DayMeeting) => void
+  onPrep?: (ev: DayMeeting) => void
 }
 
 const HOUR_PX = 56
 const DEFAULT_MINUTES = 45
-const MIN_EVENT_PX = 44
+const MIN_EVENT_PX = 52
 const DAY_NAMES = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb']
 
 function madridTodayIso(): string {
@@ -82,13 +86,9 @@ type LaidOut = {
   col: number
   cols: number
   short: boolean
-  minutes: number
 }
 
-function layoutTimed(
-  events: DayMeeting[],
-  rangeStart: number,
-): LaidOut[] {
+function layoutTimed(events: DayMeeting[], rangeStart: number): LaidOut[] {
   const items = events
     .map((ev) => {
       const start = parseMinutes(ev.starts_at)
@@ -99,7 +99,6 @@ function layoutTimed(
     .filter((x): x is { ev: DayMeeting; start: number; end: number } => x != null)
     .sort((a, b) => a.start - b.start || a.end - b.end)
 
-  // Simple overlap columns
   const active: { end: number; col: number }[] = []
   const withCol: { ev: DayMeeting; start: number; end: number; col: number }[] =
     []
@@ -114,7 +113,6 @@ function layoutTimed(
     withCol.push({ ...it, col })
   }
 
-  // Group overlapping clusters for col count
   const result: LaidOut[] = []
   let i = 0
   while (i < withCol.length) {
@@ -139,7 +137,6 @@ function layoutTimed(
         col: c.col,
         cols,
         short: minutes <= 35,
-        minutes,
       })
     }
     i = j
@@ -147,15 +144,71 @@ function layoutTimed(
   return result
 }
 
-export function DayCalendar({ today, meetings }: Props) {
+function EventActions({
+  ev,
+  busyId,
+  busyKind,
+  onToTask,
+  onPrep,
+}: {
+  ev: DayMeeting
+  busyId?: string | null
+  busyKind?: 'task' | 'prep' | null
+  onToTask?: (ev: DayMeeting) => void
+  onPrep?: (ev: DayMeeting) => void
+}) {
+  const id = String(ev.id)
+  const busy = busyId === id
+  return (
+    <div className="day-cal__actions" onClick={(e) => e.stopPropagation()}>
+      {ev.html_link ? (
+        <a
+          className="day-cal__act"
+          href={ev.html_link}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Abrir
+        </a>
+      ) : null}
+      {onToTask ? (
+        <button
+          type="button"
+          className="day-cal__act"
+          disabled={busy}
+          onClick={() => onToTask(ev)}
+        >
+          {busy && busyKind === 'task' ? '…' : 'Tarea'}
+        </button>
+      ) : null}
+      {onPrep ? (
+        <button
+          type="button"
+          className="day-cal__act"
+          disabled={busy}
+          onClick={() => onPrep(ev)}
+        >
+          {busy && busyKind === 'prep' ? '…' : 'Prep'}
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+export function DayCalendar({
+  today,
+  meetings,
+  busyId,
+  busyKind,
+  onToTask,
+  onPrep,
+}: Props) {
   const baseToday = today || madridTodayIso()
   const days = useMemo(
     () => [0, 1, 2, 3].map((n) => addDaysIso(baseToday, n)),
     [baseToday],
   )
   const [selected, setSelected] = useState(days[0])
-
-  // Keep selection valid if today rolls
   const day = days.includes(selected) ? selected : days[0]
 
   const dayEvents = useMemo(
@@ -228,23 +281,21 @@ export function DayCalendar({ today, meetings }: Props) {
 
       {allDay.length > 0 ? (
         <div className="day-cal__allday">
-          {allDay.map((ev) =>
-            ev.html_link ? (
-              <a
-                key={String(ev.id)}
-                className="day-cal__allday-item"
-                href={ev.html_link}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {ev.title}
-              </a>
-            ) : (
-              <span key={String(ev.id)} className="day-cal__allday-item">
-                {ev.title}
-              </span>
-            ),
-          )}
+          {allDay.map((ev) => {
+            const title = (ev.title || '').trim() || '(sin título)'
+            return (
+              <div key={String(ev.id)} className="day-cal__allday-card">
+                <span className="day-cal__allday-title">{title}</span>
+                <EventActions
+                  ev={ev}
+                  busyId={busyId}
+                  busyKind={busyKind}
+                  onToTask={onToTask}
+                  onPrep={onPrep}
+                />
+              </div>
+            )
+          })}
         </div>
       ) : null}
 
@@ -294,48 +345,38 @@ export function DayCalendar({ today, meetings }: Props) {
               ]
                 .filter(Boolean)
                 .join(' ')
-              const body = item.short ? (
-                <span className="day-cal__ev-line">
-                  <span className="day-cal__ev-time">{item.startLabel}</span>
-                  <strong className="day-cal__ev-title">{title}</strong>
-                </span>
-              ) : (
-                <>
-                  <strong className="day-cal__ev-title">{title}</strong>
-                  <span className="day-cal__ev-time">
-                    {item.startLabel}–{item.endLabel}
-                  </span>
-                </>
-              )
-              const style = {
-                top: item.top,
-                height: item.height,
-                width,
-                left,
-              } as const
-              if (item.ev.html_link) {
-                return (
-                  <a
-                    key={String(item.ev.id)}
-                    className={cls}
-                    href={item.ev.html_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={style}
-                    title={tip}
-                  >
-                    {body}
-                  </a>
-                )
-              }
               return (
                 <div
                   key={String(item.ev.id)}
                   className={cls}
-                  style={style}
+                  style={{
+                    top: item.top,
+                    height: item.height,
+                    width,
+                    left,
+                  }}
                   title={tip}
                 >
-                  {body}
+                  {item.short ? (
+                    <span className="day-cal__ev-line">
+                      <span className="day-cal__ev-time">{item.startLabel}</span>
+                      <strong className="day-cal__ev-title">{title}</strong>
+                    </span>
+                  ) : (
+                    <>
+                      <strong className="day-cal__ev-title">{title}</strong>
+                      <span className="day-cal__ev-time">
+                        {item.startLabel}–{item.endLabel}
+                      </span>
+                    </>
+                  )}
+                  <EventActions
+                    ev={item.ev}
+                    busyId={busyId}
+                    busyKind={busyKind}
+                    onToTask={onToTask}
+                    onPrep={onPrep}
+                  />
                 </div>
               )
             })}

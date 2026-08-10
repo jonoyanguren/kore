@@ -35,6 +35,10 @@ from app.integrations.gmail.oauth import (
 )
 from app.integrations.gmail.to_task import create_task_from_email
 from app.integrations.gmail.reply import draft_reply, send_reply
+from app.integrations.google_calendar.actions import (
+    create_task_from_event,
+    prep_for_event,
+)
 from app.integrations.gmail.triage_log import (
     list_marked_read,
     marked_read_path_for_db,
@@ -1019,6 +1023,71 @@ async def chat_stream(request: Request, body: ChatBody) -> StreamingResponse:
 
 
 # --- Gmail OAuth + inbox -------------------------------------------------
+
+
+class CalendarEventActionBody(BaseModel):
+    id: str | int | None = None
+    title: str = ""
+    starts_at: str = ""
+    ends_at: str | None = None
+    html_link: str | None = None
+    calendar: str | None = None
+    source: str | None = None
+    all_day: bool | None = None
+
+
+@router.post(
+    "/calendar/events/to-task",
+    dependencies=[Depends(require_console_auth)],
+)
+async def calendar_event_to_task(
+    request: Request, body: CalendarEventActionBody
+) -> dict[str, Any]:
+    """LLM proposes a local task from a calendar event."""
+    llm = getattr(request.app.state, "llm_client", None)
+    if llm is None:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="llm_unavailable")
+    event = body.model_dump()
+    result = await create_task_from_event(
+        llm=llm,
+        memory=request.app.state.memory,
+        vault=request.app.state.vault,
+        event=event,
+    )
+    if not result.get("ok"):
+        err = str(result.get("error") or "failed")
+        if err == "duplicate":
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                detail={"code": "duplicate", "message": result.get("detail")},
+            )
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=err)
+    return result
+
+
+@router.post(
+    "/calendar/events/prep",
+    dependencies=[Depends(require_console_auth)],
+)
+async def calendar_event_prep(
+    request: Request, body: CalendarEventActionBody
+) -> dict[str, Any]:
+    """Short pre-meeting brief from event + memory."""
+    llm = getattr(request.app.state, "llm_client", None)
+    if llm is None:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="llm_unavailable")
+    result = await prep_for_event(
+        llm=llm,
+        memory=request.app.state.memory,
+        vault=request.app.state.vault,
+        event=body.model_dump(),
+    )
+    if not result.get("ok"):
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            detail=str(result.get("error") or "prep_failed"),
+        )
+    return result
 
 
 @router.get("/gmail/status", dependencies=[Depends(require_console_auth)])

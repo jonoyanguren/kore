@@ -450,6 +450,56 @@ export async function apiGmailToTask(
   return { task: r.data.task, email: r.data.email }
 }
 
+export type CalendarEventAction = {
+  id?: number | string | null
+  title?: string
+  starts_at?: string
+  ends_at?: string | null
+  html_link?: string | null
+  calendar?: string | null
+  source?: string | null
+  all_day?: boolean | null
+}
+
+export async function apiCalendarEventToTask(
+  event: CalendarEventAction,
+): Promise<{ task: Task }> {
+  const r = await req<{ ok: boolean; task: Task }>('/api/calendar/events/to-task', {
+    method: 'POST',
+    body: JSON.stringify(event),
+  })
+  if (!r.ok) throw new Error(`No se pudo crear la tarea (${r.status})`)
+  return { task: r.data.task }
+}
+
+export async function apiCalendarEventPrep(
+  event: CalendarEventAction,
+): Promise<{
+  prep: string
+  event: {
+    id?: string | number | null
+    title?: string | null
+    starts_at?: string | null
+    html_link?: string | null
+  }
+}> {
+  const r = await req<{
+    ok: boolean
+    prep: string
+    event: {
+      id?: string | number | null
+      title?: string | null
+      starts_at?: string | null
+      html_link?: string | null
+    }
+  }>('/api/calendar/events/prep', {
+    method: 'POST',
+    body: JSON.stringify(event),
+  })
+  if (!r.ok) throw new Error(`No se pudo preparar la cita (${r.status})`)
+  return { prep: r.data.prep, event: r.data.event }
+}
+
 export async function apiListMissions(includeDone = true): Promise<Mission[]> {
   const qs = includeDone ? '' : '?include_done=false'
   const r = await req<{ missions: Mission[] }>(`/api/missions${qs}`)

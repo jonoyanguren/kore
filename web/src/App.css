@@ -723,19 +723,99 @@ button.ghost:hover {
   margin-bottom: 0.75rem;
 }
 
-.day-cal__allday-item {
-  display: inline-block;
-  padding: 0.28rem 0.55rem;
+.day-cal__allday-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.55rem;
+  padding: 0.35rem 0.55rem;
   border-radius: 8px;
   background: rgba(47, 111, 94, 0.12);
+  border: 1px solid rgba(47, 111, 94, 0.18);
   color: #1f5a4a;
   font-size: 0.8rem;
-  text-decoration: none;
-  border: 1px solid rgba(47, 111, 94, 0.18);
 }
 
-a.day-cal__allday-item:hover {
-  background: rgba(47, 111, 94, 0.18);
+.day-cal__allday-title {
+  font-weight: 600;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.day-cal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  margin-top: 0.2rem;
+}
+
+.day-cal__ev--short .day-cal__actions {
+  margin-top: 0.15rem;
+}
+
+.day-cal__act {
+  appearance: none;
+  border: 0;
+  background: rgba(255, 255, 255, 0.55);
+  color: inherit;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.12rem 0.4rem;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  line-height: 1.3;
+}
+
+a.day-cal__act,
+button.day-cal__act {
+  color: inherit;
+}
+
+.day-cal__act:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.day-cal__act:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.day-cal__prep {
+  margin-top: 1rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(21, 32, 43, 0.08);
+}
+
+.day-cal__prep-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.day-cal__prep-head strong {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.day-cal__prep-when {
+  margin: 0 0 0.55rem;
+  font-size: 0.8rem;
+}
+
+.day-cal__prep-body {
+  margin: 0;
+  white-space: pre-wrap;
+  font: inherit;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--ink);
 }
 
 .day-cal__empty {

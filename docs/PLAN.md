@@ -97,7 +97,8 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
-| 2026-08-10 | **D24 shipped (code):** Calendar read — todos calendarios visibles; Día/dream/tool; reconectar OAuth |
+| 2026-08-10 | Calendar Día: acciones **Abrir / Tarea / Prep**; spike write desde chat (`docs/spikes/calendar-write.md`) |
+| 2026-08-10 | **D24 shipped (code):** Calendar read — primary only; Día/dream/tool |
 | 2026-08-10 | **D24** siguiente = Google Calendar read (mismo OAuth Gmail); Git sigue fuera |
 | 2026-08-10 | Dogfood cerrado; Phase 3 done; **D3 supersede**: Git/código → proyecto aparte |
 | 2026-08-10 | Misiones UI: Resultado con bloques de color + tablas tipo card |
