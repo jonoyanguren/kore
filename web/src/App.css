@@ -3024,72 +3024,51 @@ a.more-drawer__btn {
 }
 
 .missions__result {
-  padding: 0.75rem 0.85rem;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.72);
+  padding: 1rem 1.05rem 1.1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(47, 111, 94, 0.22);
+  background:
+    linear-gradient(
+      165deg,
+      rgba(255, 255, 255, 0.92) 0%,
+      rgba(236, 245, 241, 0.75) 100%
+    );
 }
 
-.missions__result-label,
-.missions__research-label {
-  margin: 0 0 0.55rem;
-  font-size: 0.72rem;
+.missions__md--result h2:first-child {
+  display: none;
+}
+
+.missions__md--result h3 {
+  margin-top: 1.1rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
-.missions__result .missions__md h2:first-child {
-  display: none;
+.missions__md--result h3:first-of-type {
+  margin-top: 0;
 }
 
-.missions__research {
+.missions__research--live {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 1rem;
+  opacity: 0.82;
 }
 
-.missions__research-item {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.45);
-  overflow: hidden;
-}
-
-.missions__research-item summary {
-  cursor: pointer;
-  list-style: none;
-  padding: 0.55rem 0.75rem;
-  font-size: 0.88rem;
-  font-weight: 500;
-  color: var(--ink);
-  user-select: none;
-}
-
-.missions__research-item summary::-webkit-details-marker {
-  display: none;
-}
-
-.missions__research-item summary::before {
-  content: '▸';
-  display: inline-block;
-  width: 1rem;
+.missions__research-block .missions__md h2 {
+  font-size: 0.95rem;
+  margin-top: 0;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-weight: 500;
 }
 
-.missions__research-item[open] summary::before {
-  content: '▾';
-}
-
-.missions__research-item .missions__md {
-  padding: 0 0.75rem 0.75rem;
-  border-top: 1px solid var(--line);
-}
-
-.missions__research-item .missions__md h2:first-child {
-  display: none;
+.missions__md--muted {
+  font-size: 0.9rem;
+  color: rgba(21, 32, 43, 0.78);
 }
 
 @media (max-width: 700px) {

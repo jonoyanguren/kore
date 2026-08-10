@@ -128,6 +128,6 @@ elige A
 def test_mission_token_budgets():
     from app.kernel.mission_runner import FINAL_TASK_MAX_TOKENS, MID_TASK_MAX_TOKENS
 
-    assert MID_TASK_MAX_TOKENS <= 2200
-    assert FINAL_TASK_MAX_TOKENS >= 3500
+    assert MID_TASK_MAX_TOKENS <= 1500
+    assert FINAL_TASK_MAX_TOKENS >= 2500
     assert FINAL_TASK_MAX_TOKENS > MID_TASK_MAX_TOKENS

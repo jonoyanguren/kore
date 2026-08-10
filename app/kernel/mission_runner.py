@@ -54,8 +54,8 @@ MISSION_TASK_SYNTH_NUDGE = (
     "reales si aportan. Sin tool_calls, sin DSML, sin inventar."
 )
 
-MID_TASK_MAX_TOKENS = 2000
-FINAL_TASK_MAX_TOKENS = 4000
+MID_TASK_MAX_TOKENS = 1200
+FINAL_TASK_MAX_TOKENS = 2800
 
 
 def _iso(dt) -> str:
@@ -152,7 +152,7 @@ async def _execute_task(
             "### Opciones\n(tabla o bullets: opción — pros/contras — link)\n"
             "### Siguiente paso\n(una acción concreta)\n"
             "### Fuentes\n(3–8 links)\n"
-            "Máx. ~40 líneas. 0–2 imágenes solo si aportan."
+            "Máx. ~25 líneas. 0–2 imágenes solo si aportan. Sin investigación cruda."
         )
         max_tokens = FINAL_TASK_MAX_TOKENS
     else:
@@ -160,8 +160,8 @@ async def _execute_task(
         shape = (
             f"Respuesta = SOLO markdown empezando por:\n"
             f"## {task.title}\n"
-            "Máx. ~15–25 líneas. Bullets + 3–5 links. "
-            "0–1 imagen real si aporta. Sin volcar raw ni relleno."
+            "Sé muy breve: máx. ~8–12 líneas. 3–5 bullets + links. "
+            "0–1 imagen. Cero relleno, cero tablas largas."
         )
         max_tokens = MID_TASK_MAX_TOKENS
 

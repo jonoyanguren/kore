@@ -339,9 +339,8 @@ export function MissionsPanel({ active = true }: Props) {
 
   const md = (detail?.markdown || '').trim()
   const report = useMemo(() => splitMissionMarkdown(md), [md])
-  const runningTaskTitle =
-    detail?.plan?.tasks?.find((t) => t.status === 'running')?.title?.trim() ||
-    null
+  const showResearch =
+    !report.result && report.research.length > 0 && isActiveStatus(detail?.status || '')
 
   return (
     <section className={`missions${panelOpen ? ' missions--panel' : ''}`}>
@@ -615,7 +614,9 @@ export function MissionsPanel({ active = true }: Props) {
                       </span>
                       <span className="missions__task-body">
                         <strong>{t.title}</strong>
-                        <span className="muted missions__task-goal">{t.goal}</span>
+                        {!isDoneStatus(detail.status) && t.goal ? (
+                          <span className="muted missions__task-goal">{t.goal}</span>
+                        ) : null}
                       </span>
                     </li>
                   ))}
@@ -642,9 +643,8 @@ export function MissionsPanel({ active = true }: Props) {
                 <div className="missions__report">
                   {report.result ? (
                     <section className="missions__result" aria-label="Resultado">
-                      <h4 className="missions__result-label">Resultado</h4>
                       <div
-                        className="missions__md"
+                        className="missions__md missions__md--result"
                         dangerouslySetInnerHTML={{
                           __html: renderMissionMarkdown(
                             sectionToMarkdown(report.result),
@@ -653,34 +653,26 @@ export function MissionsPanel({ active = true }: Props) {
                       />
                     </section>
                   ) : null}
-                  {report.research.length > 0 ? (
-                    <div className="missions__research">
-                      <h4 className="missions__research-label">Investigación</h4>
-                      {report.research.map((sec) => {
-                        const open =
-                          runningTaskTitle != null &&
-                          sec.title.trim() === runningTaskTitle
-                        return (
-                          <details
-                            key={sec.title}
-                            className="missions__research-item"
-                            open={open}
-                          >
-                            <summary>{sec.title}</summary>
-                            <div
-                              className="missions__md"
-                              dangerouslySetInnerHTML={{
-                                __html: renderMissionMarkdown(
-                                  sectionToMarkdown(sec),
-                                ),
-                              }}
-                            />
-                          </details>
-                        )
-                      })}
+                  {showResearch ? (
+                    <div className="missions__research missions__research--live">
+                      {report.research.map((sec) => (
+                        <section
+                          key={sec.title}
+                          className="missions__research-block"
+                        >
+                          <div
+                            className="missions__md missions__md--muted"
+                            dangerouslySetInnerHTML={{
+                              __html: renderMissionMarkdown(
+                                sectionToMarkdown(sec),
+                              ),
+                            }}
+                          />
+                        </section>
+                      ))}
                     </div>
                   ) : null}
-                  {!report.result && report.research.length === 0 ? (
+                  {!report.result && !showResearch ? (
                     <div
                       className="missions__md"
                       dangerouslySetInnerHTML={{
