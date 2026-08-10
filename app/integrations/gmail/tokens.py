@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 GMAIL_MODIFY_SCOPE = "https://www.googleapis.com/auth/gmail.modify"
 GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send"
 CALENDAR_READONLY_SCOPE = "https://www.googleapis.com/auth/calendar.readonly"
+CALENDAR_EVENTS_SCOPE = "https://www.googleapis.com/auth/calendar.events"
 
 
 def scope_has_gmail(scope: str) -> bool:
@@ -28,6 +29,16 @@ def scope_can_send(scope: str) -> bool:
 def scope_has_calendar(scope: str) -> bool:
     low = (scope or "").lower()
     return "calendar.readonly" in low or "calendar.events" in low or "/auth/calendar" in low
+
+
+def scope_can_write_calendar(scope: str) -> bool:
+    """True if token can create/edit events (calendar.events or full calendar)."""
+    for part in (scope or "").lower().split():
+        if part.endswith("/auth/calendar.events"):
+            return True
+        if part.endswith("/auth/calendar"):
+            return True
+    return False
 
 
 def token_path_for_db(storage_db_path: str) -> Path:

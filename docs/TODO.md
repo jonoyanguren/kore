@@ -15,16 +15,16 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 
 ## Ahora
 
-- [ ] Dogfood Calendar Día: **Abrir / Tarea / Prep** en eventos
-- [ ] Spike write: crear hueco desde chat · [`spikes/calendar-write.md`](./spikes/calendar-write.md)
+- [ ] Dogfood: chat → **Crear en Calendar** (propuesta + confirmar)
 - [ ] Cuando llegue diseño: plan de maquetación UI 1.6
 
 ---
 
 ## Producto
 
-### Candidatos (después de Calendar)
+### Candidatos (después de Calendar write)
 
+- [ ] Dogfood Calendar Día: **Abrir / Tarea / Prep** en eventos
 - [ ] **Misión → tareas** — del Resultado, 1 clic crea ítems en el board
 - [ ] **Dream fiable** — briefing no vacío; catch-up / calidad diaria
 - [ ] **Gmail tono Jon** — perfil desde sent mail (reply)
@@ -49,7 +49,7 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 - Multi-modelo (imagen / code)
 - Autorrelleno tareas en chat
 - Push nativo (vía app)
-- Escribir / sync 2 vías a Google Calendar
+- Escribir/sync 2 vías Calendar (mover/borrar, multi-cal) — create bloque ya en D25
 
 ### Fuera de Kore
 

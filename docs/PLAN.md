@@ -52,21 +52,22 @@
 | D22 | Misiones: **plan → N tareas**; handoff corto; summary pass → `## Resultado` |
 | D23 | Dogfood Phase 0–3 **cerrado** (2026-08-10); siguiente = features nuevas, no más “vivir el MVP” |
 | D24 | **Google Calendar read-only** vía mismo OAuth (`calendar.readonly`); solo calendario **primary** (no suscripciones); eventos live en Día + dream + tool chat; **no** duplicar a SQLite en v1; agenda local sigue para captura chat |
+| D25 | **Chat → crear bloque Calendar**: tool `propose_calendar_block` + card confirm + `calendar.events` write en primary |
 
 ## Roadmap (lean)
 
 **Cerrado Phase 3:** misiones usable + dogfood + UI Resultado.
 
-**Ahora — Agenda + Google Calendar (D24):**
+**Ahora — Calendar write (D25):**
 
 | Slice | Qué |
 |-------|-----|
-| OAuth | Añadir `calendar.readonly`; Reconectar en Más (una vez) |
-| Client | `events.list` solo calendario **primary** |
-| Día / dream | Merge Reuniones: Google + `agenda_items` local |
-| Chat | Tool `list_calendar`; PromptAssembler contexto |
+| OAuth | `calendar.events` (+ readonly); Reconectar |
+| Tool | `propose_calendar_block` (stash → UI) |
+| API | `POST /api/calendar/events` |
+| Chat | Card editable → Crear |
 
-**No v1:** escribir en GCal, sync → SQLite, multi-cuenta.
+**No v1:** attendees, recurrencia, multi-cal, Telegram confirm.
 
 **1.6 / UI:** rediseño externo → maquetar cuando llegue.
 
@@ -81,13 +82,14 @@ Detalle shipped → [`milestones.md`](./milestones.md).
 - [x] Voz · privacidad · gasto LLM · proyecto inferido
 - [x] Dogfood consola + Gmail + Misiones
 - [x] Phase 3 Misiones usable
-- [ ] Google Calendar read en Día / dream / chat (D24)
+- [x] Google Calendar read en Día / dream / chat (D24)
+- [ ] Chat → crear bloque Calendar (D25)
 - [ ] Rediseño UI (diseño externo → maquetar)
 - [ ] App móvil día a día (Kore)
 
 ## Next steps
 
-1. Lock calendarios (primary vs todos) → implementar D24
+1. Deploy D25 + Reconectar OAuth + dogfood “reserva mañana 10–11”
 2. Cuando llegue el diseño: maquetación UI 1.6
 3. App móvil Kore: M2 cuando toque (paralelo, no bloquea)
 
@@ -97,6 +99,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-08-10 | **D25:** chat → propose → card → create event (primary) |
 | 2026-08-10 | Calendar Día: acciones **Abrir / Tarea / Prep**; spike write desde chat (`docs/spikes/calendar-write.md`) |
 | 2026-08-10 | **D24 shipped (code):** Calendar read — primary only; Día/dream/tool |
 | 2026-08-10 | **D24** siguiente = Google Calendar read (mismo OAuth Gmail); Git sigue fuera |

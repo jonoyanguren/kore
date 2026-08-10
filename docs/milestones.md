@@ -98,6 +98,13 @@ Pendiente 1.6 → UI viva (aparte) / fricciones dogfood.
 - `/entrevista` + `list_memory`; Copiar URL en tareas
 - Móvil: Expo M0 + contenido Día/Captura/Tareas/Misiones (Plataforma)
 
+## 2026-08-10 — Chat → crear bloque Calendar (D25)
+
+- OAuth `calendar.events` (+ readonly); flag `calendar_can_write`
+- Tool `propose_calendar_block` → card editable en chat → `POST /api/calendar/events`
+- Solo primary; conflictos advisory; sin attendees/recurrencia
+- Tras deploy: **Reconectar** Google una vez
+
 ## 2026-08-10 — Google Calendar read (D24)
 
 - Scope `calendar.readonly` en OAuth Google (mismo token que Gmail)

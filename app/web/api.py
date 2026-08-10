@@ -39,6 +39,11 @@ from app.integrations.google_calendar.actions import (
     create_task_from_event,
     prep_for_event,
 )
+from app.integrations.google_calendar.client import meeting_dict_from_event
+from app.integrations.google_calendar.propose_stash import (
+    set_calendar_proposal,
+    take_calendar_proposal,
+)
 from app.integrations.gmail.triage_log import (
     list_marked_read,
     marked_read_path_for_db,
@@ -873,6 +878,22 @@ async def _run_chat(
             return
         await on_status(msg)
 
+    def pack(
+        *,
+        reply: str,
+        tasks_created: list[dict[str, Any]] | None = None,
+        tasks_listed: list[dict[str, Any]] | None = None,
+        tasks_changed: bool = False,
+        calendar_proposal: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return {
+            "reply": reply,
+            "tasks_created": tasks_created or [],
+            "tasks_listed": tasks_listed if tasks_listed is not None else (tasks_created or []),
+            "tasks_changed": tasks_changed,
+            "calendar_proposal": calendar_proposal,
+        }
+
     memory = request.app.state.memory
     cmd = text.split()[0].lower() if text.startswith("/") else ""
     ask_text = text
@@ -882,22 +903,12 @@ async def _run_chat(
         rows = await memory.list_tasks(status="open", limit=40)
         reply = format_tasks_message(rows, heading="Tareas")
         await _persist_exchange(memory, text, reply)
-        return {
-            "reply": reply,
-            "tasks_created": [],
-            "tasks_listed": [_task_dict(t) for t in rows],
-            "tasks_changed": False,
-        }
+        return pack(reply=reply, tasks_listed=[_task_dict(t) for t in rows])
     if cmd == "/hora":
         await status("Mirando el reloj…")
         reply = format_madrid_clock()
         await _persist_exchange(memory, text, reply)
-        return {
-            "reply": reply,
-            "tasks_created": [],
-            "tasks_listed": [],
-            "tasks_changed": False,
-        }
+        return pack(reply=reply)
     if cmd == "/agenda":
         await status("Abriendo agenda…")
         agenda = await memory.list_agenda_upcoming(limit=20)
@@ -909,12 +920,7 @@ async def _run_chat(
             reply = "Agenda:\n" + "\n".join(lines)
             listed = []
         await _persist_exchange(memory, text, reply)
-        return {
-            "reply": reply,
-            "tasks_created": [],
-            "tasks_listed": listed,
-            "tasks_changed": False,
-        }
+        return pack(reply=reply, tasks_listed=listed)
     if cmd == "/diario":
         await status("Leyendo diario…")
         day = session_date_str()
@@ -925,17 +931,13 @@ async def _run_chat(
             lines = [f"- {entry}" for _id, entry in entries]
             reply = f"Diario {day}:\n" + "\n".join(lines)
         await _persist_exchange(memory, text, reply)
-        return {
-            "reply": reply,
-            "tasks_created": [],
-            "tasks_listed": [],
-            "tasks_changed": False,
-        }
+        return pack(reply=reply)
 
     llm = getattr(request.app.state, "llm", None)
     if llm is None:
         raise HTTPException(status_code=503, detail="llm not ready")
 
+    set_calendar_proposal(None)
     before = {t.id for t in await memory.list_tasks(status="open", limit=100)}
     reply = await llm.ask(
         ask_text,
@@ -945,14 +947,16 @@ async def _run_chat(
     after_rows = await memory.list_tasks(status="open", limit=100)
     after = {t.id for t in after_rows}
     created = [_task_dict(t) for t in after_rows if t.id in (after - before)]
+    proposal = take_calendar_proposal()
     # Only attach cards for tasks created this turn — do NOT scrape numbered
     # lists from the reply (list_tasks format "12. title" was flooding the UI).
-    return {
-        "reply": reply,
-        "tasks_created": created,
-        "tasks_listed": list(created),
-        "tasks_changed": bool(created) or before != after,
-    }
+    return pack(
+        reply=reply,
+        tasks_created=created,
+        tasks_listed=list(created),
+        tasks_changed=bool(created) or before != after,
+        calendar_proposal=proposal,
+    )
 
 
 @router.post("/chat", dependencies=[Depends(require_console_auth)])
@@ -1034,6 +1038,59 @@ class CalendarEventActionBody(BaseModel):
     calendar: str | None = None
     source: str | None = None
     all_day: bool | None = None
+
+
+class CreateCalendarEventBody(BaseModel):
+    title: str = Field(min_length=1, max_length=500)
+    starts_at: str = Field(min_length=10, max_length=32)
+    ends_at: str = Field(min_length=10, max_length=32)
+    description: str = Field(default="", max_length=8000)
+
+
+@router.post(
+    "/calendar/events",
+    dependencies=[Depends(require_console_auth)],
+)
+async def calendar_create_event(
+    request: Request, body: CreateCalendarEventBody
+) -> dict[str, Any]:
+    """Create a timed event on Google Calendar primary (after chat confirm)."""
+    calendar = getattr(request.app.state, "calendar", None)
+    if calendar is None:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, detail="calendar_unavailable"
+        )
+    try:
+        ev = await calendar.create_event(
+            title=body.title.strip(),
+            starts_at=body.starts_at.strip(),
+            ends_at=body.ends_at.strip(),
+            description=body.description.strip(),
+        )
+    except GmailNotConnectedError:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, detail="google_not_connected"
+        ) from None
+    except GmailConfigError as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from None
+    except GmailApiError as exc:
+        if exc.code == "needs_reconnect":
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                detail={"code": exc.code, "message": exc.message},
+            ) from None
+        if exc.code == "invalid":
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail={"code": exc.code, "message": exc.message},
+            ) from None
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            detail={"code": exc.code, "message": exc.message},
+        ) from None
+    return {"ok": True, "event": meeting_dict_from_event(ev)}
 
 
 @router.post(

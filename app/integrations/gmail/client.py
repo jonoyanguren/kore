@@ -19,6 +19,7 @@ from app.integrations.gmail.tokens import (
     GmailTokenStore,
     GmailTokens,
     scope_can_send,
+    scope_can_write_calendar,
     scope_has_calendar,
     scope_has_gmail,
 )
@@ -90,6 +91,7 @@ class GmailClient:
             "gmail_ready": bool(connected and has_gmail),
             "can_send": bool(connected and scope_can_send(scope)),
             "calendar_ready": bool(connected and has_cal),
+            "calendar_can_write": bool(connected and scope_can_write_calendar(scope)),
         }
 
     async def access_headers(self) -> dict[str, str]:

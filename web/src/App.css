@@ -1200,6 +1200,79 @@ a.day-cal__ev-title--link:hover {
   border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
 }
 
+.chat-cal-proposal {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+  background: rgba(255, 255, 255, 0.75);
+  font-size: 0.85rem;
+}
+
+.chat-cal-proposal__head {
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.chat-cal-proposal__reason {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+}
+
+.chat-cal-proposal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.45rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.chat-cal-proposal__field input {
+  font: inherit;
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.35rem 0.45rem;
+  background: var(--bg, #fff);
+}
+
+.chat-cal-proposal__times {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.chat-cal-proposal__conflicts {
+  margin: 0.35rem 0 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  background: color-mix(in srgb, #c80 12%, transparent);
+  font-size: 0.75rem;
+}
+
+.chat-cal-proposal__conflicts p {
+  margin: 0 0 0.25rem;
+  font-weight: 600;
+}
+
+.chat-cal-proposal__conflicts ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.chat-cal-proposal__warn {
+  margin: 0.35rem 0 0.5rem;
+  font-size: 0.8rem;
+  color: var(--danger, #a33);
+}
+
+.chat-cal-proposal__actions {
+  display: flex;
+  gap: 0.45rem;
+  justify-content: flex-end;
+  margin-top: 0.45rem;
+}
+
 .chat__thinking {
   margin: 0;
   font-style: italic;

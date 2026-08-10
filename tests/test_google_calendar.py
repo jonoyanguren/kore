@@ -22,6 +22,23 @@ def test_scope_has_calendar():
     assert not scope_has_calendar("https://www.googleapis.com/auth/gmail.modify")
 
 
+def test_scope_can_write_calendar():
+    from app.integrations.gmail.tokens import (
+        CALENDAR_EVENTS_SCOPE,
+        scope_can_write_calendar,
+    )
+
+    assert scope_can_write_calendar(CALENDAR_EVENTS_SCOPE)
+    assert not scope_can_write_calendar(CALENDAR_READONLY_SCOPE)
+    assert scope_can_write_calendar(
+        "openid https://www.googleapis.com/auth/calendar.events"
+    )
+    assert scope_can_write_calendar("https://www.googleapis.com/auth/calendar")
+    assert not scope_can_write_calendar(
+        "https://www.googleapis.com/auth/calendar.events.readonly"
+    )
+
+
 def test_authorize_url_includes_calendar_scope():
     url = build_authorize_url(
         client_id="cid",
@@ -29,8 +46,21 @@ def test_authorize_url_includes_calendar_scope():
         state="abc",
     )
     assert "calendar.readonly" in url
+    assert "calendar.events" in url
     assert "gmail.modify" in url
     assert "gmail.send" in url
+
+
+def test_parse_local_wall():
+    from zoneinfo import ZoneInfo
+
+    from app.integrations.google_calendar.client import _parse_local_wall
+
+    dt = _parse_local_wall("2026-08-11T10:00")
+    assert dt.hour == 10
+    assert dt.tzinfo == ZoneInfo("Europe/Madrid")
+    later = _parse_local_wall("2026-08-11T11:30")
+    assert later > dt
 
 
 def test_merge_meetings_prefers_google_on_duplicate():

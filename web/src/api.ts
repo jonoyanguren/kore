@@ -413,6 +413,7 @@ export type GmailStatus = {
   gmail_ready?: boolean
   can_send?: boolean
   calendar_ready?: boolean
+  calendar_can_write?: boolean
 }
 
 export async function apiGmailStatus(): Promise<GmailStatus> {
@@ -498,6 +499,48 @@ export async function apiCalendarEventPrep(
   })
   if (!r.ok) throw new Error(`No se pudo preparar la cita (${r.status})`)
   return { prep: r.data.prep, event: r.data.event }
+}
+
+export type CalendarProposal = {
+  title: string
+  starts_at: string
+  ends_at: string
+  reason?: string
+  description?: string
+  conflicts?: { title: string; starts_at: string; ends_at: string }[]
+  can_write?: boolean
+}
+
+export type CalendarMeeting = {
+  id: string
+  starts_at: string
+  title: string
+  status?: string
+  source?: string
+  calendar?: string
+  html_link?: string | null
+  ends_at?: string | null
+  all_day?: boolean
+}
+
+export async function apiCreateCalendarEvent(input: {
+  title: string
+  starts_at: string
+  ends_at: string
+  description?: string
+}): Promise<CalendarMeeting> {
+  const r = await req<{ ok: boolean; event: CalendarMeeting }>('/api/calendar/events', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+  if (!r.ok) {
+    throw new Error(
+      r.status === 403
+        ? 'Falta permiso write de Calendar — reconecta en Más → Gmail'
+        : `No se pudo crear el evento (${r.status})`,
+    )
+  }
+  return r.data.event
 }
 
 export async function apiListMissions(includeDone = true): Promise<Mission[]> {
@@ -692,6 +735,7 @@ export type ChatResult = {
   tasks_created: Task[]
   tasks_listed: Task[]
   tasks_changed: boolean
+  calendar_proposal: CalendarProposal | null
 }
 
 export async function apiChat(text: string): Promise<ChatResult> {
@@ -709,6 +753,7 @@ export async function apiChat(text: string): Promise<ChatResult> {
       tasks_created: r.data.tasks_created ?? [],
       tasks_listed: r.data.tasks_listed ?? r.data.tasks_created ?? [],
       tasks_changed: Boolean(r.data.tasks_changed),
+      calendar_proposal: r.data.calendar_proposal ?? null,
     }
   } finally {
     window.clearTimeout(timer)
@@ -764,6 +809,7 @@ export async function apiChatLive(
           tasks_created?: Task[]
           tasks_listed?: Task[]
           tasks_changed?: boolean
+          calendar_proposal?: CalendarProposal | null
           detail?: string
         }
         try {
@@ -779,6 +825,7 @@ export async function apiChatLive(
             tasks_created: ev.tasks_created ?? [],
             tasks_listed: ev.tasks_listed ?? ev.tasks_created ?? [],
             tasks_changed: Boolean(ev.tasks_changed),
+            calendar_proposal: ev.calendar_proposal ?? null,
           }
         } else if (ev.type === 'error') {
           err = String(ev.detail ?? 'error')

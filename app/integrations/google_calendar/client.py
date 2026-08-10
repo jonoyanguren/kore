@@ -48,6 +48,70 @@ class CalendarClient:
     def ready(self) -> bool:
         return bool(self._gmail.status().get("calendar_ready"))
 
+    def can_write(self) -> bool:
+        return bool(self._gmail.status().get("calendar_can_write"))
+
+    async def create_event(
+        self,
+        *,
+        title: str,
+        starts_at: str,
+        ends_at: str,
+        description: str = "",
+        calendar_id: str = "primary",
+    ) -> CalendarEvent:
+        """Create a timed event on the primary calendar (Madrid timezone)."""
+        if not self._gmail.configured():
+            raise GmailConfigError("GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET not set")
+        st = self._gmail.status()
+        if not st.get("connected"):
+            raise GmailNotConnectedError("Google not connected — open /api/gmail/connect")
+        if not st.get("calendar_can_write"):
+            raise GmailApiError(
+                "needs_reconnect",
+                "Falta permiso para crear eventos. Reconecta en Más → Gmail "
+                "y acepta Calendar (editar eventos).",
+            )
+        summary = (title or "").strip()
+        if not summary:
+            raise GmailApiError("invalid", "Falta título del evento.")
+        start_dt = _parse_local_wall(starts_at)
+        end_dt = _parse_local_wall(ends_at)
+        if end_dt <= start_dt:
+            raise GmailApiError("invalid", "La hora de fin debe ser después del inicio.")
+
+        from urllib.parse import quote
+
+        headers = await self._gmail.access_headers()
+        body: dict[str, Any] = {
+            "summary": summary[:500],
+            "start": {
+                "dateTime": start_dt.strftime("%Y-%m-%dT%H:%M:%S"),
+                "timeZone": "Europe/Madrid",
+            },
+            "end": {
+                "dateTime": end_dt.strftime("%Y-%m-%dT%H:%M:%S"),
+                "timeZone": "Europe/Madrid",
+            },
+        }
+        desc = (description or "").strip()
+        if desc:
+            body["description"] = desc[:8000]
+
+        cid = (calendar_id or "primary").strip() or "primary"
+        url = f"{CALENDAR_API}/calendars/{quote(cid, safe='')}/events"
+        response = await self._http.post(url, headers=headers, json=body)
+        if response.status_code >= 400:
+            raise _calendar_http_error(response)
+        item = response.json()
+        if not isinstance(item, dict):
+            raise GmailApiError("api", "Calendar no devolvió el evento creado.")
+        cal_name = "primary" if cid == "primary" else cid
+        ev = _parse_event(item, calendar_id=cid, calendar_name=cal_name)
+        if ev is None:
+            raise GmailApiError("api", "No se pudo leer el evento creado.")
+        return ev
+
     async def list_events(
         self,
         *,
@@ -157,6 +221,27 @@ class CalendarClient:
             if ev:
                 out.append(ev)
         return out
+
+
+def _parse_local_wall(raw: str) -> datetime:
+    """Parse YYYY-MM-DDTHH:MM[.SS] as Europe/Madrid wall time."""
+    text = (raw or "").strip().replace(" ", "T")
+    if not text:
+        raise GmailApiError("invalid", "Falta fecha/hora.")
+    for n, fmt in ((19, "%Y-%m-%dT%H:%M:%S"), (16, "%Y-%m-%dT%H:%M")):
+        try:
+            return datetime.strptime(text[:n], fmt).replace(tzinfo=MADRID)
+        except ValueError:
+            continue
+    try:
+        dt = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=MADRID)
+        return dt.astimezone(MADRID)
+    except ValueError as exc:
+        raise GmailApiError(
+            "invalid", f"Usa YYYY-MM-DDTHH:MM (Madrid). Recibido: {raw}"
+        ) from exc
 
 
 def _parse_event(

@@ -13,10 +13,12 @@ import {
   apiListMessages,
   apiPatchTask,
   apiTranscribe,
+  type CalendarProposal,
   type ChatMessage,
 } from '../api'
 import { formatRelativeEs } from '../relativeTime'
 import type { Task } from '../types'
+import { ChatCalendarProposalCard } from './ChatCalendarProposalCard'
 import { ChatTaskCard } from './ChatTaskCard'
 import { useToast } from './Toasts'
 
@@ -92,6 +94,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
 ) {
   const toast = useToast()
   const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [calProposal, setCalProposal] = useState<CalendarProposal | null>(null)
   const telegramTipShown = useRef(false)
   const [hasMore, setHasMore] = useState(false)
   const [loadingOlder, setLoadingOlder] = useState(false)
@@ -321,6 +324,9 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           tasks: dedupeTasks(result.tasks_listed),
         },
       ])
+      if (result.calendar_proposal) {
+        setCalProposal(result.calendar_proposal)
+      }
       try {
         const page = await apiListMessages(PAGE)
         setMessages((prev) => {
@@ -537,6 +543,16 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
             ) : null}
           </div>
         ))}
+        {calProposal ? (
+          <div className="chat__bubble chat__bubble--assistant">
+            <ChatCalendarProposalCard
+              proposal={calProposal}
+              onCancel={() => setCalProposal(null)}
+              onDone={() => setCalProposal(null)}
+              onCreated={() => onAfterChat?.({ tasksChanged: false })}
+            />
+          </div>
+        ) : null}
         {thinking ? (
           <p className="muted chat__thinking chat__thinking--live">{thinking}</p>
         ) : null}
