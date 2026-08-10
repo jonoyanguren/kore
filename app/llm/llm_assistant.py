@@ -63,10 +63,40 @@ _CREATE_TASK_INTENT = re.compile(
     r")\b"
 )
 
+# Reunión / bloque Calendar — same failure mode as tasks.
+_CREATE_CAL_INTENT = re.compile(
+    r"(?i)\b("
+    r"crea(?:r|me)?(?:\s+una)?\s+(?:reuni[oó]n|cita|evento|bloque)|"
+    r"reserva(?:r|me)?|"
+    r"bloquea(?:r|me)?|"
+    r"mete(?:me)?(?:\s+(?:una\s+)?)?(?:reuni[oó]n|cita)|"
+    r"mete(?:me)?(?:\s+algo)?\s+en\s+(?:el\s+)?calendario|"
+    r"pon(?:me)?(?:\s+una)?\s+(?:reuni[oó]n|cita)|"
+    r"hueco\s+(?:para|de)|"
+    r"bloque\s+(?:para|de|en)"
+    r")\b"
+)
+
+_INVITE_CAL_INTENT = re.compile(r"(?i)\binv[ií]t[aá](?:r|le|rme|les)?\b")
+
 _ADD_TASK_NUDGE = (
     "STOP. Jon pidió crear/apuntar una tarea y todavía NO has llamado "
     "add_task con éxito en este turno. Llama add_task YA con un título claro "
     "(y `project` si se deduce). No digas que está creada sin la tool."
+)
+
+_ADD_CAL_NUDGE = (
+    "STOP. Jon pidió crear una reunión/cita/bloque en Calendar y todavía NO "
+    "has llamado create_calendar_block. Llama create_calendar_block YA con "
+    "title, starts_at, ends_at y day_phrase si el día es relativo. "
+    "Si hay invitados con email conocido, pásalos en attendees. "
+    "No digas que está creada sin la tool."
+)
+
+_INVITE_CAL_NUDGE = (
+    "STOP. Jon pidió invitar a alguien a un evento y todavía NO has llamado "
+    "invite_calendar_guests. Localiza el evento y llama invite_calendar_guests "
+    "con emails reales. Si no tienes el email, pregunta — no inventes."
 )
 
 _SYNTH_NUDGE = (
@@ -91,7 +121,34 @@ def wants_strong_model(user_text: str) -> bool:
 
 def wants_create_task(user_text: str) -> bool:
     """True when Jon is asking to create/capture a local task."""
-    return bool(_CREATE_TASK_INTENT.search(user_text or ""))
+    t = user_text or ""
+    # Prefer calendar when clearly a meeting (avoid double-force).
+    if wants_create_calendar(t) and re.search(
+        r"(?i)\b(reuni|cita|calendario|bloquea|reserva)\b", t
+    ):
+        return False
+    return bool(_CREATE_TASK_INTENT.search(t))
+
+
+def wants_create_calendar(user_text: str) -> bool:
+    """True when Jon wants a Calendar meeting/block created."""
+    t = user_text or ""
+    if re.search(r"(?i)\btarea\b", t) and not re.search(
+        r"(?i)\b(reuni|cita|calendario|bloque)\b", t
+    ):
+        return False
+    return bool(_CREATE_CAL_INTENT.search(t))
+
+
+def wants_invite_calendar(user_text: str) -> bool:
+    """True when Jon wants to invite someone to a Calendar event."""
+    t = user_text or ""
+    if not _INVITE_CAL_INTENT.search(t):
+        return False
+    # Pure create with attendees uses create_calendar_block, not invite.
+    if wants_create_calendar(t):
+        return False
+    return True
 
 
 def resolve_model(*, strong: bool = False) -> str:
@@ -244,14 +301,79 @@ class LLMAssistant:
         used_fallback = False
         final_text: str | None = None
         used_any_tool = False
-        add_task_attempted = False
+        tools_attempted: set[str] = set()
         # Sticky provider + Anthropic cache across tool iterations.
         cache_session = f"chat-{now_madrid().date().isoformat()}"
         need_task = wants_create_task(user_text)
+        need_cal = wants_create_calendar(user_text)
+        need_invite = wants_invite_calendar(user_text)
 
         await status("Modelo fuerte…" if use_strong else "Pensando…")
         if use_strong:
             logger.info("Using strong model %s", model)
+
+        async def force_tool(name: str, nudge: str, status_label: str) -> None:
+            nonlocal final_text, used_any_tool
+            if name not in self._handlers or not self._tools:
+                return
+            logger.warning("Intent without %s — forcing tool", name)
+            await status(status_label)
+            messages.append({"role": "user", "content": nudge})
+            response, err = await self._create(
+                model=model,
+                messages=messages,
+                tools=self._tools,
+                max_tokens=settings.llm_max_tokens,
+                session_id=cache_session,
+                tool_choice={"type": "function", "function": {"name": name}},
+            )
+            if err or response is None:
+                return
+            choices = getattr(response, "choices", None) or []
+            if not choices or not choices[0] or not choices[0].message:
+                return
+            message = choices[0].message
+            tool_calls = message.tool_calls
+            if not tool_calls:
+                return
+            serialized = _tool_calls_for_history(list(tool_calls))
+            if not serialized:
+                return
+            used_any_tool = True
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": message.content,
+                    "tool_calls": serialized,
+                }
+            )
+            for tool_call in tool_calls:
+                fn = getattr(tool_call, "function", None)
+                tool_name = (getattr(fn, "name", None) if fn else None) or "tool"
+                tools_attempted.add(tool_name)
+                result = await self._execute_tool(tool_call)
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": getattr(tool_call, "id", None)
+                        or f"call_{tool_name}",
+                        "content": result,
+                    }
+                )
+            response2, err2 = await self._create(
+                model=model,
+                messages=messages,
+                tools=None,
+                max_tokens=settings.llm_max_tokens,
+                session_id=cache_session,
+            )
+            if err2 or response2 is None:
+                return
+            ch2 = getattr(response2, "choices", None) or []
+            if ch2 and ch2[0] and ch2[0].message:
+                text2 = (ch2[0].message.content or "").strip()
+                if text2:
+                    final_text = text2
 
         try:
             for iteration in range(MAX_TOOL_ITERATIONS):
@@ -362,8 +484,7 @@ class LLMAssistant:
                     tool_name = (getattr(fn, "name", None) if fn else None) or "tool"
                     await status(f"Usando {tool_name}…")
                     result = await self._execute_tool(tool_call)
-                    if tool_name == "add_task":
-                        add_task_attempted = True
+                    tools_attempted.add(tool_name)
                     if len(result) > 8000:
                         result = result[:8000] + "\n…[tool output truncado]"
                     messages.append(
@@ -378,75 +499,17 @@ class LLMAssistant:
             logger.exception("Unexpected error in tool loop")
             final_text = "Me he tropezado a mitad de la respuesta — prueba otra vez."
 
-        # Model often claims "creada" without calling add_task — force one shot.
-        if (
-            need_task
-            and not add_task_attempted
-            and self._tools
-            and "add_task" in self._handlers
-        ):
-            logger.warning("Create-task intent without add_task — forcing tool")
-            await status("Creando tarea…")
-            messages.append({"role": "user", "content": _ADD_TASK_NUDGE})
-            forced_choice = {
-                "type": "function",
-                "function": {"name": "add_task"},
-            }
-            response, err = await self._create(
-                model=model,
-                messages=messages,
-                tools=self._tools,
-                max_tokens=settings.llm_max_tokens,
-                session_id=cache_session,
-                tool_choice=forced_choice,
+        # Model often claims success without the write tool — force one shot.
+        if need_cal and "create_calendar_block" not in tools_attempted:
+            await force_tool(
+                "create_calendar_block", _ADD_CAL_NUDGE, "Creando reunión…"
             )
-            if not err and response is not None:
-                choices = getattr(response, "choices", None) or []
-                if choices and choices[0] and choices[0].message:
-                    message = choices[0].message
-                    tool_calls = message.tool_calls
-                    if tool_calls:
-                        serialized = _tool_calls_for_history(list(tool_calls))
-                        if serialized:
-                            used_any_tool = True
-                            messages.append(
-                                {
-                                    "role": "assistant",
-                                    "content": message.content,
-                                    "tool_calls": serialized,
-                                }
-                            )
-                            for tool_call in tool_calls:
-                                fn = getattr(tool_call, "function", None)
-                                tool_name = (
-                                    (getattr(fn, "name", None) if fn else None)
-                                    or "tool"
-                                )
-                                result = await self._execute_tool(tool_call)
-                                if tool_name == "add_task":
-                                    add_task_attempted = True
-                                messages.append(
-                                    {
-                                        "role": "tool",
-                                        "tool_call_id": getattr(tool_call, "id", None)
-                                        or f"call_{tool_name}",
-                                        "content": result,
-                                    }
-                                )
-                            # Fresh reply after forced create
-                            response2, err2 = await self._create(
-                                model=model,
-                                messages=messages,
-                                tools=None,
-                                max_tokens=settings.llm_max_tokens,
-                                session_id=cache_session,
-                            )
-                            if not err2 and response2 is not None:
-                                ch2 = getattr(response2, "choices", None) or []
-                                if ch2 and ch2[0] and ch2[0].message:
-                                    text2 = (ch2[0].message.content or "").strip()
-                                    if text2:
-                                        final_text = text2
+        elif need_invite and "invite_calendar_guests" not in tools_attempted:
+            await force_tool(
+                "invite_calendar_guests", _INVITE_CAL_NUDGE, "Invitando…"
+            )
+        elif need_task and "add_task" not in tools_attempted:
+            await force_tool("add_task", _ADD_TASK_NUDGE, "Creando tarea…")
 
         if _is_blank_reply(final_text):
             await status("Resumiendo…")
