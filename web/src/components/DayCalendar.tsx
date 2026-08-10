@@ -18,8 +18,9 @@ type Props = {
   meetings: DayMeeting[]
 }
 
-const HOUR_PX = 52
+const HOUR_PX = 56
 const DEFAULT_MINUTES = 45
+const MIN_EVENT_PX = 38
 const DAY_NAMES = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb']
 
 function madridTodayIso(): string {
@@ -81,6 +82,8 @@ type LaidOut = {
   endLabel: string
   col: number
   cols: number
+  short: boolean
+  minutes: number
 }
 
 function layoutTimed(
@@ -125,19 +128,19 @@ function layoutTimed(
     const cluster = withCol.slice(i, j)
     const cols = Math.max(...cluster.map((c) => c.col)) + 1
     for (const c of cluster) {
-      const top = ((c.start - rangeStart) / 60) * HOUR_PX
-      const height = Math.max(
-        (((c.end - c.start) / 60) * HOUR_PX),
-        HOUR_PX * 0.55,
-      )
+      const durationPx = ((c.end - c.start) / 60) * HOUR_PX
+      const height = Math.max(durationPx, MIN_EVENT_PX)
+      const minutes = c.end - c.start
       result.push({
         ev: c.ev,
-        top,
+        top: ((c.start - rangeStart) / 60) * HOUR_PX,
         height,
         startLabel: `${String(Math.floor(c.start / 60)).padStart(2, '0')}:${String(c.start % 60).padStart(2, '0')}`,
         endLabel: `${String(Math.floor(c.end / 60)).padStart(2, '0')}:${String(c.end % 60).padStart(2, '0')}`,
         col: c.col,
         cols,
+        short: minutes <= 35,
+        minutes,
       })
     }
     i = j
@@ -281,12 +284,22 @@ export function DayCalendar({ today, meetings }: Props) {
             {laid.map((item) => {
               const width = `calc((100% - 0.35rem) / ${item.cols})`
               const left = `calc(${item.col} * (100% - 0.35rem) / ${item.cols})`
+              const tip = `${item.ev.title} · ${item.startLabel}–${item.endLabel}`
+              const cls = [
+                'day-cal__ev',
+                item.ev.source === 'local' ? 'day-cal__ev--local' : 'day-cal__ev--google',
+                item.short ? 'day-cal__ev--short' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')
               const body = (
                 <>
                   <strong className="day-cal__ev-title">{item.ev.title}</strong>
-                  <span className="day-cal__ev-time">
-                    {item.startLabel}–{item.endLabel}
-                  </span>
+                  {!item.short ? (
+                    <span className="day-cal__ev-time">
+                      {item.startLabel}–{item.endLabel}
+                    </span>
+                  ) : null}
                 </>
               )
               const style = {
@@ -294,17 +307,18 @@ export function DayCalendar({ today, meetings }: Props) {
                 height: item.height,
                 width,
                 left,
+                zIndex: item.short ? 4 : 2,
               } as const
               if (item.ev.html_link) {
                 return (
                   <a
                     key={String(item.ev.id)}
-                    className={`day-cal__ev day-cal__ev--${item.ev.source === 'local' ? 'local' : 'google'}`}
+                    className={cls}
                     href={item.ev.html_link}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={style}
-                    title={formatWhen(item.ev.starts_at)}
+                    title={tip}
                   >
                     {body}
                   </a>
@@ -313,9 +327,9 @@ export function DayCalendar({ today, meetings }: Props) {
               return (
                 <div
                   key={String(item.ev.id)}
-                  className={`day-cal__ev day-cal__ev--${item.ev.source === 'local' ? 'local' : 'google'}`}
+                  className={cls}
                   style={style}
-                  title={formatWhen(item.ev.starts_at)}
+                  title={tip}
                 >
                   {body}
                 </div>
