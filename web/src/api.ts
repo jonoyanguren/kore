@@ -346,6 +346,8 @@ export type DayBriefing = {
     source?: 'google' | 'local' | string
     calendar?: string
     html_link?: string | null
+    ends_at?: string | null
+    all_day?: boolean
   }[]
   help: string[]
   inbox?: string[]
@@ -366,6 +368,8 @@ export type DaySnapshot = {
     source?: string
     calendar?: string
     html_link?: string | null
+    ends_at?: string | null
+    all_day?: boolean
   }[]
   briefing: DayBriefing
   dream: { day: string | null; excerpt: string | null } | null

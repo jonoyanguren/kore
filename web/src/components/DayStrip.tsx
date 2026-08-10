@@ -9,6 +9,7 @@ import {
   type GmailReplyDraft,
 } from '../api'
 import { formatWhen } from '../dates'
+import { DayCalendar } from './DayCalendar'
 import { ProjectChip } from './ProjectChip'
 import { useToast } from './Toasts'
 
@@ -367,33 +368,7 @@ export function DayStrip({
             </p>
           ) : null}
           {meetings.length > 0 ? (
-            <ul>
-              {meetings.map((a) => (
-                <li key={String(a.id)}>
-                  <span className="day-strip__ag-when">
-                    {formatWhen(a.starts_at)}
-                  </span>
-                  {a.html_link ? (
-                    <a
-                      href={a.html_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {a.title}
-                    </a>
-                  ) : (
-                    a.title
-                  )}
-                  {a.source === 'google' ? (
-                    <span className="day-strip__tag muted">
-                      {a.calendar ? a.calendar : 'Google'}
-                    </span>
-                  ) : a.source === 'local' ? (
-                    <span className="day-strip__tag muted">local</span>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
+            <DayCalendar today={day.today} meetings={meetings} />
           ) : null}
         </div>
 

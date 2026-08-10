@@ -558,7 +558,7 @@ button.ghost:hover {
   flex-direction: column;
   gap: 1.85rem;
   width: 100%;
-  max-width: 34rem;
+  max-width: 38rem;
   text-align: left;
   margin-top: 1.5rem;
   padding-top: 0.25rem;
@@ -657,6 +657,212 @@ button.ghost:hover {
   font-size: 0.8rem;
   margin-right: 0.4rem;
   font-variant-numeric: tabular-nums;
+}
+
+.day-cal {
+  margin-top: 0.35rem;
+}
+
+.day-cal__tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.85rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.15rem;
+}
+
+.day-cal__tab {
+  flex: 1 1 0;
+  min-width: 4.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.45rem 0.35rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.day-cal__tab:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.day-cal__tab--on {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(21, 32, 43, 0.1);
+  box-shadow: 0 1px 0 rgba(21, 32, 43, 0.04);
+}
+
+.day-cal__tab-label {
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.day-cal__tab-n {
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.day-cal__tab--on .day-cal__tab-n {
+  color: var(--ink);
+}
+
+.day-cal__allday {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.day-cal__allday-item {
+  display: inline-block;
+  padding: 0.28rem 0.55rem;
+  border-radius: 8px;
+  background: rgba(47, 111, 94, 0.12);
+  color: #1f5a4a;
+  font-size: 0.8rem;
+  text-decoration: none;
+  border: 1px solid rgba(47, 111, 94, 0.18);
+}
+
+a.day-cal__allday-item:hover {
+  background: rgba(47, 111, 94, 0.18);
+}
+
+.day-cal__empty {
+  margin: 0.35rem 0 0;
+  font-size: 0.88rem;
+}
+
+.day-cal__grid {
+  display: grid;
+  grid-template-columns: 2.75rem 1fr;
+  position: relative;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(21, 32, 43, 0.07);
+  overflow: hidden;
+}
+
+.day-cal__hours {
+  border-right: 1px solid rgba(21, 32, 43, 0.06);
+}
+
+.day-cal__hour {
+  position: relative;
+  box-sizing: border-box;
+}
+
+.day-cal__hour span {
+  position: absolute;
+  top: -0.45rem;
+  right: 0.4rem;
+  font-size: 0.68rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.day-cal__hour:first-child span {
+  top: 0.2rem;
+}
+
+.day-cal__lane {
+  position: relative;
+}
+
+.day-cal__line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid rgba(21, 32, 43, 0.06);
+  pointer-events: none;
+}
+
+.day-cal__now {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #c45c3a;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.day-cal__now::before {
+  content: '';
+  position: absolute;
+  left: -3px;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #c45c3a;
+}
+
+.day-cal__ev {
+  position: absolute;
+  box-sizing: border-box;
+  padding: 0.28rem 0.4rem;
+  border-radius: 8px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid transparent;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.day-cal__ev--google {
+  background: rgba(43, 108, 176, 0.14);
+  border-color: rgba(43, 108, 176, 0.28);
+  color: #1e4f86;
+}
+
+.day-cal__ev--local {
+  background: rgba(180, 120, 40, 0.14);
+  border-color: rgba(180, 120, 40, 0.28);
+  color: #8a5a12;
+}
+
+a.day-cal__ev:hover {
+  filter: brightness(0.97);
+}
+
+.day-cal__ev-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.day-cal__ev-time {
+  font-size: 0.68rem;
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 520px) {
+  .day-cal__grid {
+    grid-template-columns: 2.35rem 1fr;
+  }
+
+  .day-cal__ev-title {
+    font-size: 0.72rem;
+  }
 }
 
 .day-strip--err {
