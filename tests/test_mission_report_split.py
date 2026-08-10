@@ -1,13 +1,21 @@
-"""Unit tests for mission report markdown splitting (mirrors web/src/lib/missionReport.ts)."""
+"""Unit tests for mission report markdown splitting + summary field."""
 
 from __future__ import annotations
+
+from app.kernel.mission_plan import MissionPlan, MissionTask, render_mission_markdown
 
 
 def _split_mission_markdown(md: str) -> dict:
     """Python port of splitMissionMarkdown for regression tests."""
     text = (md or "").replace("\r\n", "\n").strip()
     if not text:
-        return {"preamble": "", "sections": [], "result": None, "research": []}
+        return {
+            "preamble": "",
+            "sections": [],
+            "result": None,
+            "research": [],
+            "detailMarkdown": "",
+        }
 
     lines = text.split("\n")
     preamble: list[str] = []
@@ -27,6 +35,10 @@ def _split_mission_markdown(md: str) -> dict:
     def is_meta(kind: str) -> bool:
         return kind in ("encargo", "plan", "gasto")
 
+    def section_md(s: dict) -> str:
+        body = s["body"].strip()
+        return f"## {s['title']}\n\n{body}" if body else f"## {s['title']}"
+
     for line in lines:
         if line.startswith("## "):
             if current:
@@ -45,45 +57,22 @@ def _split_mission_markdown(md: str) -> dict:
     for s in sections:
         s["body"] = s["body"].lstrip("\n").rstrip("\n")
 
-    tasks = [s for s in sections if not is_meta(s["kind"])]
-    explicit = next(
-        (s for s in tasks if s["title"].strip().lower() == "resultado"), None
+    result = next(
+        (s for s in sections if s["title"].strip().lower() == "resultado"), None
     )
-    result = explicit if explicit is not None else (tasks[-1] if tasks else None)
-    research = [s for s in tasks if s is not result]
+    research = [s for s in sections if not is_meta(s["kind"]) and s is not result]
     return {
         "preamble": "\n".join(preamble).strip(),
         "sections": sections,
         "result": result,
         "research": research,
+        "detailMarkdown": "\n\n".join(section_md(s) for s in research),
     }
 
 
 SAMPLE = """# Viaje a Lisboa
 
 > Estado: hecho · 3 tareas · $0.12
-
-## Encargo
-
-Busca opciones de 3 días.
-
-## Plan
-
-- [x] **Recopilar** — opciones
-- [x] **Comparar** — precios
-- [x] **Resultado** — decisión
-
-## Recopilar
-
-- Opción A [link](https://a.example)
-- Opción B
-
-## Comparar
-
-| Opción | Precio |
-| --- | --- |
-| A | 100 |
-| B | 80 |
 
 ## Resultado
 
@@ -92,19 +81,38 @@ Ir con B.
 
 ### Fuentes
 - [B](https://b.example)
+
+## Encargo
+
+Busca opciones de 3 días.
+
+## Plan
+
+- [x] **Recopilar** — opciones
+
+## Recopilar
+
+- Opción A [link](https://a.example)
+
+## Comparar
+
+| Opción | Precio |
+| --- | --- |
+| A | 100 |
 """
 
 
-def test_split_puts_resultado_first_and_collapses_research():
+def test_split_resultado_and_single_detail_blob():
     parts = _split_mission_markdown(SAMPLE)
     assert parts["result"] is not None
     assert parts["result"]["title"] == "Resultado"
     assert "Ir con B" in parts["result"]["body"]
     assert [s["title"] for s in parts["research"]] == ["Recopilar", "Comparar"]
-    assert all(s["kind"] != "encargo" for s in parts["research"])
+    assert "## Recopilar" in parts["detailMarkdown"]
+    assert "## Comparar" in parts["detailMarkdown"]
 
 
-def test_split_falls_back_to_last_task_without_resultado_heading():
+def test_split_without_resultado_has_no_fake_result():
     md = """# X
 
 ## Encargo
@@ -115,19 +123,43 @@ hola
 
 hallazgo 1
 
-## Síntesis y recomendación
+## Comparar
 
 elige A
 """
     parts = _split_mission_markdown(md)
-    assert parts["result"]["title"] == "Síntesis y recomendación"
-    assert "elige A" in parts["result"]["body"]
-    assert [s["title"] for s in parts["research"]] == ["Buscar datos"]
+    assert parts["result"] is None
+    assert [s["title"] for s in parts["research"]] == ["Buscar datos", "Comparar"]
+
+
+def test_render_puts_summary_first():
+    plan = MissionPlan(
+        tasks=[
+            MissionTask(
+                title="Buscar",
+                goal="g",
+                status="done",
+                output="## Buscar\n- a",
+            )
+        ],
+        summary="## Resultado\n\n### Decisión\nHaz X.",
+    )
+    md = render_mission_markdown("T", "brief", plan, status_line="Estado: hecho")
+    assert md.index("## Resultado") < md.index("## Encargo")
+    assert md.index("## Resultado") < md.index("## Buscar")
 
 
 def test_mission_token_budgets():
-    from app.kernel.mission_runner import FINAL_TASK_MAX_TOKENS, MID_TASK_MAX_TOKENS
+    from app.kernel.mission_runner import MID_TASK_MAX_TOKENS
 
     assert MID_TASK_MAX_TOKENS <= 1500
-    assert FINAL_TASK_MAX_TOKENS >= 2500
-    assert FINAL_TASK_MAX_TOKENS > MID_TASK_MAX_TOKENS
+
+
+def test_plan_summary_roundtrip():
+    plan = MissionPlan(
+        tasks=[MissionTask(title="A", goal="g")],
+        summary="## Resultado\n\nok",
+    )
+    again = MissionPlan.from_json(plan.to_json())
+    assert again is not None
+    assert again.summary.startswith("## Resultado")

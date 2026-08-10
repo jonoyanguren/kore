@@ -10,10 +10,12 @@ export type MissionReportParts = {
   /** Lines before the first ## (title + status blockquote). */
   preamble: string
   sections: MissionMdSection[]
-  /** Last task-like section (síntesis / Resultado), if any. */
+  /** Resultado section (summary pass), if any. */
   result: MissionMdSection | null
   /** Intermediate task sections (research), oldest first. */
   research: MissionMdSection[]
+  /** Single markdown blob for “ver detalle” (all research tasks). */
+  detailMarkdown: string
 }
 
 function classifyHeading(title: string): MissionMdSection['kind'] {
@@ -21,9 +23,6 @@ function classifyHeading(title: string): MissionMdSection['kind'] {
   if (t === 'encargo') return 'encargo'
   if (t === 'plan') return 'plan'
   if (t === 'gasto llm' || t.startsWith('gasto')) return 'gasto'
-  if (t === 'resultado' || t.startsWith('síntesis') || t.startsWith('sintesis')) {
-    return 'task'
-  }
   return 'task'
 }
 
@@ -33,12 +32,19 @@ function isMetaSection(kind: MissionMdSection['kind']): boolean {
 
 /**
  * Split vault markdown by `##` headings.
- * Resultado = section titled Resultado, else last non-meta task section.
+ * Resultado = section titled Resultado (summary pass), else null
+ * (do not treat last research task as the result).
  */
 export function splitMissionMarkdown(md: string): MissionReportParts {
   const text = (md || '').replace(/\r\n/g, '\n').trim()
   if (!text) {
-    return { preamble: '', sections: [], result: null, research: [] }
+    return {
+      preamble: '',
+      sections: [],
+      result: null,
+      research: [],
+      detailMarkdown: '',
+    }
   }
 
   const lines = text.split('\n')
@@ -66,21 +72,19 @@ export function splitMissionMarkdown(md: string): MissionReportParts {
     s.body = s.body.replace(/^\n+/, '').replace(/\n+$/, '')
   }
 
-  const taskSections = sections.filter((s) => !isMetaSection(s.kind))
-  const explicit = taskSections.find(
-    (s) => s.title.trim().toLowerCase() === 'resultado',
-  )
   const result =
-    explicit ??
-    (taskSections.length > 0 ? taskSections[taskSections.length - 1] : null)
-
-  const research = taskSections.filter((s) => s !== result)
+    sections.find((s) => s.title.trim().toLowerCase() === 'resultado') ?? null
+  const research = sections.filter(
+    (s) => !isMetaSection(s.kind) && s !== result,
+  )
+  const detailMarkdown = research.map(sectionToMarkdown).join('\n\n')
 
   return {
     preamble: preambleLines.join('\n').trim(),
     sections,
     result,
     research,
+    detailMarkdown,
   }
 }
 

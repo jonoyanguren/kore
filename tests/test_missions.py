@@ -60,6 +60,9 @@ def test_mission_plan_then_tasks_to_done(monkeypatch):
     async def fake_handoff(llm, **kwargs):
         return "Handoff breve para la siguiente."
 
+    async def fake_summary(llm, **kwargs):
+        return "## Resultado\n\n### Decisión\nStub listo.\n"
+
     async def fake_account_start(acc):
         return None
 
@@ -69,6 +72,7 @@ def test_mission_plan_then_tasks_to_done(monkeypatch):
     monkeypatch.setattr(mission_runner, "plan_mission", fake_plan)
     monkeypatch.setattr(mission_runner, "_execute_task", fake_execute)
     monkeypatch.setattr(mission_runner, "generate_handoff", fake_handoff)
+    monkeypatch.setattr(mission_runner, "generate_mission_summary", fake_summary)
     monkeypatch.setattr(mission_runner, "_maybe_snapshot_account_start", fake_account_start)
     monkeypatch.setattr(mission_runner, "_maybe_snapshot_account_end", fake_account_end)
 
@@ -113,6 +117,11 @@ def test_mission_plan_then_tasks_to_done(monkeypatch):
             md = vault.read_mission(mid) or ""
             assert "Hecho 2" in md
             assert "## Plan" in md
+            assert "## Resultado" in md
+            assert "Stub listo" in md
+            plan = MissionPlan.from_json(m.plan_json)
+            assert plan is not None
+            assert "Resultado" in plan.summary
 
     asyncio.run(_run())
 

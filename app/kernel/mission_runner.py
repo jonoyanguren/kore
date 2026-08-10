@@ -13,6 +13,7 @@ from app.kernel.mission_plan import (
     MissionPlan,
     apply_usage_to_plan,
     generate_handoff,
+    generate_mission_summary,
     plan_mission,
     render_mission_markdown,
 )
@@ -55,7 +56,7 @@ MISSION_TASK_SYNTH_NUDGE = (
 )
 
 MID_TASK_MAX_TOKENS = 1200
-FINAL_TASK_MAX_TOKENS = 2800
+SUMMARY_MAX_TOKENS = 2800  # mirrored in generate_mission_summary
 
 
 def _iso(dt) -> str:
@@ -134,36 +135,20 @@ async def _execute_task(
 ) -> str:
     task = plan.tasks[task_index]
     n = len(plan.tasks)
-    is_final = task_index >= n - 1
     handoff = (plan.handoff or "").strip()
     if task_index == 0:
         ctx = "(Primera tarea — sin handoff previo.)"
     else:
         ctx = handoff or "(Sin handoff previo.)"
 
-    if is_final:
-        heading = "## Resultado"
-        shape = (
-            "Respuesta = SOLO markdown empezando por:\n"
-            "## Resultado\n\n"
-            "Estructura fija (corta):\n"
-            "### Decisión\n(1–3 frases)\n"
-            "### Por qué\n(2–5 bullets)\n"
-            "### Opciones\n(tabla o bullets: opción — pros/contras — link)\n"
-            "### Siguiente paso\n(una acción concreta)\n"
-            "### Fuentes\n(3–8 links)\n"
-            "Máx. ~25 líneas. 0–2 imágenes solo si aportan. Sin investigación cruda."
-        )
-        max_tokens = FINAL_TASK_MAX_TOKENS
-    else:
-        heading = f"## {task.title}"
-        shape = (
-            f"Respuesta = SOLO markdown empezando por:\n"
-            f"## {task.title}\n"
-            "Sé muy breve: máx. ~8–12 líneas. 3–5 bullets + links. "
-            "0–1 imagen. Cero relleno, cero tablas largas."
-        )
-        max_tokens = MID_TASK_MAX_TOKENS
+    heading = f"## {task.title}"
+    shape = (
+        f"Respuesta = SOLO markdown empezando por:\n"
+        f"## {task.title}\n"
+        "Sé muy breve: máx. ~8–12 líneas. 3–5 bullets + links. "
+        "0–1 imagen. Cero relleno, cero tablas largas. "
+        "No escribas el informe final (habrá una pasada Resultado aparte)."
+    )
 
     user = (
         f"MISIÓN — TAREA {task_index + 1}/{n}: {task.title}\n\n"
@@ -177,12 +162,11 @@ async def _execute_task(
     tools, handlers = build_web_tools()
     model = resolve_mission_model(mission.quality)
     logger.info(
-        "Mission %s task %s/%s model=%s final=%s title=%r",
+        "Mission %s task %s/%s model=%s title=%r",
         mission.id,
         task_index + 1,
         n,
         model,
-        is_final,
         task.title[:50],
     )
     text = await run_tool_loop(
@@ -192,7 +176,7 @@ async def _execute_task(
         tools=tools,
         handlers=handlers,
         model=model,
-        max_tokens=max_tokens,
+        max_tokens=MID_TASK_MAX_TOKENS,
         session_id=f"mission-{mission.id}-task-{task_index + 1}",
         usage_acc=usage_acc,
         synth_nudge=MISSION_TASK_SYNTH_NUDGE,
@@ -205,13 +189,7 @@ async def _execute_task(
     t = text.strip()
     if not t.startswith("##"):
         t = f"{heading}\n\n{t}"
-    elif is_final and not t.startswith("## Resultado"):
-        # Normalize final deliverable heading for the UI splitter.
-        rest = t.lstrip("#").strip()
-        if rest.lower().startswith("resultado"):
-            rest = rest.split("\n", 1)[1] if "\n" in rest else ""
-        t = f"## Resultado\n\n{rest.strip()}" if rest.strip() else "## Resultado"
-    elif not is_final and not t.startswith(heading):
+    elif not t.startswith(heading):
         t = f"{heading}\n\n{t.lstrip('#').strip()}"
     return t
 
@@ -325,8 +303,20 @@ async def run_mission_tick(
         next_index = task_index + 1
         is_done = next_index >= n
         if is_done:
+            await store.add_mission_event(mission.id, "summary_start", None)
+            plan.summary = await generate_mission_summary(
+                llm,
+                title=mission.title,
+                brief=mission.brief,
+                plan=plan,
+                mission_id=mission.id,
+                quality=mission.quality,
+                usage_acc=usage_acc,
+                spend_store=store,
+            )
             await _maybe_snapshot_account_end(usage_acc)
             apply_usage_to_plan(plan, usage_acc)
+            await store.add_mission_event(mission.id, "summary_done", None)
         md = render_mission_markdown(
             mission.title,
             mission.brief,

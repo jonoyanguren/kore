@@ -339,8 +339,11 @@ export function MissionsPanel({ active = true }: Props) {
 
   const md = (detail?.markdown || '').trim()
   const report = useMemo(() => splitMissionMarkdown(md), [md])
-  const showResearch =
-    !report.result && report.research.length > 0 && isActiveStatus(detail?.status || '')
+  const missionRunning = detail ? isActiveStatus(detail.status) : false
+  const showLiveResearch =
+    missionRunning && !report.result && report.research.length > 0
+  const showDetailAccordion =
+    Boolean(report.result) && report.detailMarkdown.trim().length > 0
 
   return (
     <section className={`missions${panelOpen ? ' missions--panel' : ''}`}>
@@ -653,8 +656,22 @@ export function MissionsPanel({ active = true }: Props) {
                       />
                     </section>
                   ) : null}
-                  {showResearch ? (
+                  {showDetailAccordion ? (
+                    <details className="missions__detail">
+                      <summary>Ver investigación completa</summary>
+                      <div
+                        className="missions__md missions__md--muted"
+                        dangerouslySetInnerHTML={{
+                          __html: renderMissionMarkdown(report.detailMarkdown),
+                        }}
+                      />
+                    </details>
+                  ) : null}
+                  {showLiveResearch ? (
                     <div className="missions__research missions__research--live">
+                      <p className="muted missions__live-label">
+                        Investigando…
+                      </p>
                       {report.research.map((sec) => (
                         <section
                           key={sec.title}
@@ -672,7 +689,7 @@ export function MissionsPanel({ active = true }: Props) {
                       ))}
                     </div>
                   ) : null}
-                  {!report.result && !showResearch ? (
+                  {!report.result && !showLiveResearch ? (
                     <div
                       className="missions__md"
                       dangerouslySetInnerHTML={{

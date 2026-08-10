@@ -35,9 +35,10 @@ Responde SOLO JSON válido (sin markdown):
 }
 
 Reglas:
-- Entre 2 y 6 tareas, orden lógico (explorar → profundizar → comparar → concluir).
-- La ÚLTIMA tarea sintetiza: informe comparativo / recomendación / decisión.
-- Títulos cortos (≤8 palabras). goal = qué entregar (datos, tabla, lista, conclusión; imágenes si aportan).
+- Entre 2 y 6 tareas, orden lógico (explorar → profundizar → comparar).
+- NO pidas un informe final en la última tarea: habrá una pasada aparte de Resultado.
+- Cada tarea entrega hallazgos concretos (datos, tabla corta, lista, links).
+- Títulos cortos (≤8 palabras). goal = qué entregar.
 - No tareas vagas ("investigar más"). Sí accionables ("Comparar 5 modelos en rango de precio X").
 - Español. No inventes datos del encargo."""
 
@@ -49,6 +50,31 @@ Responde SOLO texto plano en español, 80–180 palabras:
 - Qué quedó resuelto / datos clave / links útiles
 - Qué debe hacer la siguiente tarea con eso
 - Sin markdown, sin JSON, sin secciones numeradas largas"""
+
+
+SUMMARY_SYSTEM = """Eres Jone. Cierras una misión de investigación para Jon.
+
+Con el encargo y los hallazgos de las tareas, escribes el RESULTADO final.
+Responde SOLO markdown en español empezando por:
+
+## Resultado
+
+### Decisión
+(1–3 frases claras)
+
+### Por qué
+(2–5 bullets)
+
+### Opciones
+(tabla corta o bullets: opción — pros/contras — link)
+
+### Siguiente paso
+(una acción concreta)
+
+### Fuentes
+(3–8 links)
+
+Máx. ~25 líneas. Sin repetir la investigación cruda. Sin inventar datos ni URLs."""
 
 
 @dataclass
@@ -63,6 +89,7 @@ class MissionTask:
 class MissionPlan:
     tasks: list[MissionTask] = field(default_factory=list)
     handoff: str = ""
+    summary: str = ""
     cost: MissionCostInfo | None = None
 
     def to_json(self) -> str:
@@ -70,6 +97,8 @@ class MissionPlan:
             "tasks": [asdict(t) for t in self.tasks],
             "handoff": self.handoff,
         }
+        if self.summary.strip():
+            payload["summary"] = self.summary.strip()
         if self.cost is not None and (self.cost.usd > 0 or self.cost.llm_calls > 0):
             payload["cost"] = self.cost.to_dict()
         return json.dumps(payload, ensure_ascii=False)
@@ -106,8 +135,9 @@ class MissionPlan:
         if not tasks:
             return None
         handoff = str(data.get("handoff") or "").strip()
+        summary = str(data.get("summary") or "").strip()
         cost = MissionCostInfo.from_dict(data.get("cost"))
-        return cls(tasks=tasks, handoff=handoff, cost=cost)
+        return cls(tasks=tasks, handoff=handoff, summary=summary, cost=cost)
 
     def completed_count(self) -> int:
         return sum(1 for t in self.tasks if t.status == "done")
@@ -207,10 +237,10 @@ def _fallback_plan(title: str, brief: str) -> MissionPlan:
                 ),
             ),
             MissionTask(
-                title="Resultado",
+                title="Cerrar comparación",
                 goal=(
-                    "Decisión final corta: por qué, opciones clave, siguiente paso "
-                    "y fuentes. Sin relleno."
+                    "Tabla o bullets con pros/contras y links de las mejores "
+                    "opciones; sin informe final largo."
                 ),
             ),
         ]
@@ -428,12 +458,22 @@ def render_mission_markdown(
         "",
         f"> {status_line}",
         "",
-        "## Encargo",
-        "",
-        brief.strip() or "(sin brief)",
-        "",
-        render_plan_checklist(plan, current_index=current_index),
     ]
+    summary = (plan.summary or "").strip()
+    if summary:
+        if not summary.startswith("##"):
+            summary = f"## Resultado\n\n{summary}"
+        parts.append(summary.strip())
+        parts.append("")
+    parts.extend(
+        [
+            "## Encargo",
+            "",
+            brief.strip() or "(sin brief)",
+            "",
+            render_plan_checklist(plan, current_index=current_index),
+        ]
+    )
     for task in plan.tasks:
         if not task.output.strip():
             continue
@@ -458,3 +498,70 @@ def render_mission_markdown(
             )
         parts.append("")
     return "\n".join(parts).rstrip() + "\n"
+
+
+async def generate_mission_summary(
+    llm: openai.AsyncOpenAI,
+    *,
+    title: str,
+    brief: str,
+    plan: MissionPlan,
+    mission_id: int,
+    quality: str = "normal",
+    usage_acc: UsageAccumulator | None = None,
+    spend_store: MemoryStore | None = None,
+) -> str:
+    """Final pass: one short Resultado from all task outputs."""
+    model = resolve_mission_model(quality)
+    chunks: list[str] = []
+    for i, task in enumerate(plan.tasks, start=1):
+        out = (task.output or "").strip()
+        if len(out) > 1800:
+            out = out[:1790] + "…"
+        chunks.append(f"### Tarea {i}: {task.title}\n{out or '(sin texto)'}")
+    body = "\n\n".join(chunks) if chunks else "(sin hallazgos)"
+    user = (
+        f"Misión: {title.strip()}\n"
+        f"Encargo:\n{brief.strip()}\n\n"
+        f"Hallazgos de las tareas:\n\n{body}\n\n"
+        "Escribe el Resultado final para Jon."
+    )
+    messages = with_system_cache_control(
+        [
+            {"role": "system", "content": SUMMARY_SYSTEM},
+            {"role": "user", "content": user},
+        ],
+        model=model,
+    )
+    kwargs: dict[str, Any] = {
+        "model": model,
+        "messages": messages,
+        "max_tokens": 2800,
+        "temperature": 0.3,
+    }
+    session_id = f"mission-{mission_id}-summary"
+    extra = openrouter_extra_body(model=model, session_id=session_id)
+    if extra:
+        kwargs["extra_body"] = extra
+    resp = await llm.chat.completions.create(**kwargs)
+    if usage_acc is not None:
+        usage_acc.record_completion(resp, model=model)
+    await log_completion(
+        spend_store,
+        resp,
+        model=model,
+        kind="mission",
+        ref=f"mission:{mission_id}",
+        session_id=session_id,
+    )
+    text = _completion_text(resp.choices[0].message).strip()
+    if not text:
+        return "## Resultado\n\n(No pude sintetizar el resultado.)"
+    if not text.startswith("##"):
+        text = f"## Resultado\n\n{text}"
+    elif not text.startswith("## Resultado"):
+        rest = text.lstrip("#").strip()
+        if rest.lower().startswith("resultado"):
+            rest = rest.split("\n", 1)[1] if "\n" in rest else ""
+        text = f"## Resultado\n\n{rest.strip()}" if rest.strip() else "## Resultado"
+    return text
