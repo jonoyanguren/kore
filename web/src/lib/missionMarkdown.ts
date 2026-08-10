@@ -96,7 +96,21 @@ function renderTable(rows: string[][]): string {
           )
           .join('')}</tbody>`
       : ''
-  return `<table>${thead}${tbody}</table>`
+  return (
+    `<div class="missions__table-wrap">` +
+    `<table class="missions__table">${thead}${tbody}</table>` +
+    `</div>`
+  )
+}
+
+function sectionBlockClass(title: string): string {
+  const t = title.trim().toLowerCase()
+  if (t.startsWith('decisi')) return 'missions__block--decision'
+  if (t.startsWith('por qu') || t.startsWith('porque')) return 'missions__block--why'
+  if (t.startsWith('opcion') || t.startsWith('opción')) return 'missions__block--options'
+  if (t.startsWith('siguiente')) return 'missions__block--next'
+  if (t.startsWith('fuente')) return 'missions__block--sources'
+  return 'missions__block--plain'
 }
 
 const IMAGE_ONLY = /^\s*!\[([^\]]*)\]\(([^)]+)\)\s*$/
@@ -106,6 +120,7 @@ export function renderMissionMarkdown(md: string): string {
   const out: string[] = []
   let inList = false
   let inQuote = false
+  let inSection = false
   let tableRows: string[][] = []
 
   function closeList() {
@@ -119,6 +134,13 @@ export function renderMissionMarkdown(md: string): string {
     if (inQuote) {
       out.push('</blockquote>')
       inQuote = false
+    }
+  }
+
+  function closeSection() {
+    if (inSection) {
+      out.push('</div>')
+      inSection = false
     }
   }
 
@@ -158,18 +180,26 @@ export function renderMissionMarkdown(md: string): string {
     if (/^###\s+/.test(line)) {
       closeList()
       closeQuote()
-      out.push(`<h3>${inlineMarkdown(line.replace(/^###\s+/, ''))}</h3>`)
+      closeSection()
+      const title = line.replace(/^###\s+/, '')
+      const cls = sectionBlockClass(title)
+      out.push(
+        `<div class="missions__block ${cls}"><h3>${inlineMarkdown(title)}</h3>`,
+      )
+      inSection = true
       continue
     }
     if (/^##\s+/.test(line)) {
       closeList()
       closeQuote()
+      closeSection()
       out.push(`<h2>${inlineMarkdown(line.replace(/^##\s+/, ''))}</h2>`)
       continue
     }
     if (/^#\s+/.test(line)) {
       closeList()
       closeQuote()
+      closeSection()
       out.push(`<h1>${inlineMarkdown(line.replace(/^#\s+/, ''))}</h1>`)
       continue
     }
@@ -204,5 +234,6 @@ export function renderMissionMarkdown(md: string): string {
   flushTable()
   closeList()
   closeQuote()
+  closeSection()
   return out.join('\n')
 }
