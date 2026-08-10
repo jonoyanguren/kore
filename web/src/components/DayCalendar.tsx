@@ -144,6 +144,31 @@ function layoutTimed(events: DayMeeting[], rangeStart: number): LaidOut[] {
   return result
 }
 
+function EventTitle({
+  ev,
+  title,
+  className,
+}: {
+  ev: DayMeeting
+  title: string
+  className?: string
+}) {
+  if (ev.html_link) {
+    return (
+      <a
+        className={className ? `${className} day-cal__ev-title--link` : 'day-cal__ev-title day-cal__ev-title--link'}
+        href={ev.html_link}
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Abrir en Google Calendar"
+      >
+        {title}
+      </a>
+    )
+  }
+  return <strong className={className || 'day-cal__ev-title'}>{title}</strong>
+}
+
 function EventActions({
   ev,
   busyId,
@@ -159,18 +184,9 @@ function EventActions({
 }) {
   const id = String(ev.id)
   const busy = busyId === id
+  if (!onToTask && !onPrep) return null
   return (
     <div className="day-cal__actions" onClick={(e) => e.stopPropagation()}>
-      {ev.html_link ? (
-        <a
-          className="day-cal__act"
-          href={ev.html_link}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Abrir
-        </a>
-      ) : null}
       {onToTask ? (
         <button
           type="button"
@@ -285,7 +301,11 @@ export function DayCalendar({
             const title = (ev.title || '').trim() || '(sin título)'
             return (
               <div key={String(ev.id)} className="day-cal__allday-card">
-                <span className="day-cal__allday-title">{title}</span>
+                <EventTitle
+                  ev={ev}
+                  title={title}
+                  className="day-cal__allday-title"
+                />
                 <EventActions
                   ev={ev}
                   busyId={busyId}
@@ -357,19 +377,29 @@ export function DayCalendar({
                   }}
                   title={tip}
                 >
-                  {item.short ? (
-                    <span className="day-cal__ev-line">
-                      <span className="day-cal__ev-time">{item.startLabel}</span>
-                      <strong className="day-cal__ev-title">{title}</strong>
-                    </span>
-                  ) : (
-                    <>
-                      <strong className="day-cal__ev-title">{title}</strong>
-                      <span className="day-cal__ev-time">
-                        {item.startLabel}–{item.endLabel}
+                  <div className="day-cal__ev-main">
+                    {item.short ? (
+                      <span className="day-cal__ev-line">
+                        <span className="day-cal__ev-time">{item.startLabel}</span>
+                        <EventTitle
+                          ev={item.ev}
+                          title={title}
+                          className="day-cal__ev-title"
+                        />
                       </span>
-                    </>
-                  )}
+                    ) : (
+                      <>
+                        <EventTitle
+                          ev={item.ev}
+                          title={title}
+                          className="day-cal__ev-title"
+                        />
+                        <span className="day-cal__ev-time">
+                          {item.startLabel}–{item.endLabel}
+                        </span>
+                      </>
+                    )}
+                  </div>
                   <EventActions
                     ev={item.ev}
                     busyId={busyId}
