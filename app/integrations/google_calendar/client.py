@@ -58,7 +58,9 @@ class CalendarClient:
         starts_at: str,
         ends_at: str,
         description: str = "",
+        attendees: list[str] | None = None,
         calendar_id: str = "primary",
+        send_updates: bool = True,
     ) -> CalendarEvent:
         """Create a timed event on the primary calendar (Madrid timezone)."""
         if not self._gmail.configured():
@@ -97,10 +99,18 @@ class CalendarClient:
         desc = (description or "").strip()
         if desc:
             body["description"] = desc[:8000]
+        guest_emails = _normalize_attendee_emails(attendees)
+        if guest_emails:
+            body["attendees"] = [{"email": e} for e in guest_emails]
 
         cid = (calendar_id or "primary").strip() or "primary"
+        params: dict[str, str] = {}
+        if guest_emails and send_updates:
+            params["sendUpdates"] = "all"
         url = f"{CALENDAR_API}/calendars/{quote(cid, safe='')}/events"
-        response = await self._http.post(url, headers=headers, json=body)
+        response = await self._http.post(
+            url, headers=headers, json=body, params=params or None
+        )
         if response.status_code >= 400:
             raise _calendar_http_error(response)
         item = response.json()
@@ -110,6 +120,81 @@ class CalendarClient:
         ev = _parse_event(item, calendar_id=cid, calendar_name=cal_name)
         if ev is None:
             raise GmailApiError("api", "No se pudo leer el evento creado.")
+        return ev
+
+    async def invite_attendees(
+        self,
+        *,
+        event_id: str,
+        attendees: list[str],
+        calendar_id: str = "primary",
+        send_updates: bool = True,
+    ) -> CalendarEvent:
+        """Add guests to an existing event and optionally email invitations."""
+        if not self._gmail.configured():
+            raise GmailConfigError("GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET not set")
+        st = self._gmail.status()
+        if not st.get("connected"):
+            raise GmailNotConnectedError("Google not connected — open /api/gmail/connect")
+        if not st.get("calendar_can_write"):
+            raise GmailApiError(
+                "needs_reconnect",
+                "Falta permiso para editar eventos. Reconecta en Más → Gmail.",
+            )
+        eid = (event_id or "").strip()
+        if eid.startswith("gcal:"):
+            parts = eid.split(":", 2)
+            if len(parts) == 3:
+                calendar_id = parts[1] or calendar_id
+                eid = parts[2]
+        if not eid:
+            raise GmailApiError("invalid", "Falta id del evento.")
+        guest_emails = _normalize_attendee_emails(attendees)
+        if not guest_emails:
+            raise GmailApiError("invalid", "Falta al menos un email de invitado.")
+
+        from urllib.parse import quote
+
+        headers = await self._gmail.access_headers()
+        cid = (calendar_id or "primary").strip() or "primary"
+        get_url = (
+            f"{CALENDAR_API}/calendars/{quote(cid, safe='')}/events/"
+            f"{quote(eid, safe='')}"
+        )
+        existing = await self._http.get(get_url, headers=headers)
+        if existing.status_code == 404:
+            raise GmailApiError("not_found", "No encontré ese evento en Calendar.")
+        if existing.status_code >= 400:
+            raise _calendar_http_error(existing)
+        raw = existing.json()
+        if not isinstance(raw, dict):
+            raise GmailApiError("api", "Calendar no devolvió el evento.")
+
+        current = raw.get("attendees") or []
+        by_email: dict[str, dict[str, Any]] = {}
+        if isinstance(current, list):
+            for row in current:
+                if isinstance(row, dict) and row.get("email"):
+                    by_email[str(row["email"]).lower()] = dict(row)
+        for email in guest_emails:
+            by_email.setdefault(email, {"email": email})
+
+        patch_body = {"attendees": list(by_email.values())}
+        params: dict[str, str] = {}
+        if send_updates:
+            params["sendUpdates"] = "all"
+        response = await self._http.patch(
+            get_url, headers=headers, json=patch_body, params=params or None
+        )
+        if response.status_code >= 400:
+            raise _calendar_http_error(response)
+        item = response.json()
+        if not isinstance(item, dict):
+            raise GmailApiError("api", "Calendar no devolvió el evento actualizado.")
+        cal_name = "primary" if cid == "primary" else cid
+        ev = _parse_event(item, calendar_id=cid, calendar_name=cal_name)
+        if ev is None:
+            raise GmailApiError("api", "No se pudo leer el evento actualizado.")
         return ev
 
     async def delete_event(
@@ -261,6 +346,25 @@ class CalendarClient:
             if ev:
                 out.append(ev)
         return out
+
+
+def _normalize_attendee_emails(raw: list[str] | None) -> list[str]:
+    """Dedupe and validate simple emails; max 20."""
+    if not raw:
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for item in raw:
+        email = (item or "").strip().lower()
+        if not email or "@" not in email or "." not in email.split("@")[-1]:
+            continue
+        if email in seen:
+            continue
+        seen.add(email)
+        out.append(email)
+        if len(out) >= 20:
+            break
+    return out
 
 
 def _parse_local_wall(raw: str) -> datetime:

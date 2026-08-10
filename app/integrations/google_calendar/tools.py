@@ -98,8 +98,9 @@ def build_calendar_tools(
                     "Si Jon dice un día relativo (miércoles, mañana, el lunes…), "
                     "pasa day_phrase con esa frase: la fecha se calcula en servidor "
                     "(no inventes el día del mes). "
-                    "Si solo da ISO claro, day_phrase puede ir vacío. "
-                    "Una sola llamada; no pidas confirmación."
+                    "Invitados: pasa attendees con emails reales. Si pide invitar a "
+                    "alguien y no tienes el email (memoria/prompts), pregunta UNA vez; "
+                    "no inventes emails. Google enviará la invitación."
                 ),
                 "parameters": {
                     "type": "object",
@@ -131,8 +132,54 @@ def build_calendar_tools(
                             "type": "string",
                             "description": "Notas opcionales del evento.",
                         },
+                        "attendees": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": (
+                                "Emails de invitados (ej. andrea@citrusdesigner.com). "
+                                "Solo emails conocidos; si falta, pregunta."
+                            ),
+                        },
                     },
                     "required": ["title", "starts_at", "ends_at"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "invite_calendar_guests",
+                "description": (
+                    "Añade invitados a un evento YA existente y Google les manda "
+                    "la invitación. Usa event_id (de list_calendar) o starts_at "
+                    "(+ title) para localizarlo. Si no tienes el email, pregunta."
+                ),
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "attendees": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Emails a invitar.",
+                        },
+                        "event_id": {
+                            "type": "string",
+                            "description": "Id Google del evento (o gcal:…).",
+                        },
+                        "starts_at": {
+                            "type": "string",
+                            "description": "Inicio aprox. YYYY-MM-DDTHH:MM.",
+                        },
+                        "title": {
+                            "type": "string",
+                            "description": "Título o fragmento para desambiguar.",
+                        },
+                        "day_phrase": {
+                            "type": "string",
+                            "description": "Día relativo si hace falta resolver la fecha.",
+                        },
+                    },
+                    "required": ["attendees"],
                 },
             },
         },
@@ -235,12 +282,124 @@ def build_calendar_tools(
             ensure_ascii=False,
         )
 
+    def _attendee_list(raw: Any) -> list[str]:
+        if isinstance(raw, str):
+            parts = [p.strip() for p in raw.replace(";", ",").split(",")]
+            return [p for p in parts if p]
+        if isinstance(raw, list):
+            return [str(x).strip() for x in raw if str(x).strip()]
+        return []
+
+    async def _resolve_event_id(
+        *,
+        event_id: str,
+        starts_at: str,
+        title: str,
+        day_phrase: str,
+    ) -> tuple[str | None, dict[str, Any] | None, str | None]:
+        """Return (event_id, meta, error_json)."""
+        eid = event_id.strip()
+        slot = starts_at.strip()
+        title_q = title.strip().lower()
+        phrase = day_phrase.strip()
+
+        if phrase and slot:
+            try:
+                slot, _, _ = _apply_day_phrase(
+                    slot,
+                    slot if "T" in slot else f"{slot[:10]}T00:00",
+                    phrase,
+                )
+            except GmailApiError as exc:
+                return None, None, json.dumps(
+                    {"ok": False, "error": exc.code, "detail": exc.message}
+                )
+        elif phrase and not slot:
+            resolved = resolve_relative_date(phrase)
+            if resolved is None:
+                return None, None, json.dumps(
+                    {"ok": False, "error": "invalid", "detail": "No entendí el día"}
+                )
+            slot = f"{resolved.isoformat()}T12:00"
+
+        if eid:
+            return eid, {"event_id": eid}, None
+        if not slot:
+            return None, None, json.dumps(
+                {
+                    "ok": False,
+                    "error": "missing_fields",
+                    "hint": "Pasa event_id o starts_at (+ title).",
+                }
+            )
+
+        anchor = _parse_local_wall(slot)
+        window = await calendar.list_events(
+            time_min=anchor - timedelta(hours=1),
+            time_max=anchor + timedelta(hours=2),
+            max_total=30,
+        )
+        matches = []
+        for ev in window:
+            if ev.all_day:
+                continue
+            try:
+                ev_start = _parse_local_wall(ev.starts_at)
+            except GmailApiError:
+                continue
+            same_slot = abs((ev_start - anchor).total_seconds()) <= 45 * 60
+            title_ok = (not title_q) or title_q in (ev.title or "").lower()
+            if same_slot and title_ok:
+                matches.append(ev)
+        if not matches and title_q:
+            matches = [
+                ev
+                for ev in window
+                if title_q in (ev.title or "").lower() and not ev.all_day
+            ]
+        if len(matches) == 0:
+            return None, None, json.dumps(
+                {
+                    "ok": False,
+                    "error": "not_found",
+                    "detail": "No encontré ese bloque. Prueba list_calendar.",
+                }
+            )
+        if len(matches) > 1 and not title_q:
+            return None, None, json.dumps(
+                {
+                    "ok": False,
+                    "error": "ambiguous",
+                    "candidates": [
+                        {
+                            "id": m.id,
+                            "title": m.title,
+                            "starts_at": m.starts_at,
+                        }
+                        for m in matches[:5]
+                    ],
+                    "hint": "Pasa title o event_id.",
+                },
+                ensure_ascii=False,
+            )
+        target = matches[0]
+        return (
+            target.id,
+            {
+                "title": target.title,
+                "starts_at": target.starts_at,
+                "ends_at": target.ends_at,
+            },
+            None,
+        )
+
     async def create_calendar_block(args: dict[str, Any]) -> str:
         title = str(args.get("title") or "").strip()
         starts_at = str(args.get("starts_at") or "").strip()
         ends_at = str(args.get("ends_at") or "").strip()
         day_phrase = str(args.get("day_phrase") or "").strip()
         description = str(args.get("description") or "").strip()
+        attendees = _attendee_list(args.get("attendees"))
         if not title or not starts_at or not ends_at:
             return json.dumps(
                 {
@@ -264,6 +423,7 @@ def build_calendar_tools(
                 starts_at=starts_at,
                 ends_at=ends_at,
                 description=description,
+                attendees=attendees,
             )
         except GmailNotConnectedError:
             return json.dumps(
@@ -296,6 +456,7 @@ def build_calendar_tools(
             {
                 "ok": True,
                 "created": True,
+                "invited": attendees,
                 "event": {
                     "title": ev.title,
                     "starts_at": ev.starts_at,
@@ -312,99 +473,77 @@ def build_calendar_tools(
             ensure_ascii=False,
         )
 
-    async def delete_calendar_block(args: dict[str, Any]) -> str:
-        event_id = str(args.get("event_id") or "").strip()
-        starts_at = str(args.get("starts_at") or "").strip()
-        title = str(args.get("title") or "").strip().lower()
-        day_phrase = str(args.get("day_phrase") or "").strip()
-
-        if day_phrase and starts_at:
-            try:
-                starts_at, _, _ = _apply_day_phrase(
-                    starts_at,
-                    starts_at if "T" in starts_at else f"{starts_at[:10]}T00:00",
-                    day_phrase,
-                )
-            except GmailApiError as exc:
-                return json.dumps({"ok": False, "error": exc.code, "detail": exc.message})
-        elif day_phrase and not starts_at:
-            resolved = resolve_relative_date(day_phrase)
-            if resolved is None:
-                return json.dumps(
-                    {"ok": False, "error": "invalid", "detail": "No entendí el día"}
-                )
-            starts_at = f"{resolved.isoformat()}T12:00"
-
-        try:
-            if not event_id:
-                if not starts_at:
-                    return json.dumps(
-                        {
-                            "ok": False,
-                            "error": "missing_fields",
-                            "hint": "Pasa event_id o starts_at (+ title).",
-                        }
-                    )
-                anchor = _parse_local_wall(starts_at)
-                window = await calendar.list_events(
-                    time_min=anchor - timedelta(hours=1),
-                    time_max=anchor + timedelta(hours=2),
-                    max_total=30,
-                )
-                matches = []
-                for ev in window:
-                    if ev.all_day:
-                        continue
-                    try:
-                        ev_start = _parse_local_wall(ev.starts_at)
-                    except GmailApiError:
-                        continue
-                    same_slot = abs((ev_start - anchor).total_seconds()) <= 45 * 60
-                    title_ok = (not title) or title in (ev.title or "").lower()
-                    if same_slot and title_ok:
-                        matches.append(ev)
-                if not matches and title:
-                    matches = [
-                        ev
-                        for ev in window
-                        if title in (ev.title or "").lower() and not ev.all_day
-                    ]
-                if len(matches) == 0:
-                    return json.dumps(
-                        {
-                            "ok": False,
-                            "error": "not_found",
-                            "detail": "No encontré ese bloque. Prueba list_calendar.",
-                        }
-                    )
-                if len(matches) > 1 and not title:
-                    return json.dumps(
-                        {
-                            "ok": False,
-                            "error": "ambiguous",
-                            "candidates": [
-                                {
-                                    "id": m.id,
-                                    "title": m.title,
-                                    "starts_at": m.starts_at,
-                                }
-                                for m in matches[:5]
-                            ],
-                            "hint": "Pasa title o event_id.",
-                        },
-                        ensure_ascii=False,
-                    )
-                target = matches[0]
-                event_id = target.id
-                deleted_meta = {
-                    "title": target.title,
-                    "starts_at": target.starts_at,
-                    "ends_at": target.ends_at,
+    async def invite_calendar_guests(args: dict[str, Any]) -> str:
+        attendees = _attendee_list(args.get("attendees"))
+        if not attendees:
+            return json.dumps(
+                {
+                    "ok": False,
+                    "error": "missing_attendees",
+                    "hint": "Pasa emails en attendees; si no los sabes, pregunta a Jon.",
                 }
-            else:
-                deleted_meta = {"event_id": event_id}
+            )
+        try:
+            eid, meta, err = await _resolve_event_id(
+                event_id=str(args.get("event_id") or ""),
+                starts_at=str(args.get("starts_at") or ""),
+                title=str(args.get("title") or ""),
+                day_phrase=str(args.get("day_phrase") or ""),
+            )
+            if err:
+                return err
+            assert eid is not None
+            ev = await calendar.invite_attendees(event_id=eid, attendees=attendees)
+        except GmailNotConnectedError:
+            return json.dumps(
+                {
+                    "ok": False,
+                    "error": "google_not_connected",
+                    "hint": "Conecta Google en Más → Gmail.",
+                }
+            )
+        except GmailConfigError as exc:
+            return json.dumps(
+                {"ok": False, "error": "google_not_configured", "detail": str(exc)}
+            )
+        except GmailApiError as exc:
+            return json.dumps({"ok": False, "error": exc.code, "detail": exc.message})
+        except Exception as exc:
+            return json.dumps(
+                {"ok": False, "error": "calendar_api_error", "detail": str(exc)}
+            )
 
-            await calendar.delete_event(event_id=event_id)
+        row = meeting_dict_from_event(ev)
+        set_calendar_created(row)
+        return json.dumps(
+            {
+                "ok": True,
+                "invited": attendees,
+                "event": {
+                    "id": ev.id,
+                    "title": ev.title,
+                    "starts_at": ev.starts_at,
+                    "ends_at": ev.ends_at,
+                    "html_link": ev.html_link,
+                    **(meta or {}),
+                },
+            },
+            ensure_ascii=False,
+        )
+
+    async def delete_calendar_block(args: dict[str, Any]) -> str:
+        try:
+            eid, meta, err = await _resolve_event_id(
+                event_id=str(args.get("event_id") or ""),
+                starts_at=str(args.get("starts_at") or ""),
+                title=str(args.get("title") or ""),
+                day_phrase=str(args.get("day_phrase") or ""),
+            )
+            if err:
+                return err
+            assert eid is not None
+            deleted_meta = meta or {"event_id": eid}
+            await calendar.delete_event(event_id=eid)
         except GmailNotConnectedError:
             return json.dumps(
                 {
@@ -433,5 +572,6 @@ def build_calendar_tools(
     return schemas, {
         "list_calendar": list_calendar,
         "create_calendar_block": create_calendar_block,
+        "invite_calendar_guests": invite_calendar_guests,
         "delete_calendar_block": delete_calendar_block,
     }

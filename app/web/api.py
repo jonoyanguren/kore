@@ -1050,6 +1050,7 @@ class CreateCalendarEventBody(BaseModel):
     starts_at: str = Field(min_length=10, max_length=32)
     ends_at: str = Field(min_length=10, max_length=32)
     description: str = Field(default="", max_length=8000)
+    attendees: list[str] = Field(default_factory=list)
 
 
 @router.post(
@@ -1071,6 +1072,7 @@ async def calendar_create_event(
             starts_at=body.starts_at.strip(),
             ends_at=body.ends_at.strip(),
             description=body.description.strip(),
+            attendees=list(body.attendees or []),
         )
     except GmailNotConnectedError:
         raise HTTPException(

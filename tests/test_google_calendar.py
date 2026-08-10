@@ -83,6 +83,15 @@ def test_day_phrase_overrides_wrong_calendar_date(monkeypatch):
     assert weekday == "miércoles"
 
 
+def test_normalize_attendee_emails():
+    from app.integrations.google_calendar.client import _normalize_attendee_emails
+
+    assert _normalize_attendee_emails(
+        ["Andrea@CitrusDesigner.com", "andrea@citrusdesigner.com", "bad", "x@y.co"]
+    ) == ["andrea@citrusdesigner.com", "x@y.co"]
+    assert _normalize_attendee_emails(None) == []
+
+
 def test_resolve_miercoles_from_monday():
     from datetime import date
 
