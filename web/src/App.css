@@ -820,26 +820,48 @@ a.day-cal__allday-item:hover {
   z-index: 2;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0.05rem;
   min-width: 0;
 }
 
 .day-cal__ev--short {
-  padding: 0.2rem 0.4rem;
+  z-index: 5;
+  overflow: visible;
   justify-content: center;
+  padding: 0.25rem 0.45rem;
+  box-shadow: 0 1px 4px rgba(21, 32, 43, 0.08);
+}
+
+.day-cal__ev-line {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.day-cal__ev--short .day-cal__ev-time {
+  flex: 0 0 auto;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.day-cal__ev--short .day-cal__ev-title {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .day-cal__ev--google {
-  background: rgba(43, 108, 176, 0.18);
-  border-color: rgba(43, 108, 176, 0.32);
-  color: #1e4f86;
+  background: rgba(43, 108, 176, 0.2);
+  border-color: rgba(43, 108, 176, 0.35);
+  color: #153a64;
 }
 
 .day-cal__ev--local {
-  background: rgba(180, 120, 40, 0.18);
-  border-color: rgba(180, 120, 40, 0.32);
-  color: #8a5a12;
+  background: rgba(180, 120, 40, 0.2);
+  border-color: rgba(180, 120, 40, 0.35);
+  color: #6b450e;
 }
 
 a.day-cal__ev:hover {
@@ -847,26 +869,48 @@ a.day-cal__ev:hover {
 }
 
 .day-cal__ev-title {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 650;
-  line-height: 1.2;
+  line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  flex: 0 0 auto;
   max-width: 100%;
 }
 
-.day-cal__ev--short .day-cal__ev-title {
-  font-size: 0.78rem;
-  line-height: 1.15;
+.day-cal__ev-time {
+  font-size: 0.7rem;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
 }
 
-.day-cal__ev-time {
-  font-size: 0.68rem;
-  opacity: 0.8;
+.day-cal__list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.day-cal__list li {
+  display: flex;
+  gap: 0.55rem;
+  align-items: baseline;
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.day-cal__list-when {
+  flex: 0 0 5.2rem;
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
-  flex: 0 0 auto;
+  font-size: 0.8rem;
+}
+
+.day-cal__list a {
+  color: inherit;
+  font-weight: 500;
 }
 
 @media (max-width: 520px) {
@@ -875,7 +919,11 @@ a.day-cal__ev:hover {
   }
 
   .day-cal__ev-title {
-    font-size: 0.72rem;
+    font-size: 0.76rem;
+  }
+
+  .day-cal__list-when {
+    flex-basis: 4.6rem;
   }
 }
 

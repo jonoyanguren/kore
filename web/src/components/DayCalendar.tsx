@@ -19,7 +19,7 @@ type Props = {
 
 const HOUR_PX = 56
 const DEFAULT_MINUTES = 45
-const MIN_EVENT_PX = 38
+const MIN_EVENT_PX = 44
 const DAY_NAMES = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb']
 
 function madridTodayIso(): string {
@@ -281,24 +281,30 @@ export function DayCalendar({ today, meetings }: Props) {
               />
             ) : null}
             {laid.map((item) => {
-              const width = `calc((100% - 0.35rem) / ${item.cols})`
-              const left = `calc(${item.col} * (100% - 0.35rem) / ${item.cols})`
-              const tip = `${item.ev.title} · ${item.startLabel}–${item.endLabel}`
+              const width = `calc((100% - 0.4rem) / ${item.cols})`
+              const left = `calc(${item.col} * (100% - 0.4rem) / ${item.cols} + 0.15rem)`
+              const title = (item.ev.title || '').trim() || '(sin título)'
+              const tip = `${title} · ${item.startLabel}–${item.endLabel}`
               const cls = [
                 'day-cal__ev',
-                item.ev.source === 'local' ? 'day-cal__ev--local' : 'day-cal__ev--google',
+                item.ev.source === 'local'
+                  ? 'day-cal__ev--local'
+                  : 'day-cal__ev--google',
                 item.short ? 'day-cal__ev--short' : '',
               ]
                 .filter(Boolean)
                 .join(' ')
-              const body = (
+              const body = item.short ? (
+                <span className="day-cal__ev-line">
+                  <span className="day-cal__ev-time">{item.startLabel}</span>
+                  <strong className="day-cal__ev-title">{title}</strong>
+                </span>
+              ) : (
                 <>
-                  <strong className="day-cal__ev-title">{item.ev.title}</strong>
-                  {!item.short ? (
-                    <span className="day-cal__ev-time">
-                      {item.startLabel}–{item.endLabel}
-                    </span>
-                  ) : null}
+                  <strong className="day-cal__ev-title">{title}</strong>
+                  <span className="day-cal__ev-time">
+                    {item.startLabel}–{item.endLabel}
+                  </span>
                 </>
               )
               const style = {
@@ -306,7 +312,6 @@ export function DayCalendar({ today, meetings }: Props) {
                 height: item.height,
                 width,
                 left,
-                zIndex: item.short ? 4 : 2,
               } as const
               if (item.ev.html_link) {
                 return (
@@ -337,6 +342,36 @@ export function DayCalendar({ today, meetings }: Props) {
           </div>
         </div>
       )}
+
+      {dayEvents.length > 0 ? (
+        <ul className="day-cal__list">
+          {dayEvents.map((ev) => {
+            const title = (ev.title || '').trim() || '(sin título)'
+            const when = isAllDay(ev)
+              ? 'todo el día'
+              : (() => {
+                  const s = parseMinutes(ev.starts_at)
+                  if (s == null) return ''
+                  const e = eventEndMinutes(ev, s)
+                  const a = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+                  const b = `${String(Math.floor(e / 60)).padStart(2, '0')}:${String(e % 60).padStart(2, '0')}`
+                  return `${a}–${b}`
+                })()
+            return (
+              <li key={`list-${String(ev.id)}`}>
+                <span className="day-cal__list-when">{when}</span>
+                {ev.html_link ? (
+                  <a href={ev.html_link} target="_blank" rel="noopener noreferrer">
+                    {title}
+                  </a>
+                ) : (
+                  <span>{title}</span>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      ) : null}
     </div>
   )
 }
