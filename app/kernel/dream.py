@@ -9,6 +9,8 @@ import openai
 
 from app.integrations.gmail.client import GmailClient
 from app.integrations.gmail.dream_inbox import fetch_inbox_block_for_dream
+from app.integrations.google_calendar.client import CalendarClient
+from app.integrations.google_calendar.dream_calendar import fetch_calendar_block_for_dream
 from app.kernel.review_common import (
     DREAM_CAPTURE_TOOL_NAMES,
     build_capture_tools,
@@ -35,8 +37,10 @@ Objetivo:
    en el briefing; no reabras cosas de vault/tasks/done.md ni dupliques las abiertas.
 3) Mira el bloque INBOX (Gmail unread): resume SOLO lo importante/accionable en la sección
    Inbox del mensaje final. Ignora newsletters y ruido. NO marques mails ni crees tareas
-   desde el correo en este proceso.
-4) Cuando hayas terminado de usar tools (o no haga falta ninguna), responde SOLO el mensaje
+   desde el correo en este paso.
+4) Mira GOOGLE CALENDAR: fuente de verdad de citas. En Reuniones prioriza esos eventos;
+   agenda local solo si aporta algo que no esté ya en Calendar.
+5) Cuando hayas terminado de usar tools (o no haga falta ninguna), responde SOLO el mensaje
    final para Jon en español, texto plano (sin markdown, sin ** ni #).
 
 Estructura del mensaje final (obligatoria), texto plano (sin markdown, sin ** ni #):
@@ -49,7 +53,7 @@ Tareas importantes
 - Si no hay: Ninguna
 
 Reuniones
-- (hora — qué; de agenda o citas del chat)
+- (hora — qué; de Google Calendar y/o agenda)
 - Si no hay: Ninguna
 
 Inbox
@@ -64,7 +68,8 @@ Cierre
 
 Reglas: no digas que eres un modelo; no upsell; no pidas permiso; fechas naturales en el chat.
 ISO solo dentro de las tools. Nunca inventes tareas nuevas en tools.
-No inventes mails: solo lo del bloque INBOX."""
+No inventes mails: solo lo del bloque INBOX.
+No inventes citas: solo GOOGLE CALENDAR + agenda local del payload."""
 
 
 async def run_dream(
@@ -77,6 +82,7 @@ async def run_dream(
     chat_id: int | None = None,
     notify: bool = True,
     gmail: GmailClient | None = None,
+    calendar: CalendarClient | None = None,
 ) -> str:
     """Consolidate chat+captures for `day` (default: yesterday). Brief next morning."""
     target = day or (today_madrid() - timedelta(days=1)).isoformat()
@@ -89,6 +95,7 @@ async def run_dream(
     open_tasks = await store.list_tasks(status="open", limit=25)
     agenda = await store.list_agenda_upcoming(from_day=target, limit=20)
     inbox_block = await fetch_inbox_block_for_dream(gmail)
+    calendar_block = await fetch_calendar_block_for_dream(calendar)
 
     vault.rewrite_diary_day(target, diary)
     for category in await store.list_categories():
@@ -129,7 +136,8 @@ async def run_dream(
         f"=== MEMORIA (digests) ===\n{mem_block}\n\n"
         f"=== TAREAS ABIERTAS ===\n{tasks_block}\n\n"
         f"=== TAREAS ARCHIVADAS (done.md — NO reabrir) ===\n{done_excerpt}\n\n"
-        f"=== AGENDA PRÓXIMA ===\n{agenda_block}\n\n"
+        f"=== AGENDA LOCAL ===\n{agenda_block}\n\n"
+        f"=== GOOGLE CALENDAR ===\n{calendar_block}\n\n"
         f"=== INBOX (Gmail unread) ===\n{inbox_block}\n\n"
         "Usa tools solo para huecos de memoria/diario/agenda. "
         "NO crees tareas nuevas. "

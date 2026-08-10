@@ -85,11 +85,20 @@ export function MoreDrawer({
                   Falta permiso de correo. Desconecta y vuelve a conectar para
                   autorizar Gmail.
                 </p>
+              ) : gmail.calendar_ready === false ? (
+                <p className="more-drawer__gmail-hint muted">
+                  Falta permiso de Calendar. Reconecta una vez para leer
+                  eventos.
+                </p>
               ) : gmail.can_send === false ? (
                 <p className="more-drawer__gmail-hint muted">
                   Para responder mails: reconecta y acepta el permiso de envío.
                 </p>
-              ) : null}
+              ) : (
+                <p className="more-drawer__gmail-hint muted">
+                  Gmail + Calendar conectados
+                </p>
+              )}
               <a className="more-drawer__btn" href="/api/gmail/connect">
                 Reconectar
               </a>
@@ -107,6 +116,8 @@ export function MoreDrawer({
                         connected: false,
                         email: '',
                         gmail_ready: false,
+                        can_send: false,
+                        calendar_ready: false,
                       })
                     }
                   })

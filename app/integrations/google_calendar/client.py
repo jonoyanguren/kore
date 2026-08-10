@@ -1,0 +1,278 @@
+"""Google Calendar read-only client (shares Gmail OAuth tokens)."""
+
+from __future__ import annotations
+
+import logging
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
+from typing import Any
+from zoneinfo import ZoneInfo
+
+import httpx
+
+from app.integrations.gmail.client import (
+    GmailApiError,
+    GmailClient,
+    GmailConfigError,
+    GmailNotConnectedError,
+)
+from app.timeutil import today_madrid
+
+logger = logging.getLogger(__name__)
+
+CALENDAR_API = "https://www.googleapis.com/calendar/v3"
+MADRID = ZoneInfo("Europe/Madrid")
+
+
+@dataclass
+class CalendarEvent:
+    id: str
+    calendar_id: str
+    calendar_name: str
+    title: str
+    starts_at: str  # Madrid-local YYYY-MM-DD or YYYY-MM-DDTHH:MM
+    ends_at: str
+    all_day: bool
+    html_link: str
+    status: str
+
+
+class CalendarClient:
+    def __init__(self, http: httpx.AsyncClient, gmail: GmailClient) -> None:
+        self._http = http
+        self._gmail = gmail
+
+    def status(self) -> dict[str, Any]:
+        return self._gmail.status()
+
+    def ready(self) -> bool:
+        return bool(self._gmail.status().get("calendar_ready"))
+
+    async def list_events(
+        self,
+        *,
+        time_min: datetime | None = None,
+        time_max: datetime | None = None,
+        max_per_calendar: int = 40,
+        max_total: int = 80,
+    ) -> list[CalendarEvent]:
+        """List events across all selected calendars in the account."""
+        if not self._gmail.configured():
+            raise GmailConfigError("GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET not set")
+        st = self._gmail.status()
+        if not st.get("connected"):
+            raise GmailNotConnectedError("Google not connected — open /api/gmail/connect")
+        if not st.get("calendar_ready"):
+            raise GmailApiError(
+                "needs_reconnect",
+                "Falta permiso de Calendar. Desconecta y vuelve a conectar en Más → Gmail.",
+            )
+
+        start = time_min or datetime.combine(
+            today_madrid(), datetime.min.time(), tzinfo=MADRID
+        )
+        end = time_max or (start + timedelta(days=4))
+        if start.tzinfo is None:
+            start = start.replace(tzinfo=MADRID)
+        if end.tzinfo is None:
+            end = end.replace(tzinfo=MADRID)
+
+        headers = await self._gmail.access_headers()
+        calendars = await self._list_calendars(headers)
+        out: list[CalendarEvent] = []
+        for cal in calendars:
+            try:
+                events = await self._list_calendar_events(
+                    headers,
+                    calendar_id=cal["id"],
+                    calendar_name=cal["name"],
+                    time_min=start,
+                    time_max=end,
+                    max_results=max_per_calendar,
+                )
+            except GmailApiError:
+                raise
+            except Exception:
+                logger.exception("Calendar list failed for %s", cal.get("id"))
+                continue
+            out.extend(events)
+            if len(out) >= max_total:
+                break
+
+        out.sort(key=lambda e: (e.starts_at, e.title.lower()))
+        return out[:max_total]
+
+    async def _list_calendars(self, headers: dict[str, str]) -> list[dict[str, str]]:
+        response = await self._http.get(
+            f"{CALENDAR_API}/users/me/calendarList",
+            headers=headers,
+            params={"minAccessRole": "reader", "maxResults": 100},
+        )
+        if response.status_code >= 400:
+            raise _calendar_http_error(response)
+        items = response.json().get("items") or []
+        calendars: list[dict[str, str]] = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            # Prefer calendars the user selected in Google Calendar UI.
+            if item.get("selected") is False:
+                continue
+            if str(item.get("accessRole") or "") == "none":
+                continue
+            cid = str(item.get("id") or "").strip()
+            if not cid:
+                continue
+            name = str(item.get("summary") or cid).strip()
+            calendars.append({"id": cid, "name": name})
+        if not calendars:
+            # Fallback: at least primary
+            calendars.append({"id": "primary", "name": "primary"})
+        return calendars
+
+    async def _list_calendar_events(
+        self,
+        headers: dict[str, str],
+        *,
+        calendar_id: str,
+        calendar_name: str,
+        time_min: datetime,
+        time_max: datetime,
+        max_results: int,
+    ) -> list[CalendarEvent]:
+        from urllib.parse import quote
+
+        params = {
+            "timeMin": time_min.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "timeMax": time_max.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "singleEvents": "true",
+            "orderBy": "startTime",
+            "maxResults": max(1, min(max_results, 100)),
+        }
+        url = f"{CALENDAR_API}/calendars/{quote(calendar_id, safe='')}/events"
+        response = await self._http.get(url, headers=headers, params=params)
+        if response.status_code >= 400:
+            raise _calendar_http_error(response)
+        items = response.json().get("items") or []
+        out: list[CalendarEvent] = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            status = str(item.get("status") or "confirmed")
+            if status == "cancelled":
+                continue
+            ev = _parse_event(item, calendar_id=calendar_id, calendar_name=calendar_name)
+            if ev:
+                out.append(ev)
+        return out
+
+
+def _parse_event(
+    item: dict[str, Any],
+    *,
+    calendar_id: str,
+    calendar_name: str,
+) -> CalendarEvent | None:
+    eid = str(item.get("id") or "").strip()
+    if not eid:
+        return None
+    start = item.get("start") or {}
+    end = item.get("end") or {}
+    all_day = "date" in start and "dateTime" not in start
+    starts_at = _to_local_stamp(start)
+    ends_at = _to_local_stamp(end)
+    if not starts_at:
+        return None
+    title = str(item.get("summary") or "(sin título)").strip()
+    return CalendarEvent(
+        id=eid,
+        calendar_id=calendar_id,
+        calendar_name=calendar_name,
+        title=title,
+        starts_at=starts_at,
+        ends_at=ends_at,
+        all_day=all_day,
+        html_link=str(item.get("htmlLink") or ""),
+        status=str(item.get("status") or "confirmed"),
+    )
+
+
+def _to_local_stamp(block: dict[str, Any]) -> str:
+    if not isinstance(block, dict):
+        return ""
+    if block.get("date"):
+        # All-day: YYYY-MM-DD
+        return str(block["date"])[:10]
+    raw = str(block.get("dateTime") or "").strip()
+    if not raw:
+        return ""
+    try:
+        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        local = dt.astimezone(MADRID)
+        return local.strftime("%Y-%m-%dT%H:%M")
+    except ValueError:
+        return raw[:16]
+
+
+def _calendar_http_error(response: httpx.Response) -> GmailApiError:
+    body = ""
+    try:
+        body = response.text[:500]
+    except Exception:
+        pass
+    low = body.lower()
+    if response.status_code == 403 and (
+        "insufficient" in low or "access_token_scope_insufficient" in low
+    ):
+        return GmailApiError(
+            "needs_reconnect",
+            "Falta permiso de Calendar. Desconecta y vuelve a conectar en Más → Gmail.",
+        )
+    if response.status_code in {401, 403}:
+        return GmailApiError(
+            "auth",
+            "No se pudo acceder a Calendar. Prueba reconectar en Más → Gmail.",
+        )
+    return GmailApiError(
+        "api",
+        "Google Calendar no respondió bien ahora. Prueba en un momento.",
+    )
+
+
+def meeting_dict_from_event(ev: CalendarEvent) -> dict[str, Any]:
+    return {
+        "id": f"gcal:{ev.calendar_id}:{ev.id}",
+        "starts_at": ev.starts_at,
+        "title": ev.title,
+        "status": "planned",
+        "source": "google",
+        "calendar": ev.calendar_name,
+        "html_link": ev.html_link or None,
+        "ends_at": ev.ends_at or None,
+        "all_day": ev.all_day,
+    }
+
+
+def merge_meetings(
+    local: list[dict[str, Any]],
+    google: list[dict[str, Any]],
+    *,
+    limit: int = 12,
+) -> list[dict[str, Any]]:
+    """Merge local agenda + Google events; prefer Google on near-duplicate titles/times."""
+    normalized_local: list[dict[str, Any]] = []
+    for m in local:
+        row = dict(m)
+        row.setdefault("source", "local")
+        normalized_local.append(row)
+
+    def key(m: dict[str, Any]) -> tuple[str, str]:
+        starts = str(m.get("starts_at") or "")[:16]
+        title = " ".join(str(m.get("title") or "").lower().split())
+        return starts[:10], title
+
+    google_keys = {key(m) for m in google}
+    filtered_local = [m for m in normalized_local if key(m) not in google_keys]
+    merged = google + filtered_local
+    merged.sort(key=lambda m: (str(m.get("starts_at") or ""), str(m.get("title") or "")))
+    return merged[:limit]

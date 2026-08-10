@@ -22,6 +22,8 @@ from app.integrations.clickup.tools import build_clickup_tools
 from app.integrations.gmail.client import GmailClient
 from app.integrations.gmail.tokens import GmailTokenStore, token_path_for_db
 from app.integrations.gmail.tools import build_gmail_tools
+from app.integrations.google_calendar.client import CalendarClient
+from app.integrations.google_calendar.tools import build_calendar_tools
 from app.integrations.lol.opgg_client import call_lol_tool, list_lol_tools
 from app.kernel.command_router import CommandRouter
 from app.kernel.dream import run_dream
@@ -104,19 +106,21 @@ async def lifespan(app: FastAPI):
     else:
         skill_registry = SkillRegistry(SKILLS_DIR)
     skill_registry.load()
-    prompt_assembler = PromptAssembler(
-        PROMPTS_DIR, skill_registry, memory_store, vault
-    )
-    command_router = CommandRouter(skill_registry)
-
-    clickup_client = ClickUpClient(settings.clickup_api_token, http_client)
-    clickup_tool_schemas, clickup_handlers = build_clickup_tools(clickup_client)
-
     gmail_client = GmailClient(
         http_client,
         GmailTokenStore(token_path_for_db(settings.storage_db_path)),
     )
     gmail_tool_schemas, gmail_handlers = build_gmail_tools(gmail_client)
+    calendar_client = CalendarClient(http_client, gmail_client)
+    calendar_tool_schemas, calendar_handlers = build_calendar_tools(calendar_client)
+
+    prompt_assembler = PromptAssembler(
+        PROMPTS_DIR, skill_registry, memory_store, vault, calendar=calendar_client
+    )
+    command_router = CommandRouter(skill_registry)
+
+    clickup_client = ClickUpClient(settings.clickup_api_token, http_client)
+    clickup_tool_schemas, clickup_handlers = build_clickup_tools(clickup_client)
 
     try:
         lol_tool_schemas = await list_lol_tools()
@@ -141,6 +145,7 @@ async def lifespan(app: FastAPI):
         + web_tool_schemas
         + clickup_tool_schemas
         + gmail_tool_schemas
+        + calendar_tool_schemas
         + lol_tool_schemas
     )
     all_handlers: dict[str, ToolHandler] = {
@@ -151,6 +156,7 @@ async def lifespan(app: FastAPI):
         **web_handlers,
         **clickup_handlers,
         **gmail_handlers,
+        **calendar_handlers,
         **lol_handlers,
     }
 
@@ -158,6 +164,7 @@ async def lifespan(app: FastAPI):
     app.state.telegram = telegram
     app.state.http = http_client
     app.state.gmail = gmail_client
+    app.state.calendar = calendar_client
     app.state.memory = memory_store
     app.state.vault = vault
     app.state.llm_client = llm_client
@@ -172,7 +179,12 @@ async def lifespan(app: FastAPI):
     if settings.dream_cron_enabled:
         dream_task = asyncio.create_task(
             dream_cron_loop(
-                memory_store, vault, llm_client, telegram, gmail=gmail_client
+                memory_store,
+                vault,
+                llm_client,
+                telegram,
+                gmail=gmail_client,
+                calendar=calendar_client,
             ),
             name="dream-cron",
         )
@@ -241,6 +253,7 @@ async def handle_text_message(
     vault: Vault | None = None,
     llm_client: openai.AsyncOpenAI | None = None,
     gmail: GmailClient | None = None,
+    calendar: CalendarClient | None = None,
 ) -> None:
     match = commands.match(text)
 
@@ -289,6 +302,7 @@ async def handle_text_message(
                 telegram=None,
                 notify=False,
                 gmail=gmail,
+                calendar=calendar,
             )
             text_out = summary if len(summary) < 3500 else summary[:3490] + "…"
             await telegram.send_message(chat_id, text_out)
@@ -432,6 +446,7 @@ async def cron_dream(request: Request) -> dict:
         request.app.state.llm_client,
         request.app.state.telegram,
         gmail=getattr(request.app.state, "gmail", None),
+        calendar=getattr(request.app.state, "calendar", None),
     )
     return {"ok": True, **result}
 
@@ -496,6 +511,7 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks) 
             vault=vault,
             llm_client=llm_client,
             gmail=getattr(request.app.state, "gmail", None),
+            calendar=getattr(request.app.state, "calendar", None),
         )
 
     return {"ok": True}

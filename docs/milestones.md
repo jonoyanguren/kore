@@ -90,7 +90,27 @@ Pendiente 1.6 → UI viva (aparte) / fricciones dogfood.
 - Coste: misiones → DeepSeek; strong dogfood → Haiku 4.5; prompt cache en loops
 - Más drawer: tabla Modelos (Daily/Strong + ~/1M)
 - Nueva: aclaración 1–2 preguntas (DeepSeek) antes de Lanzar
-- Pendiente: dogfood 1ª misión útil; tono sent (parking)
+
+## 2026-07-30…08-09 — Misiones calidad + extras
+
+- Normal/Pro (Flash/Pro) + imágenes en markdown de misión
+- D22: plan → N tareas + handoff; informe con links/tablas
+- `/entrevista` + `list_memory`; Copiar URL en tareas
+- Móvil: Expo M0 + contenido Día/Captura/Tareas/Misiones (Plataforma)
+
+## 2026-08-10 — Google Calendar read (D24)
+
+- Scope `calendar.readonly` en OAuth Google (mismo token que Gmail)
+- Client: todos los calendarios `selected`; eventos live (no SQLite)
+- Día Reuniones: merge Google + agenda local; dream + PromptAssembler + tool `list_calendar`
+- Tras deploy: habilitar Calendar API en GCP + Reconectar en Más
+
+## 2026-08-10 — Phase 3 cerrado · dogfood fin · sin Git en Kore
+
+- Dogfood Phase 0–3 **cerrado** (consola + Gmail + Misiones en uso real)
+- Misiones UX: summary pass → `## Resultado`; card Resultado + accordion investigación; bloques de color + tablas tipo card
+- **D3 supersede:** Git/código / programar desde móvil = **proyecto aparte**; no Phase 4 en Kore
+- Siguiente: elegir feature nueva (no más fase dogfood)
 
 ## Prompting (baseline cerrado)
 
@@ -99,4 +119,4 @@ Pendiente 1.6 → UI viva (aparte) / fricciones dogfood.
 
 ---
 
-*Última actualización del archivo: 2026-07-29*
+*Última actualización del archivo: 2026-08-10*

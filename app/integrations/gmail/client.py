@@ -19,6 +19,7 @@ from app.integrations.gmail.tokens import (
     GmailTokenStore,
     GmailTokens,
     scope_can_send,
+    scope_has_calendar,
     scope_has_gmail,
 )
 from app.integrations.gmail.triage_log import (
@@ -79,16 +80,20 @@ class GmailClient:
         tokens = self._tokens.load()
         scope = (tokens.scope if tokens else "") or ""
         has_gmail = scope_has_gmail(scope)
+        has_cal = scope_has_calendar(scope)
+        connected = bool(tokens and tokens.refresh_token)
         return {
             "configured": self.configured(),
-            "connected": bool(tokens and tokens.refresh_token),
+            "connected": connected,
             "email": (tokens.email if tokens else "") or "",
             "scope": scope or "—",
-            "gmail_ready": bool(tokens and tokens.refresh_token and has_gmail),
-            "can_send": bool(tokens and tokens.refresh_token and scope_can_send(scope)),
+            "gmail_ready": bool(connected and has_gmail),
+            "can_send": bool(connected and scope_can_send(scope)),
+            "calendar_ready": bool(connected and has_cal),
         }
 
-    async def _access_headers(self) -> dict[str, str]:
+    async def access_headers(self) -> dict[str, str]:
+        """Bearer headers for Google APIs that share this OAuth token."""
         if not self.configured():
             raise GmailConfigError("GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET not set")
         tokens = self._tokens.load()
@@ -112,6 +117,9 @@ class GmailClient:
             self._tokens.save(refreshed)
             tokens = refreshed
         return {"Authorization": f"Bearer {tokens.access_token}"}
+
+    async def _access_headers(self) -> dict[str, str]:
+        return await self.access_headers()
 
     async def list_messages(
         self,

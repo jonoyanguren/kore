@@ -338,7 +338,15 @@ export type DayBriefing = {
     due_at?: string | null
     priority?: number
   }[]
-  meetings: { id: number; starts_at: string; title: string; status: string }[]
+  meetings: {
+    id: number | string
+    starts_at: string
+    title: string
+    status: string
+    source?: 'google' | 'local' | string
+    calendar?: string
+    html_link?: string | null
+  }[]
   help: string[]
   inbox?: string[]
 }
@@ -350,9 +358,22 @@ export type DaySnapshot = {
   greeting: string
   owner_name: string
   tasks: { in_progress: number; open: number }
-  agenda: { id: number; starts_at: string; title: string; status: string }[]
+  agenda: {
+    id: number | string
+    starts_at: string
+    title: string
+    status: string
+    source?: string
+    calendar?: string
+    html_link?: string | null
+  }[]
   briefing: DayBriefing
   dream: { day: string | null; excerpt: string | null } | null
+  calendar?: {
+    ready?: boolean
+    error?: string | null
+    error_code?: string | null
+  }
   inbox?: {
     connected: boolean
     email?: string
@@ -387,6 +408,7 @@ export type GmailStatus = {
   scope: string
   gmail_ready?: boolean
   can_send?: boolean
+  calendar_ready?: boolean
 }
 
 export async function apiGmailStatus(): Promise<GmailStatus> {

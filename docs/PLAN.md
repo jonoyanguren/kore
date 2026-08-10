@@ -7,12 +7,12 @@
 |-------|--------|
 | Repo | `jonoyanguren/kore` |
 | Producto | **Kore** · hablado **Jone** (`ASSISTANT_NAME`) |
-| Fase actual | **3 — Misiones** (D18: input → loop → output + pantalla) |
+| Fase actual | **Agenda + Google Calendar (read)** — post–Phase 3 |
 | Canal | Consola web = operar / día · Telegram = captura móvil opcional |
 | Deploy | Fly.io · `/data` |
 | LLM | OpenRouter · diario `deepseek/deepseek-v4-pro` · strong `claude-haiku-4.5` · misiones Normal=`deepseek-v4-flash` / Pro=`deepseek-v4-pro` · prompt cache en tool loops |
 | Diseño largo | `companion-plan.md` · Consola 1.5: `web-console-plan.md` |
-| Backlog | `TODO.md` en dos carriles: **Producto** (uso/Fly) · **Plataforma** (móvil/base, paralelo) |
+| Backlog | `TODO.md` · **Producto** vs **Plataforma** |
 
 ## Estado
 
@@ -21,18 +21,19 @@
 - [x] Phase 1.5 — Consola web MVP (chat + board)
 - [ ] Phase 1.6 — UX personal *(parcial; rediseño en curso con diseñadora → luego maquetar)*
 - [x] Phase 2 — Gmail MVP
-- [ ] Phase 3 — Misiones *(build MVP shipped; dogfood + calidad Flash/Pro)*
-- [ ] Phase 4 — Git / código
-- [ ] Phase 5+ — Calendar, PDF, media web…
-- [ ] App móvil — trabajar el día a día (después de consolida web / UI)
+- [x] Phase 3 — Misiones *(MVP + dogfood + UI Resultado)*
+- [ ] ~~Phase 4 — Git / código~~ → **fuera de Kore** (proyecto aparte: programar desde el móvil)
+- [ ] Agenda + Google Calendar *(read; en curso)*
+- [ ] Phase 5+ — PDF, media… *(candidatos)*
+- [ ] App móvil Kore — día a día (Expo; no es el IDE móvil)
 
 ## Decisiones (cerradas)
 
 | # | Valor |
 |---|--------|
 | D1 | Companion kernel |
-| D2 | Gmail OAuth (`gmail.modify`) → `/data` |
-| D3 | Git: este repo primero |
+| D2 | Gmail OAuth (`gmail.modify` + send reply) → `/data` |
+| D3 | **Git/código fuera de Kore** — sistema de programar desde móvil = repo/producto aparte (2026-08-10). Antes: “este repo primero” — **superseded** |
 | D4 | Kore (código) · Jone (hablado) |
 | D6 | Tasks propias (SQLite/vault); ClickUp aparcado |
 | D7 | Skills markdown + frontmatter |
@@ -43,61 +44,52 @@
 | D14 | 1.6 = super-herramienta personal; no multi-user |
 | D15 | Briefing matutino → **vista Día**; Telegram notify off por defecto |
 | D16 | Gmail MVP = OAuth + Día/`/inbox` + dream Inbox + triage log |
-| D17 | Gmail send = **reply/answer**: leer hilo → borrador IA editable → confirmar → enviar (`gmail.send`; no compose frío en v1) |
+| D17 | Gmail send = **reply/answer**: borrador editable → confirmar (`gmail.send`; no compose frío en v1) |
 | D18 | Misión = input → loop → output; no bloquea chat; resultado markdown en vault |
-| D19 | Misiones UI: **4º layout**; lista + «Ocultar terminadas»; **Nueva** inicia el input (no chat-first) |
+| D19 | Misiones UI: **4º layout**; lista + «Ocultar terminadas»; **Nueva** inicia el input |
 | D20 | Persistencia: **SQLite** lista/estado · **vault** `missions/{id}.md` = output |
-| D21 | Loop: ticks en el tiempo (`next_run_at`); runner in-process; max 1 activa v1 |
-| D22 | Misiones: **plan → N tareas**; handoff corto entre tareas (no markdown entero) |
+| D21 | Loop: ticks (`next_run_at`); runner in-process; max 1 activa v1 |
+| D22 | Misiones: **plan → N tareas**; handoff corto; summary pass → `## Resultado` |
+| D23 | Dogfood Phase 0–3 **cerrado** (2026-08-10); siguiente = features nuevas, no más “vivir el MVP” |
+| D24 | **Google Calendar read-only** vía mismo OAuth que Gmail (`calendar.readonly`); **todos** los calendarios visibles; eventos live en Día + dream + tool chat; **no** duplicar a SQLite en v1; agenda local sigue para captura chat; write/sync 2 vías aparcado |
 
 ## Roadmap (lean)
 
-**Ahora — Phase 3 Misiones (D18–D21):**
+**Cerrado Phase 3:** misiones usable + dogfood + UI Resultado.
 
-| Fase | Qué | UI |
-|------|-----|----|
-| **Input** | Brief + preguntas hasta claro → **Lanzar** | Layout Misiones → **Nueva** |
-| **Loop** | Ticks cada cierto tiempo hasta resultado usable; **no bloquea** chat | Estado en la lista |
-| **Output** | Markdown bonito en vault; clic → lectura | Misma pantalla |
+**Ahora — Agenda + Google Calendar (D24):**
 
-**Cerrado:** 4º layout · SQLite listado · vault output · Nueva (formulario v1) · ocultar terminadas · cancelar · stub ticks.
+| Slice | Qué |
+|-------|-----|
+| OAuth | Añadir `calendar.readonly`; Reconectar en Más (una vez) |
+| Client | `events.list` en **todos** los calendarios visibles (`selected`) |
+| Día / dream | Merge Reuniones: Google + `agenda_items` local |
+| Chat | Tool `list_calendar`; PromptAssembler contexto |
 
-**Siguiente slice:** dogfood aclaración + primera misión útil; tono sent (parking).
+**No v1:** escribir en GCal, sync → SQLite, multi-cuenta.
 
-**MVP build:**
-1. [x] Tabla `missions` + vault path
-2. [x] Layout Misiones (lista, ocultar hechas, detalle md, Nueva)
-3. [x] Runner ticks + `next_run_at`
-4. [x] Tools reales + aclaración en Nueva
-5. Jon prueba con una misión
+**1.6 / UI:** rediseño externo → maquetar cuando llegue.
 
-**Gmail:** cerrado. Dogfood reply en paralelo.
+**App móvil Kore:** captura / Día / audio — **no** sustituye el proyecto de programar desde el móvil.
 
-**1.6 / UI:** rediseño en curso (diseñadora); cuando llegue el diseño → maquetar en consola. Fricciones = miguitas.
-
-**Más adelante:** **app móvil con UX propia** (no PWA wrapper) — ver `docs/spikes/mobile-app.md`. PWA install = solo atajo a la consola.
-
-Detalle de lo ya shipped → [`milestones.md`](./milestones.md).
+Detalle shipped → [`milestones.md`](./milestones.md).
 
 ## Success (vivo)
 
 - [x] Kernel, tasks, dream 09:00, consola MVP
 - [x] Day strip + chat vivo + tareas ricas + layouts + memoria drawer
-- [x] Voz one-tap · privacidad · mobile · gasto LLM en barra · proyecto inferido (sin chips)
-- [x] Dogfood: briefing en Día + consola como canal principal
-- [x] Phase 2 Gmail MVP cerrado
-- [ ] Misiones (Phase 3)
-- [ ] Git (Phase 4)
+- [x] Voz · privacidad · gasto LLM · proyecto inferido
+- [x] Dogfood consola + Gmail + Misiones
+- [x] Phase 3 Misiones usable
+- [ ] Google Calendar read en Día / dream / chat (D24)
 - [ ] Rediseño UI (diseño externo → maquetar)
-- [ ] App móvil día a día
+- [ ] App móvil día a día (Kore)
 
 ## Next steps
 
-1. Dogfood **Misiones** en Fly (crear → preguntas → Lanzar → informe; Normal vs Pro + imágenes)
-2. Mirar gasto OpenRouter (Flash misiones + Haiku strong)
-3. Dogfood Gmail reply en paralelo
-4. Cuando llegue el diseño: plan de maquetación UI
-5. App móvil: aparcada hasta UI web estable
+1. Lock calendarios (primary vs todos) → implementar D24
+2. Cuando llegue el diseño: maquetación UI 1.6
+3. App móvil Kore: M2 cuando toque (paralelo, no bloquea)
 
 No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
@@ -105,47 +97,16 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
-| 2026-08-09 | Tareas: botón Copiar URL (board/chat); skill `/entrevista` (entrevista + max 1Q chat) |
-| 2026-08-09 | `/entrevista` = solo vault/contexto (no triage de tareas); tool `list_memory` |
-| 2026-07-30 | Móvil M0: Expo scaffold iOS+Android; audio → ingest multi-destino |
-| 2026-07-30 | Móvil: audio = UX nueva; tareas/misiones ≈ web adaptada |
-| 2026-07-30 | Móvil: modo audio = notas encadenadas sin chat (idea producto) |
-| 2026-07-30 | App móvil = UX propia (Expo path); PWA solo atajo, no el producto |
-| 2026-07-30 | Spike móvil PWA: manifest + SW + iconos (Plataforma) |
-| 2026-07-30 | TODO: carriles Producto vs Plataforma (dogfood/deploy vs paralelo) |
-| 2026-07-30 | Backlog: rediseño UI (diseñadora → maquetar) + app móvil día a día |
-| 2026-07-30 | Misiones: calidad Normal/Pro (Flash/Pro) + dropdown + imágenes en markdown |
-| 2026-07-29 | Gasto LLM: Más = resumen + link; detalle en drawer propio |
-| 2026-07-29 | Ledger LLM: tabla `llm_spend` + Más drawer (hoy/7d/por kind) |
-| 2026-07-29 | D22: misiones por tareas (plan auto + handoff + checklist UI) |
-| 2026-07-29 | Misiones: markdown con links/tablas en panel; 3 ticks; informe no cortado |
-| 2026-07-29 | Misiones Nueva: aclaración 1–2 preguntas (DeepSeek) antes de Lanzar |
-| 2026-07-28 | Strong → Haiku 4.5 (dogfood); prompt cache + session_id en tool loops |
-| 2026-07-28 | Misiones: ticks con **daily** (DeepSeek) mientras dogfood — Sonnet salía ~$2+/misión |
-| 2026-07-28 | Misiones: loop con web_search/fetch + strong model; Relanzar |
-| 2026-07-28 | Misiones esqueleto: layout + SQLite/vault + runner stub + cancelar |
-| 2026-07-28 | D19–D21: Nueva en layout Misiones; SQLite+vault; ticks en el tiempo; ocultar terminadas |
-| 2026-07-28 | D18: misión = input → loop → output; pantalla Misiones; markdown resultado |
-| 2026-07-28 | Dogfood focus: Gmail reply (D17) estos días; misiones después |
-| 2026-07-28 | D17 shipped: Responder en Día (borrador editable + gmail.send) |
-| 2026-07-28 | D17: Gmail send = reply/answer (borrador editable), no compose frío |
-| 2026-07-28 | **Phase 2 Gmail MVP cerrado** → siguiente = Misiones |
-| 2026-07-28 | Gmail triage log: marcados leídos (Día + tool) |
-| 2026-07-28 | Dream incluye Gmail unread → sección Inbox en briefing |
-| 2026-07-28 | Gmail Día: lista + botón Tarea (IA); digest IA aparcado |
-| 2026-07-28 | Gmail: digest IA de unread en vista Día (caché 30 min) |
-| 2026-07-28 | Gmail scope = `gmail.modify` (marcar leídas); esqueleto OAuth |
-| 2026-07-28 | Phase 2 = Gmail MVP (OAuth + Día/`/inbox`; triage auto aparcado) |
-| 2026-07-28 | UI polish pass 1: menos cabeceras; Board Lista/Columnas; Día chips |
-| 2026-07-28 | Dogfood marcado hecho (Jon usa consola a diario) |
-| 2026-07-28 | Dream sin `add_task` + dedupe vs done.md (no resucitar archivadas) |
-| 2026-07-28 | Dream → modelo strong (Sonnet); vacío ≠ ok; catch-up si vault `(vacío)` |
-| 2026-07-27 | Close noche: DeepSeek diario, chip gasto, sin espacios UI |
-| 2026-07-27 | Close sesión tarde: P1 en Fly; next = dogfood Día |
-| 2026-07-27 | P1: voz / espacios / privacidad / mobile |
-| 2026-07-27 | Split PLAN/TODO ↔ `milestones.md` (contexto histórico) |
-| 2026-07-27 | Día = canal briefing; agenda `01-Ago` + ventana 3 días; ★ / must-not-miss |
-| 2026-07-27 | Archivar completadas → `vault/tasks/done.md` |
-| 2026-07-27 | Cron dream in-process 09:00 Madrid |
+| 2026-08-10 | **D24 shipped (code):** Calendar read — todos calendarios visibles; Día/dream/tool; reconectar OAuth |
+| 2026-08-10 | **D24** siguiente = Google Calendar read (mismo OAuth Gmail); Git sigue fuera |
+| 2026-08-10 | Dogfood cerrado; Phase 3 done; **D3 supersede**: Git/código → proyecto aparte |
+| 2026-08-10 | Misiones UI: Resultado con bloques de color + tablas tipo card |
+| 2026-08-10 | Misiones: summary pass + Resultado card + 1 accordion investigación |
+| 2026-08-09 | Tareas: Copiar URL; skill `/entrevista` + `list_memory` |
+| 2026-07-30 | Móvil M0 Expo; TODO Producto vs Plataforma; PWA atajo |
+| 2026-07-30 | Misiones Normal/Pro + imágenes md |
+| 2026-07-29 | Ledger LLM; D22 plan→tareas; aclaración Nueva |
+| 2026-07-28 | Phase 2 Gmail + D17 reply; Phase 3 esqueleto→loop real |
+| 2026-07-27 | Consola 1.5/1.6 parcial; dream 09:00; milestones split |
 
-Histórico largo anterior → entradas en `milestones.md`.
+Histórico largo → `milestones.md`.

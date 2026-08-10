@@ -12,6 +12,7 @@ from urllib.parse import urlencode
 import httpx
 
 from app.integrations.gmail.tokens import (
+    CALENDAR_READONLY_SCOPE,
     GMAIL_MODIFY_SCOPE,
     GMAIL_SEND_SCOPE,
     GmailTokens,
@@ -23,8 +24,14 @@ AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
-# modify = read + mark read; send = reply/enviar (D17).
-SCOPES = (GMAIL_MODIFY_SCOPE, GMAIL_SEND_SCOPE, "openid", "email")
+# modify = read + mark read; send = reply/enviar (D17); calendar = events read (D24).
+SCOPES = (
+    GMAIL_MODIFY_SCOPE,
+    GMAIL_SEND_SCOPE,
+    CALENDAR_READONLY_SCOPE,
+    "openid",
+    "email",
+)
 
 
 def oauth_state_path(storage_db_path: str) -> Path:

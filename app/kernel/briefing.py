@@ -216,7 +216,12 @@ def task_dict(t: TaskRow) -> dict[str, Any]:
     }
 
 
-async def build_day_briefing(memory: Any, vault: Any) -> dict[str, Any]:
+async def build_day_briefing(
+    memory: Any,
+    vault: Any,
+    *,
+    google_meetings: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     today = session_date_str()
     yesterday = (today_madrid() - timedelta(days=1)).isoformat()
 
@@ -245,15 +250,20 @@ async def build_day_briefing(memory: Any, vault: Any) -> dict[str, Any]:
         limit=6,
         to_day=(today_madrid() + timedelta(days=3)).isoformat(),
     )
-    meetings = [
+    local_meetings = [
         {
             "id": i,
             "starts_at": starts,
             "title": title,
             "status": st,
+            "source": "local",
         }
         for i, starts, title, st in agenda_rows
     ]
+
+    from app.integrations.google_calendar.client import merge_meetings
+
+    meetings = merge_meetings(local_meetings, google_meetings or [], limit=12)
 
     help_items = sections["help"]
     if not in_progress and not must_not_miss and sections["tasks"]:

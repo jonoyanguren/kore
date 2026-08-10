@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from app.config import settings
 from app.kernel.skill_registry import Skill, SkillRegistry
@@ -19,11 +20,13 @@ class PromptAssembler:
         skills: SkillRegistry,
         memory: MemoryStore,
         vault: Vault | None = None,
+        calendar: Any | None = None,
     ) -> None:
         self._prompts_dir = Path(prompts_dir)
         self._skills = skills
         self._memory = memory
         self._vault = vault
+        self._calendar = calendar
 
     def _read_prompt(self, name: str) -> str:
         path = self._prompts_dir / name
@@ -116,7 +119,34 @@ class PromptAssembler:
                 f"- (id {i}) {starts} — {title}"
                 for i, starts, title, _st in agenda
             ]
-            parts.append("## Agenda upcoming\n" + "\n".join(lines))
+            parts.append("## Agenda local (chat)\n" + "\n".join(lines))
+
+        if self._calendar is not None:
+            try:
+                from datetime import datetime, timedelta
+                from zoneinfo import ZoneInfo
+
+                from app.timeutil import today_madrid
+
+                madrid = ZoneInfo("Europe/Madrid")
+                start = datetime.combine(
+                    today_madrid(), datetime.min.time(), tzinfo=madrid
+                )
+                end = start + timedelta(days=4)
+                events = await self._calendar.list_events(
+                    time_min=start, time_max=end, max_total=15
+                )
+                if events:
+                    lines = [
+                        f"- {e.starts_at} — {e.title}"
+                        + (f" [{e.calendar_name}]" if e.calendar_name else "")
+                        for e in events
+                    ]
+                    parts.append(
+                        "## Google Calendar (próximos días)\n" + "\n".join(lines)
+                    )
+            except Exception:
+                pass
 
         if active_skill is not None:
             parts.append(

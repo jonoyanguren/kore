@@ -671,7 +671,51 @@ async def day_snapshot(request: Request) -> dict[str, Any]:
     n_progress = sum(1 for t in open_tasks if t.status == "in_progress")
     n_pending = sum(1 for t in open_tasks if t.status == "open")
 
-    briefing = await build_day_briefing(memory, vault)
+    google_meetings: list[dict[str, Any]] = []
+    calendar_meta: dict[str, Any] = {
+        "ready": False,
+        "error": None,
+        "error_code": None,
+    }
+    calendar = getattr(request.app.state, "calendar", None)
+    gmail_for_cal = getattr(request.app.state, "gmail", None)
+    if calendar is not None and gmail_for_cal is not None:
+        st_cal = gmail_for_cal.status()
+        calendar_meta["ready"] = bool(st_cal.get("calendar_ready"))
+        if st_cal.get("connected") and not st_cal.get("calendar_ready"):
+            calendar_meta["error_code"] = "needs_reconnect"
+            calendar_meta["error"] = (
+                "Falta permiso de Calendar. Reconecta Google en Más → Gmail."
+            )
+        elif st_cal.get("calendar_ready"):
+            try:
+                from datetime import datetime, timedelta
+                from zoneinfo import ZoneInfo
+
+                from app.integrations.google_calendar.client import (
+                    meeting_dict_from_event,
+                )
+                from app.timeutil import today_madrid
+
+                madrid = ZoneInfo("Europe/Madrid")
+                start = datetime.combine(
+                    today_madrid(), datetime.min.time(), tzinfo=madrid
+                )
+                end = start + timedelta(days=4)
+                events = await calendar.list_events(
+                    time_min=start, time_max=end, max_total=20
+                )
+                google_meetings = [meeting_dict_from_event(e) for e in events]
+            except GmailApiError as exc:
+                calendar_meta["error_code"] = exc.code
+                calendar_meta["error"] = exc.message
+            except Exception:
+                calendar_meta["error_code"] = "api"
+                calendar_meta["error"] = "No se pudo cargar Google Calendar."
+
+    briefing = await build_day_briefing(
+        memory, vault, google_meetings=google_meetings
+    )
 
     inbox: dict[str, Any] = {
         "connected": False,
@@ -745,6 +789,7 @@ async def day_snapshot(request: Request) -> dict[str, Any]:
             else None
         ),
         "inbox": inbox,
+        "calendar": calendar_meta,
         "server_now": now_madrid().isoformat(),
     }
 

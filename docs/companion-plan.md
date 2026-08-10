@@ -22,7 +22,7 @@ Quieres un **compañero personal** que:
 4. Ejecute **skills** vía **comandos** y chat libre; flujo **brainstorm → planificar → ejecutar**.
 5. Sea **proactivo** (crons: digest mail 9am, sueño/consolidación 3am, briefings…).
 6. Lleve **misiones** largas en background.
-7. Pueda tocar **código/git** desde el móvil (Docker en Fly; primero este repo, luego varios).
+7. ~~Código/git desde el móvil~~ → **fuera de Kore** (proyecto aparte).
 8. **Tareas en el propio sistema** (no ClickUp por ahora).
 9. Más adelante: voz, UI web, PDFs, calendar sync externo si hace falta.
 
@@ -53,7 +53,7 @@ El wow: le sueltas la vida en pedazos (texto, foto, mail) y te la **clasifica, r
 |---|----------|--------|
 | D1 | Arquitectura | **B — Companion kernel** (A descartado; C no) |
 | D2 | Gmail | **OAuth**, refresh token en `/data` |
-| D3 | Git | Primero **este repo**; luego `/data/repos/` multi-repo |
+| D3 | Git | **Fuera de Kore** (2026-08-10). Programar desde móvil = producto aparte. |
 | D4 | Nombre proyecto | **kore** (código, paquete, deploy) |
 | D4b | Nombre al hablar | **Jone** — configurable/editable (env o `prompts/personality.md`), no hardcode eterno |
 | D5 | Personalidad | Placeholder; **tú la trabajas con IA más adelante**; el nombre “Jone” sí va ya |
@@ -242,10 +242,9 @@ Historial chat: últimos **20 msgs** o ~8k tokens del **día Madrid**.
 - Background research/ejecución con estados y reportes parciales
 - Pipeline brainstorm → plan → execute
 
-### Phase 4 — Código / git
-- Primero este repo; confirmación en acciones peligrosas
-- Luego multi-repo en `/data/repos/`
-- Skill `self-update`
+### ~~Phase 4 — Código / git~~ — fuera de Kore
+- Programar desde el móvil = **proyecto aparte** (no mezclar con este companion).
+- Kore no ejecuta git/shell de desarrollo.
 
 ### Phase 5+ — Calendar externo, voz, UI, PDF
 Sin hard deadline; tras el “día a día útil” (memoria + diario + mail + tasks).

@@ -334,16 +334,43 @@ export function DayStrip({
 
         <div className="day-strip__block">
           <h3>Reuniones</h3>
+          {day.calendar?.error ? (
+            <p className="muted">
+              {day.calendar.error}{' '}
+              <a href="/api/gmail/connect">Reconectar</a>
+            </p>
+          ) : null}
           {meetings.length === 0 ? (
-            <p className="muted">Nada próximo</p>
+            <p className="muted">
+              {day.calendar?.ready === false && day.inbox?.connected
+                ? 'Reconecta Google para ver Calendar'
+                : 'Nada próximo'}
+            </p>
           ) : (
             <ul>
               {meetings.map((a) => (
-                <li key={a.id}>
+                <li key={String(a.id)}>
                   <span className="day-strip__ag-when">
                     {formatWhen(a.starts_at)}
                   </span>
-                  {a.title}
+                  {a.html_link ? (
+                    <a
+                      href={a.html_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {a.title}
+                    </a>
+                  ) : (
+                    a.title
+                  )}
+                  {a.source === 'google' ? (
+                    <span className="day-strip__tag muted">
+                      {a.calendar ? a.calendar : 'Google'}
+                    </span>
+                  ) : a.source === 'local' ? (
+                    <span className="day-strip__tag muted">local</span>
+                  ) : null}
                 </li>
               ))}
             </ul>
