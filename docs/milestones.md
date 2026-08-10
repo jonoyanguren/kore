@@ -98,6 +98,13 @@ Pendiente 1.6 → UI viva (aparte) / fricciones dogfood.
 - `/entrevista` + `list_memory`; Copiar URL en tareas
 - Móvil: Expo M0 + contenido Día/Captura/Tareas/Misiones (Plataforma)
 
+## 2026-08-10 — Dream fiable
+
+- Consola: `/dream` / `/sueno` ejecuta el runner (antes solo iba al LLM)
+- Reintento con modelo daily si el strong falla/vacío
+- Fallback determinista (tareas/agenda/calendar/inbox) → Día nunca vacío
+- Cron reintenta si el vault quedó en fallback
+
 ## 2026-08-10 — Chat → crear bloque Calendar (D25)
 
 - OAuth `calendar.events` (+ readonly); flag `calendar_can_write`

@@ -99,7 +99,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
-| 2026-08-10 | **D25:** create directo en chat (sin propose/card); pregunta solo si ambiguo |
+| 2026-08-10 | **Dream fiable:** `/dream` consola; retry modelo; fallback determinista; Día con help vivo |
 | 2026-08-10 | Calendar Día: acciones **Abrir / Tarea / Prep**; spike write desde chat (`docs/spikes/calendar-write.md`) |
 | 2026-08-10 | **D24 shipped (code):** Calendar read — primary only; Día/dream/tool |
 | 2026-08-10 | **D24** siguiente = Google Calendar read (mismo OAuth Gmail); Git sigue fuera |

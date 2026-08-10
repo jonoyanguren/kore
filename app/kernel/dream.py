@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import date, timedelta
+from typing import Any
 
 import openai
 
@@ -14,7 +15,7 @@ from app.integrations.google_calendar.dream_calendar import fetch_calendar_block
 from app.kernel.review_common import (
     DREAM_CAPTURE_TOOL_NAMES,
     build_capture_tools,
-    is_blank_report,
+    is_usable_dream,
     run_tool_loop,
     transcript_block,
 )
@@ -26,7 +27,7 @@ from app.timeutil import format_date_spoken, today_madrid
 
 logger = logging.getLogger(__name__)
 
-DREAM_SYSTEM = """Eres el proceso de sueño/briefing de Jone (companion Kore de Jon).
+DREAM_SYSTEM = """Eres el paso de sueño/briefing de Jone (companion Kore de Jon).
 Trabajas en silencio: revisas el día y autogestionas la memoria.
 
 Objetivo:
@@ -70,6 +71,77 @@ Reglas: no digas que eres un modelo; no upsell; no pidas permiso; fechas natural
 ISO solo dentro de las tools. Nunca inventes tareas nuevas en tools.
 No inventes mails: solo lo del bloque INBOX.
 No inventes citas: solo GOOGLE CALENDAR + agenda local del payload."""
+
+
+def build_fallback_dream(
+    *,
+    target: str,
+    spoken_target: str,
+    spoken_next: str,
+    open_tasks: list[Any],
+    agenda: list[tuple[Any, ...]],
+    calendar_block: str,
+    inbox_block: str,
+    chat_count: int,
+    diary_count: int,
+) -> str:
+    """Deterministic briefing when the LLM returns blank — keeps Día usable."""
+    task_lines: list[str] = []
+    for t in open_tasks[:6]:
+        title = getattr(t, "title", None) or str(t)
+        status = getattr(t, "status", "") or ""
+        prefix = "★ " if status == "in_progress" else "- "
+        task_lines.append(f"{prefix}{title}")
+    if not task_lines:
+        task_lines = ["- Ninguna"]
+
+    meeting_lines: list[str] = []
+    cal = (calendar_block or "").strip()
+    if cal and not cal.startswith("("):
+        for line in cal.splitlines()[:6]:
+            line = line.strip()
+            if line:
+                meeting_lines.append(f"- {line.lstrip('0123456789. ')}")
+    if not meeting_lines:
+        for _i, starts, title, _st in agenda[:6]:
+            meeting_lines.append(f"- {starts} — {title}")
+    if not meeting_lines:
+        meeting_lines = ["- Ninguna"]
+
+    inbox_lines: list[str] = []
+    inbox = (inbox_block or "").strip()
+    if inbox and not inbox.startswith("("):
+        for line in inbox.splitlines():
+            s = line.strip()
+            if s.startswith("asunto:"):
+                inbox_lines.append(f"- {s.replace('asunto:', '', 1).strip()}")
+            if len(inbox_lines) >= 5:
+                break
+    if not inbox_lines:
+        inbox_lines = ["- Nada urgente"]
+
+    help_lines = [
+        "- Revisa el Día en la consola (tareas ★ y reuniones).",
+        f"- Chat del {spoken_target}: {chat_count} msgs · diario: {diary_count}.",
+        "- Si quieres un dream con más matiz, lanza /dream otra vez.",
+    ]
+
+    return (
+        f"Resumen\n"
+        f"Briefing automático para {spoken_next} (el modelo no devolvió informe).\n"
+        f"Consolidado {spoken_target}: {chat_count} mensajes de chat, "
+        f"{diary_count} en diario.\n\n"
+        f"Tareas importantes\n"
+        + "\n".join(task_lines)
+        + "\n\nReuniones\n"
+        + "\n".join(meeting_lines)
+        + "\n\nInbox\n"
+        + "\n".join(inbox_lines)
+        + "\n\nAyuda\n"
+        + "\n".join(help_lines)
+        + "\n\nCierre\n"
+        f"Automático — vuelve a /dream si hace falta más contexto.\n"
+    )
 
 
 async def run_dream(
@@ -148,42 +220,87 @@ async def run_dream(
     tools, handlers = build_capture_tools(
         store, vault, allow=DREAM_CAPTURE_TOOL_NAMES
     )
-    # Dream is once/day + heavy context: use strong model. DeepSeek V4 Pro
-    # (thinking) has returned blank `content` on this path (~37s → "(vacío)").
-    dream_model = resolve_model(strong=True)
-    logger.info("Dream using model=%s for day=%s", dream_model, target)
+    primary_model = resolve_model(strong=True)
+    alt_model = resolve_model(strong=False)
+    models_to_try = [primary_model]
+    if alt_model and alt_model != primary_model:
+        models_to_try.append(alt_model)
+
+    report = ""
+    source = "llm"
+    last_exc: Exception | None = None
+
+    for model_id in models_to_try:
+        logger.info("Dream trying model=%s for day=%s", model_id, target)
+        try:
+            report = await run_tool_loop(
+                llm_client,
+                system=DREAM_SYSTEM,
+                user_payload=payload,
+                tools=tools,
+                handlers=handlers,
+                model=model_id,
+                session_id=f"dream-{target}",
+                spend_store=store,
+                spend_kind="dream",
+                spend_ref=f"dream:{target}",
+            )
+        except Exception as exc:
+            last_exc = exc
+            logger.exception("Dream model=%s failed for day=%s", model_id, target)
+            report = ""
+            continue
+        if is_usable_dream(report):
+            source = "llm"
+            break
+        logger.warning(
+            "Dream unusable report model=%s day=%s len=%d",
+            model_id,
+            target,
+            len(report or ""),
+        )
+        report = ""
+
+    if not is_usable_dream(report):
+        logger.warning(
+            "Dream falling back to deterministic briefing day=%s last_exc=%s",
+            target,
+            last_exc,
+        )
+        report = build_fallback_dream(
+            target=target,
+            spoken_target=spoken_target,
+            spoken_next=spoken_next,
+            open_tasks=open_tasks,
+            agenda=agenda,
+            calendar_block=calendar_block,
+            inbox_block=inbox_block,
+            chat_count=len(chat),
+            diary_count=len(diary),
+        )
+        source = "fallback"
 
     try:
-        report = await run_tool_loop(
-            llm_client,
-            system=DREAM_SYSTEM,
-            user_payload=payload,
-            tools=tools,
-            handlers=handlers,
-            model=dream_model,
-            session_id=f"dream-{target}",
-            spend_store=store,
-            spend_kind="dream",
-            spend_ref=f"dream:{target}",
-        )
-        if is_blank_report(report):
-            raise RuntimeError(
-                "El modelo devolvió un dream vacío (sin secciones de briefing)"
-            )
         dream_path = vault.write_dream(
             target,
             f"# dream / {target}\n\n{report}\n",
         )
-        await store.mark_job("dream", status="ok", ran_at=target, error=None)
+        await store.mark_job(
+            "dream",
+            status="ok",
+            ran_at=target,
+            error=None if source == "llm" else f"fallback:{source}",
+        )
         summary = report
         logger.info(
-            "Dream ok for day=%s msgs=%d path=%s",
+            "Dream ok source=%s for day=%s msgs=%d path=%s",
+            source,
             target,
             len(chat),
             dream_path,
         )
     except Exception as exc:
-        logger.exception("Dream failed for day=%s", target)
+        logger.exception("Dream failed writing vault for day=%s", target)
         await store.mark_job("dream", status="error", ran_at=target, error=str(exc))
         summary = f"El sueño de {target} falló: {exc}"
 

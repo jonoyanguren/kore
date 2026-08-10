@@ -15,7 +15,8 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 
 ## Ahora
 
-- [ ] Dogfood: chat → **crear bloque Calendar** (directo)
+- [ ] Dogfood: chat → **crear bloque Calendar** (directo) · 1 semana
+- [x] **Dream fiable** — `/dream` en consola + reintento modelo + fallback vivo + Día no vacío
 - [ ] Cuando llegue diseño: plan de maquetación UI 1.6
 
 ---
@@ -26,7 +27,6 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 
 - [ ] Dogfood Calendar Día: **Abrir / Tarea / Prep** en eventos
 - [ ] **Misión → tareas** — del Resultado, 1 clic crea ítems en el board
-- [ ] **Dream fiable** — briefing no vacío; catch-up / calidad diaria
 - [ ] **Gmail tono Jon** — perfil desde sent mail (reply)
 - [ ] **`/entrevista` en uso** — huecos vault/memoria (no board)
 - [ ] **PDF / docs en chat o Día** — ingerir y guardar en memoria

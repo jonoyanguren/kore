@@ -935,6 +935,35 @@ async def _run_chat(
             reply = f"Diario {day}:\n" + "\n".join(lines)
         await _persist_exchange(memory, text, reply)
         return pack(reply=reply)
+    if cmd in ("/dream", "/sueno", "/sueño"):
+        await status("Generando dream…")
+        vault = getattr(request.app.state, "vault", None)
+        llm_client = getattr(request.app.state, "llm_client", None)
+        if vault is None or llm_client is None:
+            reply = "Sueño no disponible ahora."
+            await _persist_exchange(memory, text, reply)
+            return pack(reply=reply)
+        parts = text.split(maxsplit=1)
+        day_arg = parts[1].strip() if len(parts) > 1 else session_date_str()
+        # Accept bare YYYY-MM-DD; otherwise default today (manual console path).
+        if len(day_arg) >= 10 and day_arg[4] == "-" and day_arg[7] == "-":
+            day_arg = day_arg[:10]
+        else:
+            day_arg = session_date_str()
+        from app.kernel.dream import run_dream
+
+        reply = await run_dream(
+            memory,
+            vault,
+            llm_client,
+            day=day_arg,
+            telegram=None,
+            notify=False,
+            gmail=getattr(request.app.state, "gmail", None),
+            calendar=getattr(request.app.state, "calendar", None),
+        )
+        await _persist_exchange(memory, text, reply)
+        return pack(reply=reply)
 
     llm = getattr(request.app.state, "llm", None)
     if llm is None:

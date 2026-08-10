@@ -12,7 +12,7 @@ from app.config import settings
 from app.integrations.gmail.client import GmailClient
 from app.integrations.google_calendar.client import CalendarClient
 from app.kernel.dream import run_dream
-from app.kernel.review_common import is_blank_report
+from app.kernel.review_common import is_usable_dream
 from app.storage.memory import MemoryStore
 from app.storage.vault import Vault
 from app.telegram.client import TelegramClient
@@ -43,12 +43,18 @@ def needs_dream_consolidate(
     target: str,
     last_run: str | None,
     last_status: str | None,
+    last_error: str | None = None,
 ) -> bool:
-    """True if yesterday's dream is missing, failed, or only a blank placeholder."""
+    """True if yesterday's dream is missing, failed, thin, or was a fallback."""
     if last_run != target or last_status != "ok":
         return True
     body = dream_body_from_vault(vault.read_dream(target))
-    return is_blank_report(body)
+    if not is_usable_dream(body):
+        return True
+    # Retry LLM once the next cron if we only wrote a deterministic fallback.
+    if (last_error or "").startswith("fallback"):
+        return True
+    return False
 
 
 def today_fire_at(
@@ -111,8 +117,10 @@ async def run_scheduled_dream(
     morning = today_madrid().isoformat()
     chat_id = settings.telegram_allowed_chat_id
 
-    last_run, last_status, _err = await store.get_job(JOB_DREAM)
-    if not needs_dream_consolidate(vault, target, last_run, last_status):
+    last_run, last_status, last_err = await store.get_job(JOB_DREAM)
+    if not needs_dream_consolidate(
+        vault, target, last_run, last_status, last_err
+    ):
         logger.info("Cron dream skip consolidate — already ok for day=%s", target)
         summary = dream_body_from_vault(vault.read_dream(target)) or (
             f"El sueño de {target} ya estaba consolidado."
@@ -122,8 +130,9 @@ async def run_scheduled_dream(
     else:
         if last_run == target and last_status == "ok":
             logger.warning(
-                "Cron dream re-consolidate — vault blank/placeholder for day=%s",
+                "Cron dream re-consolidate — vault blank/fallback for day=%s err=%s",
                 target,
+                last_err,
             )
         logger.info("Cron dream starting for day=%s", target)
         summary = await run_dream(
@@ -141,7 +150,7 @@ async def run_scheduled_dream(
         consolidate_status = status or "unknown"
         error = err or ""
         # Don't mark morning "ok" if consolidate failed — allow catch-up retry.
-        if consolidate_status != "ok" or is_blank_report(
+        if consolidate_status != "ok" or not is_usable_dream(
             dream_body_from_vault(vault.read_dream(target))
         ):
             return {
@@ -226,10 +235,10 @@ async def dream_cron_loop(
             if done_today:
                 # Prior bug: morning ok + vault "(vacío)" — still need catch-up.
                 target = (today_madrid() - timedelta(days=1)).isoformat()
-                last_d, status_d, _ = await store.get_job(JOB_DREAM)
-                if needs_dream_consolidate(vault, target, last_d, status_d):
+                last_d, status_d, err_d = await store.get_job(JOB_DREAM)
+                if needs_dream_consolidate(vault, target, last_d, status_d, err_d):
                     logger.warning(
-                        "Dream cron morning marked ok but vault blank — re-fire morning=%s",
+                        "Dream cron morning marked ok but vault blank/fallback — re-fire morning=%s",
                         morning,
                     )
                     done_today = False

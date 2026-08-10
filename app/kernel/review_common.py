@@ -25,6 +25,15 @@ SYNTH_MAX_TOKENS = 4096
 # Placeholder the old loop wrote when the model returned blank content.
 EMPTY_REPORT_MARKERS = frozenset({"(vacío)", "(sin respuesta)", "(respuesta vacía)"})
 
+_DREAM_SECTION_MARKERS = (
+    "resumen",
+    "tareas importantes",
+    "reuniones",
+    "inbox",
+    "ayuda",
+    "cierre",
+)
+
 _DREAM_SYNTH_NUDGE = (
     "STOP. No llames más tools. Con el contexto de este turno, escribe YA el "
     "mensaje final en español, texto plano, con las secciones obligatorias:\n"
@@ -70,6 +79,20 @@ def is_blank_report(text: str | None) -> bool:
     if t.lower() in EMPTY_REPORT_MARKERS:
         return True
     if looks_like_tool_markup(t):
+        return True
+    return False
+
+
+def is_usable_dream(text: str | None) -> bool:
+    """True when text looks like a real morning briefing (not empty / junk)."""
+    if is_blank_report(text):
+        return False
+    low = (text or "").lower()
+    hits = sum(1 for m in _DREAM_SECTION_MARKERS if m in low)
+    if hits >= 2:
+        return True
+    # Short but structured enough (e.g. Resumen + Cierre only)
+    if "resumen" in low and len((text or "").strip()) >= 80:
         return True
     return False
 

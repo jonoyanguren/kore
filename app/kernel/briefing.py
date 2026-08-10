@@ -266,14 +266,55 @@ async def build_day_briefing(
     meetings = merge_meetings(local_meetings, google_meetings or [], limit=12)
 
     help_items = sections["help"]
-    if not in_progress and not must_not_miss and sections["tasks"]:
-        if not help_items:
-            help_items = [f"Pendiente (dream): {t}" for t in sections["tasks"][:4]]
+    summary_items = sections["summary"]
+    usable_dream = bool(dream_raw) and (
+        bool(summary_items) or bool(help_items) or bool(sections["tasks"])
+    )
+
+    # Día never empty: if dream missing/thin, fill help from live state.
+    if not help_items:
+        live_help: list[str] = []
+        if in_progress:
+            live_help.append(
+                "En curso: " + ", ".join(t.title for t in in_progress[:3])
+            )
+        if must_not_miss:
+            live_help.append(
+                "No dejar pasar: " + ", ".join(t.title for t in must_not_miss[:3])
+            )
+        if meetings:
+            m0 = meetings[0]
+            live_help.append(
+                f"Próxima: {m0.get('starts_at', '')} — {m0.get('title', '')}".strip(
+                    " —"
+                )
+            )
+        if not live_help:
+            if not dream_raw:
+                live_help.append(
+                    "Sin dream aún — cron 09:00 o /dream en el chat de la consola"
+                )
+            else:
+                live_help.append("Dream sin notas de ayuda — revisa tareas y reuniones")
+        help_items = live_help[:6]
+
+    if not summary_items and not usable_dream:
+        bits = []
+        if in_progress:
+            bits.append(f"{len(in_progress)} en curso")
+        if must_not_miss:
+            bits.append(f"{len(must_not_miss)} a no dejar pasar")
+        if meetings:
+            bits.append(f"{len(meetings)} reuniones")
+        summary_items = [
+            " · ".join(bits) if bits else "Día sin dream — datos vivos abajo"
+        ]
 
     return {
         "day": dream_day if dream_raw else None,
-        "has_dream": bool(dream_raw),
-        "summary": sections["summary"],
+        "has_dream": bool(dream_raw) and usable_dream,
+        "dream_present": bool(dream_raw),
+        "summary": summary_items,
         "in_progress_tasks": [task_dict(t) for t in in_progress],
         "must_not_miss": [task_dict(t) for t in must_not_miss],
         "important_tasks": [task_dict(t) for t in important],

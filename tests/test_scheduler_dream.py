@@ -29,12 +29,24 @@ def test_is_blank_report():
     assert not is_blank_report("Resumen\nHola")
 
 
+def test_is_usable_dream():
+    from app.kernel.review_common import is_usable_dream
+
+    assert not is_usable_dream("(vacío)")
+    assert not is_usable_dream("Briefing listo")
+    assert is_usable_dream(
+        "Resumen\nDía ok.\n\nTareas importantes\n- Ninguna\n\nCierre\nListo."
+    )
+
+
 def test_needs_dream_consolidate_retries_blank_vault():
     vault = MagicMock()
     vault.read_dream.return_value = "# dream / 2026-07-27\n\n(vacío)\n"
     assert needs_dream_consolidate(vault, "2026-07-27", "2026-07-27", "ok") is True
 
-    vault.read_dream.return_value = "# dream / 2026-07-27\n\nResumen\nBien\n"
+    vault.read_dream.return_value = (
+        "# dream / 2026-07-27\n\nResumen\nBien\n\nAyuda\n- Foco\n\nCierre\nOk\n"
+    )
     assert needs_dream_consolidate(vault, "2026-07-27", "2026-07-27", "ok") is False
     assert needs_dream_consolidate(vault, "2026-07-27", None, None) is True
 
@@ -50,7 +62,12 @@ def test_scheduled_dream_skips_consolidate_but_notifies():
         )
         store.mark_job = AsyncMock()
         vault = MagicMock()
-        vault.read_dream.return_value = "# dream / 2026-07-26\n\nBriefing listo\n"
+        vault.read_dream.return_value = (
+            "# dream / 2026-07-26\n\n"
+            "Resumen\nBriefing listo\n\n"
+            "Ayuda\n- Revisa el Día\n\n"
+            "Cierre\nOk\n"
+        )
         telegram = MagicMock()
         telegram.send_message = AsyncMock()
         llm = MagicMock()
@@ -91,7 +108,12 @@ def test_scheduled_dream_no_double_morning_notify():
         )
         store.mark_job = AsyncMock()
         vault = MagicMock()
-        vault.read_dream.return_value = "# dream / 2026-07-26\n\nx\n"
+        vault.read_dream.return_value = (
+            "# dream / 2026-07-26\n\n"
+            "Resumen\nYa consolidado\n\n"
+            "Ayuda\n- Ok\n\n"
+            "Cierre\nx\n"
+        )
         telegram = MagicMock()
         telegram.send_message = AsyncMock()
 
@@ -131,7 +153,7 @@ def test_scheduled_dream_reconsolidates_blank_placeholder():
         vault = MagicMock()
         vault.read_dream.side_effect = [
             "# dream / 2026-07-26\n\n(vacío)\n",  # needs_dream_consolidate
-            "# dream / 2026-07-26\n\nResumen\nOK\n",  # post-run blank check
+            "# dream / 2026-07-26\n\nResumen\nOK\n\nAyuda\n- x\n\nCierre\ny\n",
         ]
         telegram = MagicMock()
         telegram.send_message = AsyncMock()
@@ -146,7 +168,7 @@ def test_scheduled_dream_reconsolidates_blank_placeholder():
             today.return_value = date(2026, 7, 27)
             settings.telegram_allowed_chat_id = 42
             settings.dream_notify_telegram = False
-            run.return_value = "Resumen\nOK"
+            run.return_value = "Resumen\nOK\n\nAyuda\n- x\n\nCierre\ny"
 
             result = await run_scheduled_dream(store, vault, MagicMock(), telegram)
 
