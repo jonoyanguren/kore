@@ -175,7 +175,9 @@ def build_task_tools(
             "function": {
                 "name": "add_task",
                 "description": (
-                    "Create a local personal task in SQLite (not ClickUp). "
+                    "Create a local personal task in SQLite NOW (not ClickUp). "
+                    "Call this in the same turn when Jon says crea/añade/apunta/anota "
+                    "a task — do not only acknowledge in text. "
                     "If the user pasted a URL (Instagram, YouTube, doc…), ALWAYS set url. "
                     "Use notes for extra context. Always set project when the "
                     "topic is clear (kore, kimay, personal, lol, …) — infer from "

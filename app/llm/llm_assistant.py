@@ -47,6 +47,28 @@ _STRONG_HINT = re.compile(
     r")\b"
 )
 
+# Jon asking to create/capture a task — model often replies without add_task.
+_CREATE_TASK_INTENT = re.compile(
+    r"(?i)\b("
+    r"crea(?:r|me)?(?:\s+una)?\s+tarea|"
+    r"a[nñ]ade(?:r|me)?(?:\s+una)?\s+tarea|"
+    r"agrega(?:r|me)?(?:\s+una)?\s+tarea|"
+    r"haz(?:me)?(?:\s+una)?\s+tarea|"
+    r"mete(?:me)?(?:\s+una)?\s+tarea|"
+    r"pon(?:me)?(?:\s+una)?\s+tarea|"
+    r"nueva\s+tarea|"
+    r"apunta(?:r|me)?|"
+    r"anota(?:r|me)?|"
+    r"task:\s*"
+    r")\b"
+)
+
+_ADD_TASK_NUDGE = (
+    "STOP. Jon pidió crear/apuntar una tarea y todavía NO has llamado "
+    "add_task con éxito en este turno. Llama add_task YA con un título claro "
+    "(y `project` si se deduce). No digas que está creada sin la tool."
+)
+
 _SYNTH_NUDGE = (
     "STOP. No llames más tools. Con los resultados de tools de este turno, "
     "responde YA en español (texto plano):\n"
@@ -65,6 +87,11 @@ def wants_strong_model(user_text: str) -> bool:
     if len(t) >= 400:
         return True
     return bool(_STRONG_HINT.search(t))
+
+
+def wants_create_task(user_text: str) -> bool:
+    """True when Jon is asking to create/capture a local task."""
+    return bool(_CREATE_TASK_INTENT.search(user_text or ""))
 
 
 def resolve_model(*, strong: bool = False) -> str:
@@ -217,8 +244,10 @@ class LLMAssistant:
         used_fallback = False
         final_text: str | None = None
         used_any_tool = False
+        add_task_attempted = False
         # Sticky provider + Anthropic cache across tool iterations.
         cache_session = f"chat-{now_madrid().date().isoformat()}"
+        need_task = wants_create_task(user_text)
 
         await status("Modelo fuerte…" if use_strong else "Pensando…")
         if use_strong:
@@ -333,6 +362,8 @@ class LLMAssistant:
                     tool_name = (getattr(fn, "name", None) if fn else None) or "tool"
                     await status(f"Usando {tool_name}…")
                     result = await self._execute_tool(tool_call)
+                    if tool_name == "add_task":
+                        add_task_attempted = True
                     if len(result) > 8000:
                         result = result[:8000] + "\n…[tool output truncado]"
                     messages.append(
@@ -346,6 +377,76 @@ class LLMAssistant:
         except Exception:
             logger.exception("Unexpected error in tool loop")
             final_text = "Me he tropezado a mitad de la respuesta — prueba otra vez."
+
+        # Model often claims "creada" without calling add_task — force one shot.
+        if (
+            need_task
+            and not add_task_attempted
+            and self._tools
+            and "add_task" in self._handlers
+        ):
+            logger.warning("Create-task intent without add_task — forcing tool")
+            await status("Creando tarea…")
+            messages.append({"role": "user", "content": _ADD_TASK_NUDGE})
+            forced_choice = {
+                "type": "function",
+                "function": {"name": "add_task"},
+            }
+            response, err = await self._create(
+                model=model,
+                messages=messages,
+                tools=self._tools,
+                max_tokens=settings.llm_max_tokens,
+                session_id=cache_session,
+                tool_choice=forced_choice,
+            )
+            if not err and response is not None:
+                choices = getattr(response, "choices", None) or []
+                if choices and choices[0] and choices[0].message:
+                    message = choices[0].message
+                    tool_calls = message.tool_calls
+                    if tool_calls:
+                        serialized = _tool_calls_for_history(list(tool_calls))
+                        if serialized:
+                            used_any_tool = True
+                            messages.append(
+                                {
+                                    "role": "assistant",
+                                    "content": message.content,
+                                    "tool_calls": serialized,
+                                }
+                            )
+                            for tool_call in tool_calls:
+                                fn = getattr(tool_call, "function", None)
+                                tool_name = (
+                                    (getattr(fn, "name", None) if fn else None)
+                                    or "tool"
+                                )
+                                result = await self._execute_tool(tool_call)
+                                if tool_name == "add_task":
+                                    add_task_attempted = True
+                                messages.append(
+                                    {
+                                        "role": "tool",
+                                        "tool_call_id": getattr(tool_call, "id", None)
+                                        or f"call_{tool_name}",
+                                        "content": result,
+                                    }
+                                )
+                            # Fresh reply after forced create
+                            response2, err2 = await self._create(
+                                model=model,
+                                messages=messages,
+                                tools=None,
+                                max_tokens=settings.llm_max_tokens,
+                                session_id=cache_session,
+                            )
+                            if not err2 and response2 is not None:
+                                ch2 = getattr(response2, "choices", None) or []
+                                if ch2 and ch2[0] and ch2[0].message:
+                                    text2 = (ch2[0].message.content or "").strip()
+                                    if text2:
+                                        final_text = text2
 
         if _is_blank_reply(final_text):
             await status("Resumiendo…")
@@ -394,6 +495,7 @@ class LLMAssistant:
         tools: list[dict[str, Any]] | None,
         max_tokens: int,
         session_id: str | None = None,
+        tool_choice: Any | None = None,
     ) -> tuple[Any | None, str | None]:
         """Return (response, error_code). error_code None means ok."""
         try:
@@ -404,6 +506,8 @@ class LLMAssistant:
             }
             if tools:
                 kwargs["tools"] = tools
+                if tool_choice is not None:
+                    kwargs["tool_choice"] = tool_choice
             extra = openrouter_extra_body(model=model, session_id=session_id)
             if extra:
                 kwargs["extra_body"] = extra
