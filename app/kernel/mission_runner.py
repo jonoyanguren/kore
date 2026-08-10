@@ -37,13 +37,14 @@ Reglas:
 - Usa web_search y fetch_url vía la API de tools (no escribas XML ni tool_calls en el texto).
 - No inventes precios ni URLs. Si no hay dato sólido, dilo.
 - Cita fuentes con links markdown: [nombre](https://…).
-- Cuando ayude (producto, casa, sitio, UI, mapa, foto de referencia): incluye 1–3 imágenes
+- Cuando ayude (producto, casa, sitio, UI, mapa, foto de referencia): incluye imágenes
   con markdown ![descripción corta](https://url-directa).
   Solo URLs https reales a imagen (jpg/png/webp/gif o CDN). Sácalas de search/fetch
   (og:image, img src). Si no tienes URL real, no inventes ni pongas placeholder.
 - Cumple SOLO el objetivo de esta tarea; no adelantes otras.
+- Sé breve: bullets > párrafos. Sin volcar HTML crudo ni dumps de búsqueda.
 - Tono: claro, accionable, sin relleno.
-- La respuesta final = markdown empezando por ## título de la tarea.
+- La respuesta final = markdown empezando por el ## que te indiquen.
 - No digas que eres una IA ni menciones ticks internos."""
 
 MISSION_TASK_SYNTH_NUDGE = (
@@ -52,6 +53,9 @@ MISSION_TASK_SYNTH_NUDGE = (
     "en markdown en español (empieza por ##). Datos concretos, links e imágenes "
     "reales si aportan. Sin tool_calls, sin DSML, sin inventar."
 )
+
+MID_TASK_MAX_TOKENS = 2000
+FINAL_TASK_MAX_TOKENS = 4000
 
 
 def _iso(dt) -> str:
@@ -130,11 +134,36 @@ async def _execute_task(
 ) -> str:
     task = plan.tasks[task_index]
     n = len(plan.tasks)
+    is_final = task_index >= n - 1
     handoff = (plan.handoff or "").strip()
     if task_index == 0:
         ctx = "(Primera tarea — sin handoff previo.)"
     else:
         ctx = handoff or "(Sin handoff previo.)"
+
+    if is_final:
+        heading = "## Resultado"
+        shape = (
+            "Respuesta = SOLO markdown empezando por:\n"
+            "## Resultado\n\n"
+            "Estructura fija (corta):\n"
+            "### Decisión\n(1–3 frases)\n"
+            "### Por qué\n(2–5 bullets)\n"
+            "### Opciones\n(tabla o bullets: opción — pros/contras — link)\n"
+            "### Siguiente paso\n(una acción concreta)\n"
+            "### Fuentes\n(3–8 links)\n"
+            "Máx. ~40 líneas. 0–2 imágenes solo si aportan."
+        )
+        max_tokens = FINAL_TASK_MAX_TOKENS
+    else:
+        heading = f"## {task.title}"
+        shape = (
+            f"Respuesta = SOLO markdown empezando por:\n"
+            f"## {task.title}\n"
+            "Máx. ~15–25 líneas. Bullets + 3–5 links. "
+            "0–1 imagen real si aporta. Sin volcar raw ni relleno."
+        )
+        max_tokens = MID_TASK_MAX_TOKENS
 
     user = (
         f"MISIÓN — TAREA {task_index + 1}/{n}: {task.title}\n\n"
@@ -142,21 +171,18 @@ async def _execute_task(
         f"Encargo original:\n{mission.brief}\n\n"
         f"Handoff de la tarea anterior:\n{ctx}\n\n"
         f"Objetivo de ESTA tarea:\n{task.goal}\n\n"
-        f"Ejecuta esta tarea con búsqueda web. "
-        f"Respuesta = SOLO markdown empezando por:\n"
-        f"## {task.title}\n"
-        f"(contenido con datos concretos, links e imágenes reales si aportan; "
-        f"cierra la sección completa)"
+        f"Ejecuta esta tarea con búsqueda web.\n{shape}"
     )
 
     tools, handlers = build_web_tools()
     model = resolve_mission_model(mission.quality)
     logger.info(
-        "Mission %s task %s/%s model=%s title=%r",
+        "Mission %s task %s/%s model=%s final=%s title=%r",
         mission.id,
         task_index + 1,
         n,
         model,
+        is_final,
         task.title[:50],
     )
     text = await run_tool_loop(
@@ -166,7 +192,7 @@ async def _execute_task(
         tools=tools,
         handlers=handlers,
         model=model,
-        max_tokens=5500,
+        max_tokens=max_tokens,
         session_id=f"mission-{mission.id}-task-{task_index + 1}",
         usage_acc=usage_acc,
         synth_nudge=MISSION_TASK_SYNTH_NUDGE,
@@ -177,10 +203,15 @@ async def _execute_task(
     if is_blank_report(text) or looks_like_tool_markup(text):
         raise RuntimeError(f"Tarea vacía o inválida: {task.title}")
     t = text.strip()
-    heading = f"## {task.title}"
     if not t.startswith("##"):
         t = f"{heading}\n\n{t}"
-    elif not t.startswith(heading):
+    elif is_final and not t.startswith("## Resultado"):
+        # Normalize final deliverable heading for the UI splitter.
+        rest = t.lstrip("#").strip()
+        if rest.lower().startswith("resultado"):
+            rest = rest.split("\n", 1)[1] if "\n" in rest else ""
+        t = f"## Resultado\n\n{rest.strip()}" if rest.strip() else "## Resultado"
+    elif not is_final and not t.startswith(heading):
         t = f"{heading}\n\n{t.lstrip('#').strip()}"
     return t
 

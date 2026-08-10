@@ -10,6 +10,10 @@ import {
   type ClarifyHistoryItem,
 } from '../api'
 import { renderMissionMarkdown } from '../lib/missionMarkdown'
+import {
+  sectionToMarkdown,
+  splitMissionMarkdown,
+} from '../lib/missionReport'
 import type { Mission, MissionCostInfo, MissionQualityOption } from '../types'
 import { useToast } from './Toasts'
 
@@ -334,6 +338,10 @@ export function MissionsPanel({ active = true }: Props) {
   }
 
   const md = (detail?.markdown || '').trim()
+  const report = useMemo(() => splitMissionMarkdown(md), [md])
+  const runningTaskTitle =
+    detail?.plan?.tasks?.find((t) => t.status === 'running')?.title?.trim() ||
+    null
 
   return (
     <section className={`missions${panelOpen ? ' missions--panel' : ''}`}>
@@ -631,10 +639,56 @@ export function MissionsPanel({ active = true }: Props) {
                 </p>
               ) : null}
               {md ? (
-                <div
-                  className="missions__md"
-                  dangerouslySetInnerHTML={{ __html: renderMissionMarkdown(md) }}
-                />
+                <div className="missions__report">
+                  {report.result ? (
+                    <section className="missions__result" aria-label="Resultado">
+                      <h4 className="missions__result-label">Resultado</h4>
+                      <div
+                        className="missions__md"
+                        dangerouslySetInnerHTML={{
+                          __html: renderMissionMarkdown(
+                            sectionToMarkdown(report.result),
+                          ),
+                        }}
+                      />
+                    </section>
+                  ) : null}
+                  {report.research.length > 0 ? (
+                    <div className="missions__research">
+                      <h4 className="missions__research-label">Investigación</h4>
+                      {report.research.map((sec) => {
+                        const open =
+                          runningTaskTitle != null &&
+                          sec.title.trim() === runningTaskTitle
+                        return (
+                          <details
+                            key={sec.title}
+                            className="missions__research-item"
+                            open={open}
+                          >
+                            <summary>{sec.title}</summary>
+                            <div
+                              className="missions__md"
+                              dangerouslySetInnerHTML={{
+                                __html: renderMissionMarkdown(
+                                  sectionToMarkdown(sec),
+                                ),
+                              }}
+                            />
+                          </details>
+                        )
+                      })}
+                    </div>
+                  ) : null}
+                  {!report.result && report.research.length === 0 ? (
+                    <div
+                      className="missions__md"
+                      dangerouslySetInnerHTML={{
+                        __html: renderMissionMarkdown(md),
+                      }}
+                    />
+                  ) : null}
+                </div>
               ) : (
                 <p className="muted">Sin informe aún.</p>
               )}

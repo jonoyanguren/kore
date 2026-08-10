@@ -207,10 +207,10 @@ def _fallback_plan(title: str, brief: str) -> MissionPlan:
                 ),
             ),
             MissionTask(
-                title="Síntesis y recomendación",
+                title="Resultado",
                 goal=(
-                    "Informe final priorizado, selección accionable e itinerario "
-                    "o siguientes pasos concretos."
+                    "Decisión final corta: por qué, opciones clave, siguiente paso "
+                    "y fuentes. Sin relleno."
                 ),
             ),
         ]
