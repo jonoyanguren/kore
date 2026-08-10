@@ -217,10 +217,28 @@ def _to_local_stamp(block: dict[str, Any]) -> str:
 def _calendar_http_error(response: httpx.Response) -> GmailApiError:
     body = ""
     try:
-        body = response.text[:500]
+        body = response.text[:800]
     except Exception:
         pass
     low = body.lower()
+    logger.warning(
+        "Calendar API HTTP %s: %s",
+        response.status_code,
+        body[:300] if body else "(empty)",
+    )
+    if response.status_code == 403 and (
+        "accessnotconfigured" in low
+        or "has not been used" in low
+        or "is disabled" in low
+        or "api not enabled" in low
+        or "service_disabled" in low
+    ):
+        return GmailApiError(
+            "api_disabled",
+            "Falta activar Google Calendar API en el proyecto GCP "
+            "(mismo que el OAuth). "
+            "https://console.cloud.google.com/apis/library/calendar-json.googleapis.com",
+        )
     if response.status_code == 403 and (
         "insufficient" in low or "access_token_scope_insufficient" in low
     ):
@@ -231,7 +249,9 @@ def _calendar_http_error(response: httpx.Response) -> GmailApiError:
     if response.status_code in {401, 403}:
         return GmailApiError(
             "auth",
-            "No se pudo acceder a Calendar. Prueba reconectar en Más → Gmail.",
+            "Calendar devolvió 403. Suele ser API no activada en GCP "
+            "(calendar-json.googleapis.com), no un fallo de reconectar. "
+            "https://console.cloud.google.com/apis/library/calendar-json.googleapis.com",
         )
     return GmailApiError(
         "api",
