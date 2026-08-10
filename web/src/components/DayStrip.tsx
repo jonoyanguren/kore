@@ -336,17 +336,37 @@ export function DayStrip({
           <h3>Reuniones</h3>
           {day.calendar?.error ? (
             <p className="muted">
-              {day.calendar.error}{' '}
-              <a href="/api/gmail/connect">Reconectar</a>
+              {day.calendar.error_code === 'api_disabled' ? (
+                <>
+                  Activa{' '}
+                  <a
+                    href="https://console.cloud.google.com/apis/library/calendar-json.googleapis.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Google Calendar API
+                  </a>{' '}
+                  en el proyecto GCP del OAuth (Enable). Luego recarga Día —
+                  no hace falta reconectar.
+                </>
+              ) : day.calendar.error_code === 'needs_reconnect' ? (
+                <>
+                  {day.calendar.error}{' '}
+                  <a href="/api/gmail/connect">Reconectar</a>
+                </>
+              ) : (
+                day.calendar.error
+              )}
             </p>
           ) : null}
-          {meetings.length === 0 ? (
+          {meetings.length === 0 && !day.calendar?.error ? (
             <p className="muted">
               {day.calendar?.ready === false && day.inbox?.connected
                 ? 'Reconecta Google para ver Calendar'
                 : 'Nada próximo'}
             </p>
-          ) : (
+          ) : null}
+          {meetings.length > 0 ? (
             <ul>
               {meetings.map((a) => (
                 <li key={String(a.id)}>
@@ -374,7 +394,7 @@ export function DayStrip({
                 </li>
               ))}
             </ul>
-          )}
+          ) : null}
         </div>
 
         <div className="day-strip__block">
