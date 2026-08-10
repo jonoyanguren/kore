@@ -51,7 +51,7 @@
 | D21 | Loop: ticks (`next_run_at`); runner in-process; max 1 activa v1 |
 | D22 | Misiones: **plan → N tareas**; handoff corto; summary pass → `## Resultado` |
 | D23 | Dogfood Phase 0–3 **cerrado** (2026-08-10); siguiente = features nuevas, no más “vivir el MVP” |
-| D24 | **Google Calendar read-only** vía mismo OAuth que Gmail (`calendar.readonly`); **todos** los calendarios visibles; eventos live en Día + dream + tool chat; **no** duplicar a SQLite en v1; agenda local sigue para captura chat; write/sync 2 vías aparcado |
+| D24 | **Google Calendar read-only** vía mismo OAuth (`calendar.readonly`); solo calendario **primary** (no suscripciones); eventos live en Día + dream + tool chat; **no** duplicar a SQLite en v1; agenda local sigue para captura chat |
 
 ## Roadmap (lean)
 
@@ -62,7 +62,7 @@
 | Slice | Qué |
 |-------|-----|
 | OAuth | Añadir `calendar.readonly`; Reconectar en Más (una vez) |
-| Client | `events.list` en **todos** los calendarios visibles (`selected`) |
+| Client | `events.list` solo calendario **primary** |
 | Día / dream | Merge Reuniones: Google + `agenda_items` local |
 | Chat | Tool `list_calendar`; PromptAssembler contexto |
 

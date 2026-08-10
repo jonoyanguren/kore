@@ -56,7 +56,7 @@ class CalendarClient:
         max_per_calendar: int = 40,
         max_total: int = 80,
     ) -> list[CalendarEvent]:
-        """List events across all selected calendars in the account."""
+        """List events from the user's primary Google Calendar only."""
         if not self._gmail.configured():
             raise GmailConfigError("GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET not set")
         st = self._gmail.status()
@@ -103,6 +103,7 @@ class CalendarClient:
         return out[:max_total]
 
     async def _list_calendars(self, headers: dict[str, str]) -> list[dict[str, str]]:
+        """Return only the user's primary calendar (not subscribed/shared lists)."""
         response = await self._http.get(
             f"{CALENDAR_API}/users/me/calendarList",
             headers=headers,
@@ -111,24 +112,15 @@ class CalendarClient:
         if response.status_code >= 400:
             raise _calendar_http_error(response)
         items = response.json().get("items") or []
-        calendars: list[dict[str, str]] = []
         for item in items:
             if not isinstance(item, dict):
                 continue
-            # Prefer calendars the user selected in Google Calendar UI.
-            if item.get("selected") is False:
-                continue
-            if str(item.get("accessRole") or "") == "none":
-                continue
-            cid = str(item.get("id") or "").strip()
-            if not cid:
-                continue
-            name = str(item.get("summary") or cid).strip()
-            calendars.append({"id": cid, "name": name})
-        if not calendars:
-            # Fallback: at least primary
-            calendars.append({"id": "primary", "name": "primary"})
-        return calendars
+            if item.get("primary") is True:
+                cid = str(item.get("id") or "primary").strip() or "primary"
+                name = str(item.get("summary") or "primary").strip()
+                return [{"id": cid, "name": name}]
+        # Fallback if primary flag missing
+        return [{"id": "primary", "name": "primary"}]
 
     async def _list_calendar_events(
         self,

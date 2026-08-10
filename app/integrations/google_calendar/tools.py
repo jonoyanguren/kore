@@ -31,8 +31,8 @@ def build_calendar_tools(
             "function": {
                 "name": "list_calendar",
                 "description": (
-                    "Lista eventos de Google Calendar (todos los calendarios visibles). "
-                    "Ventana por defecto: hoy → +3 días (Madrid). "
+                    "Lista eventos de tu Google Calendar principal (no suscripciones "
+                    "ni calendarios ajenos). Ventana por defecto: hoy → +3 días (Madrid). "
                     "Usa esto para saber citas reales; la agenda local es solo captura chat."
                 ),
                 "parameters": {
