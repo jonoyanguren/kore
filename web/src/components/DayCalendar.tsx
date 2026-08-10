@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { formatWhen } from '../dates'
 
 export type DayMeeting = {
   id: number | string
