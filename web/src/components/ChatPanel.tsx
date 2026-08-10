@@ -347,11 +347,15 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       if (result.calendar_created) {
         toast.ok('Bloque creado en Calendar')
       }
+      if (result.calendar_deleted) {
+        toast.ok('Bloque borrado del Calendar')
+      }
       onAfterChat?.({
         tasksChanged:
           result.tasks_changed ||
           result.tasks_listed.length > 0 ||
-          Boolean(result.calendar_created),
+          Boolean(result.calendar_created) ||
+          Boolean(result.calendar_deleted),
       })
     } catch (err) {
       setThinking(null)

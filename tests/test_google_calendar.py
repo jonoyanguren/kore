@@ -63,6 +63,35 @@ def test_parse_local_wall():
     assert later > dt
 
 
+def test_day_phrase_overrides_wrong_calendar_date(monkeypatch):
+    """Model invents jueves 13; day_phrase miércoles must land on the Wednesday."""
+    from datetime import date
+
+    from app.integrations.google_calendar.tools import _apply_day_phrase
+
+    monkeypatch.setattr(
+        "app.integrations.google_calendar.tools.resolve_relative_date",
+        lambda _phrase, **_kw: date(2026, 8, 12),
+    )
+    starts, ends, weekday = _apply_day_phrase(
+        "2026-08-13T09:00",
+        "2026-08-13T10:00",
+        "miércoles",
+    )
+    assert starts == "2026-08-12T09:00"
+    assert ends == "2026-08-12T10:00"
+    assert weekday == "miércoles"
+
+
+def test_resolve_miercoles_from_monday():
+    from datetime import date
+
+    from app.timeutil import resolve_relative_date
+
+    assert resolve_relative_date("miércoles", ref=date(2026, 8, 10)) == date(2026, 8, 12)
+    assert resolve_relative_date("miercoles", ref=date(2026, 8, 10)) == date(2026, 8, 12)
+
+
 def test_merge_meetings_prefers_google_on_duplicate():
     local = [
         {

@@ -112,6 +112,46 @@ class CalendarClient:
             raise GmailApiError("api", "No se pudo leer el evento creado.")
         return ev
 
+    async def delete_event(
+        self,
+        *,
+        event_id: str,
+        calendar_id: str = "primary",
+    ) -> None:
+        """Delete an event from primary (or given) calendar."""
+        if not self._gmail.configured():
+            raise GmailConfigError("GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET not set")
+        st = self._gmail.status()
+        if not st.get("connected"):
+            raise GmailNotConnectedError("Google not connected — open /api/gmail/connect")
+        if not st.get("calendar_can_write"):
+            raise GmailApiError(
+                "needs_reconnect",
+                "Falta permiso para borrar eventos. Reconecta en Más → Gmail.",
+            )
+        eid = (event_id or "").strip()
+        if not eid:
+            raise GmailApiError("invalid", "Falta id del evento.")
+        # Accept gcal:calendar:id form from Día UI
+        if eid.startswith("gcal:"):
+            parts = eid.split(":", 2)
+            if len(parts) == 3:
+                calendar_id = parts[1] or calendar_id
+                eid = parts[2]
+        from urllib.parse import quote
+
+        headers = await self._gmail.access_headers()
+        cid = (calendar_id or "primary").strip() or "primary"
+        url = (
+            f"{CALENDAR_API}/calendars/{quote(cid, safe='')}/events/"
+            f"{quote(eid, safe='')}"
+        )
+        response = await self._http.delete(url, headers=headers)
+        if response.status_code == 404:
+            raise GmailApiError("not_found", "No encontré ese evento en Calendar.")
+        if response.status_code >= 400:
+            raise _calendar_http_error(response)
+
     async def list_events(
         self,
         *,

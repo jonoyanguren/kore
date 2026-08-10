@@ -726,6 +726,7 @@ export type ChatResult = {
   tasks_listed: Task[]
   tasks_changed: boolean
   calendar_created: CalendarMeeting | null
+  calendar_deleted: { title?: string; starts_at?: string; event_id?: string } | null
 }
 
 export async function apiChat(text: string): Promise<ChatResult> {
@@ -744,6 +745,7 @@ export async function apiChat(text: string): Promise<ChatResult> {
       tasks_listed: r.data.tasks_listed ?? r.data.tasks_created ?? [],
       tasks_changed: Boolean(r.data.tasks_changed),
       calendar_created: r.data.calendar_created ?? null,
+      calendar_deleted: r.data.calendar_deleted ?? null,
     }
   } finally {
     window.clearTimeout(timer)
@@ -800,6 +802,7 @@ export async function apiChatLive(
           tasks_listed?: Task[]
           tasks_changed?: boolean
           calendar_created?: CalendarMeeting | null
+          calendar_deleted?: ChatResult['calendar_deleted']
           detail?: string
         }
         try {
@@ -816,6 +819,7 @@ export async function apiChatLive(
             tasks_listed: ev.tasks_listed ?? ev.tasks_created ?? [],
             tasks_changed: Boolean(ev.tasks_changed),
             calendar_created: ev.calendar_created ?? null,
+            calendar_deleted: ev.calendar_deleted ?? null,
           }
         } else if (ev.type === 'error') {
           err = String(ev.detail ?? 'error')

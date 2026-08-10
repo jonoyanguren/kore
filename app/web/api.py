@@ -41,8 +41,9 @@ from app.integrations.google_calendar.actions import (
 )
 from app.integrations.google_calendar.client import meeting_dict_from_event
 from app.integrations.google_calendar.propose_stash import (
-    set_calendar_created,
+    clear_calendar_stash,
     take_calendar_created,
+    take_calendar_deleted,
 )
 from app.integrations.gmail.triage_log import (
     list_marked_read,
@@ -885,6 +886,7 @@ async def _run_chat(
         tasks_listed: list[dict[str, Any]] | None = None,
         tasks_changed: bool = False,
         calendar_created: dict[str, Any] | None = None,
+        calendar_deleted: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         return {
             "reply": reply,
@@ -892,6 +894,7 @@ async def _run_chat(
             "tasks_listed": tasks_listed if tasks_listed is not None else (tasks_created or []),
             "tasks_changed": tasks_changed,
             "calendar_created": calendar_created,
+            "calendar_deleted": calendar_deleted,
         }
 
     memory = request.app.state.memory
@@ -937,7 +940,7 @@ async def _run_chat(
     if llm is None:
         raise HTTPException(status_code=503, detail="llm not ready")
 
-    set_calendar_created(None)
+    clear_calendar_stash()
     before = {t.id for t in await memory.list_tasks(status="open", limit=100)}
     reply = await llm.ask(
         ask_text,
@@ -948,6 +951,7 @@ async def _run_chat(
     after = {t.id for t in after_rows}
     created = [_task_dict(t) for t in after_rows if t.id in (after - before)]
     cal_created = take_calendar_created()
+    cal_deleted = take_calendar_deleted()
     # Only attach cards for tasks created this turn — do NOT scrape numbered
     # lists from the reply (list_tasks format "12. title" was flooding the UI).
     return pack(
@@ -956,6 +960,7 @@ async def _run_chat(
         tasks_listed=list(created),
         tasks_changed=bool(created) or before != after,
         calendar_created=cal_created,
+        calendar_deleted=cal_deleted,
     )
 
 
