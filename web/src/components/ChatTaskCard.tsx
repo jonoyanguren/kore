@@ -24,7 +24,7 @@ export function ChatTaskCard({ task, onOpen, onComplete, onStart }: Props) {
 
   async function onCopyUrl() {
     const ok = await copyToClipboard(task.url || '')
-    if (ok) toast.ok('URL copiada')
+    if (ok) toast.ok('Copiado')
     else toast.err('No se pudo copiar')
   }
 

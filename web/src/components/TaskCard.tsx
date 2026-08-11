@@ -62,7 +62,7 @@ export function TaskCard({
 
   async function onCopyUrl() {
     const ok = await copyToClipboard(task.url || '')
-    if (ok) toast.ok('URL copiada')
+    if (ok) toast.ok('Copiado')
     else toast.err('No se pudo copiar')
   }
 

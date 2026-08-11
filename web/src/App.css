@@ -501,7 +501,7 @@ button.ghost:hover {
 
 .day-strip__hero-date {
   margin: 0.15rem 0 0;
-  color: var(--muted);
+  color: var(--accent);
   font-weight: 300;
   font-size: 1rem;
 }
