@@ -98,6 +98,7 @@ export function DayStrip({
   const [reply, setReply] = useState<GmailReplyDraft | null>(null)
   const [replyBody, setReplyBody] = useState('')
   const [replyBusy, setReplyBusy] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
   const toast = useToast()
 
   useEffect(() => {
@@ -148,6 +149,9 @@ export function DayStrip({
   const inbox = day.inbox
   const dreamInbox = briefing?.inbox ?? []
   const markedToday = inbox?.marked_read_today ?? []
+  const focusTasks = Array.from(
+    new Map([...starred, ...mustNotMiss].map((t) => [t.id, t])).values(),
+  )
 
   async function markRead(id: string) {
     const msg = day?.inbox?.messages.find((m) => m.id === id)
@@ -347,22 +351,8 @@ export function DayStrip({
 
   return (
     <section className="day-strip day-strip--hero" aria-label="Hoy">
-      <h2 className="day-strip__hero-title">
-        {day.greeting || `Hola, ${day.owner_name || 'Jon'}`}
-      </h2>
       {dateLine ? <p className="day-strip__hero-date">{dateLine}</p> : null}
       {time ? <p className="day-strip__hero-clock">{time}</p> : null}
-
-      <div className="day-strip__hero-counts">
-        <button type="button" className="day-strip__stat" onClick={onOpenBoard}>
-          <strong>{day.tasks.in_progress}</strong>
-          <span>en curso</span>
-        </button>
-        <button type="button" className="day-strip__stat" onClick={onOpenBoard}>
-          <strong>{day.tasks.open}</strong>
-          <span>pendientes</span>
-        </button>
-      </div>
 
       <div className="day-strip__brief">
         <div className="day-strip__block">
@@ -461,66 +451,42 @@ export function DayStrip({
         </div>
 
         <div className="day-strip__block">
-          <h3>★ En curso</h3>
-          {starred.length === 0 ? (
-            <p className="muted">Nada con estrella — márcalas en Tareas</p>
+          <h3>Foco</h3>
+          {focusTasks.length === 0 ? (
+            <p className="muted">Sin tareas del día</p>
           ) : (
-            <ul>
-              {starred.map((t) => (
-                <li key={t.id}>
-                  <button
-                    type="button"
-                    className="day-strip__task-link"
-                    onClick={onOpenBoard}
-                  >
-                    {t.title}
-                  </button>
-                  <span className="day-strip__tag">
-                    <ProjectChip project={t.project} />
-                    {t.due_at
-                      ? formatWhen(
-                          t.due_at.length === 10
-                            ? `${t.due_at}T00:00`
-                            : t.due_at,
-                        )
-                      : !t.project
-                        ? 'en curso'
-                        : ''}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <div className="day-strip__block">
-          <h3>No se pueden escapar</h3>
-          {mustNotMiss.length === 0 ? (
-            <p className="muted">Ninguna ahora</p>
-          ) : (
-            <ul>
-              {mustNotMiss.map((t) => (
-                <li key={t.id}>
-                  <button
-                    type="button"
-                    className="day-strip__task-link"
-                    onClick={onOpenBoard}
-                  >
-                    {t.title}
-                  </button>
-                  <span className="day-strip__tag">
-                    <ProjectChip project={t.project} />
-                    {t.due_at
-                      ? formatWhen(
-                          t.due_at.length === 10
-                            ? `${t.due_at}T00:00`
-                            : t.due_at,
-                        )
-                      : null}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul>
+                {focusTasks.slice(0, 6).map((t) => (
+                  <li key={t.id}>
+                    <button
+                      type="button"
+                      className="day-strip__task-link"
+                      onClick={onOpenBoard}
+                    >
+                      {t.title}
+                    </button>
+                    <span className="day-strip__tag">
+                      <ProjectChip project={t.project} />
+                      {t.due_at
+                        ? formatWhen(
+                            t.due_at.length === 10
+                              ? `${t.due_at}T00:00`
+                              : t.due_at,
+                          )
+                        : null}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                className="day-strip__all"
+                onClick={onOpenBoard}
+              >
+                Ver todas en el board →
+              </button>
+            </>
           )}
         </div>
 
@@ -567,13 +533,6 @@ export function DayStrip({
             </div>
           ) : (
             <>
-              {dreamInbox.length > 0 ? (
-                <ul className="day-strip__inbox-dream">
-                  {dreamInbox.map((line) => (
-                    <li key={line}>{line}</li>
-                  ))}
-                </ul>
-              ) : null}
               <ul className="day-strip__inbox">
               {inbox.messages.map((m) => (
                 <li key={m.id}>
@@ -703,11 +662,24 @@ export function DayStrip({
                 : 'Sin dream aún — cron 09:00 o /dream en el chat de la consola'}
             </p>
           ) : (
-            <ul className="day-strip__help">
-              {help.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
+            <>
+              <ul className="day-strip__help">
+                {(helpOpen ? help : help.slice(0, 3)).map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+              {help.length > 3 ? (
+                <button
+                  type="button"
+                  className="ghost day-strip__help-toggle"
+                  onClick={() => setHelpOpen((v) => !v)}
+                >
+                  {helpOpen
+                    ? 'Menos'
+                    : `Mostrar ${help.length - 3} más`}
+                </button>
+              ) : null}
+            </>
           )}
         </div>
       </div>
