@@ -11,6 +11,7 @@ import {
   type GmailReplyDraft,
 } from '../api'
 import { formatWhen } from '../dates'
+import { dailyQuote } from '../lib/quotes'
 import { DayCalendar, type DayMeeting } from './DayCalendar'
 import { ProjectChip } from './ProjectChip'
 import { useToast } from './Toasts'
@@ -322,6 +323,7 @@ export function DayStrip({
 
   const dateLine = rest || day.headline || ''
   const focusTask = starred[0] ?? mustNotMiss[0] ?? important[0]
+  const quote = dailyQuote(day.today)
 
   if (variant === 'rail') {
     const nextMeeting = meetings[0]
@@ -353,6 +355,15 @@ export function DayStrip({
     <section className="day-strip day-strip--hero" aria-label="Hoy">
       {dateLine ? <p className="day-strip__hero-date">{dateLine}</p> : null}
       {time ? <p className="day-strip__hero-clock">{time}</p> : null}
+
+      <blockquote className="day-strip__quote">
+        <p className="day-strip__quote-text">{quote.text}</p>
+        {quote.author ? (
+          <footer className="day-strip__quote-author">
+            — {quote.author}
+          </footer>
+        ) : null}
+      </blockquote>
 
       <div className="day-strip__brief">
         <div className="day-strip__block">
