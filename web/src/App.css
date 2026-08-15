@@ -1,10 +1,10 @@
-/* Cambiado el color de la hora en la pestaña del día a amarillo */
+/* Cambiado el color de la hora en la pestaña del día a rojo */
 .day-cal__hour span {
   position: absolute;
   top: -0.45rem;
   right: 0.4rem;
   font-size: 0.68rem;
-  color: yellow;
+  color: red;
   font-variant-numeric: tabular-nums;
 }
 
