@@ -105,10 +105,38 @@ function renderTable(rows: string[][]): string {
 
 function sectionBlockClass(title: string): string {
   const t = title.trim().toLowerCase()
-  if (t.startsWith('decisi')) return 'missions__block--decision'
-  if (t.startsWith('por qu') || t.startsWith('porque')) return 'missions__block--why'
-  if (t.startsWith('opcion') || t.startsWith('opción')) return 'missions__block--options'
-  if (t.startsWith('siguiente')) return 'missions__block--next'
+  if (
+    t.startsWith('decisi') ||
+    t.startsWith('juicio') ||
+    t.startsWith('veredicto') ||
+    t.startsWith('si hubiera')
+  ) {
+    return 'missions__block--decision'
+  }
+  if (
+    t.startsWith('por qu') ||
+    t.startsWith('porque') ||
+    t.startsWith('incertidumbre') ||
+    t.startsWith('peor caso')
+  ) {
+    return 'missions__block--why'
+  }
+  if (
+    t.startsWith('opcion') ||
+    t.startsWith('opción') ||
+    t.startsWith('mapa') ||
+    t.startsWith('las más raras') ||
+    t.startsWith('las mas raras') ||
+    t.startsWith('evidencia') ||
+    t.startsWith('contraste') ||
+    t.startsWith('qué te comes') ||
+    t.startsWith('que te comes')
+  ) {
+    return 'missions__block--options'
+  }
+  if (t.startsWith('siguiente') || t.startsWith('si aún así') || t.startsWith('si aun asi')) {
+    return 'missions__block--next'
+  }
   if (t.startsWith('fuente')) return 'missions__block--sources'
   return 'missions__block--plain'
 }

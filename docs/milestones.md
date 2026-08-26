@@ -126,6 +126,13 @@ Pendiente 1.6 → UI viva (aparte) / fricciones dogfood.
 - **D3 supersede:** Git/código / programar desde móvil = **proyecto aparte**; no Phase 4 en Kore
 - Siguiente: elegir feature nueva (no más fase dogfood)
 
+## 2026-08-26 — Misiones modos (D26)
+
+- Nueva: Normal / Loco / Experto / Duro (sustituye Calidad Normal/Pro)
+- Leyenda visible en el form; modelo: Normal=Flash, resto=Pro
+- Prompts de plan / tarea / Resultado / aclarar cambian con el modo
+- Legacy `pro` → Experto
+
 ## Prompting (baseline cerrado)
 
 - `personality.md`, `kimay.md`, Datafine, `slow-project.md`, `investing.md` (azValor baseline)
@@ -133,4 +140,4 @@ Pendiente 1.6 → UI viva (aparte) / fricciones dogfood.
 
 ---
 
-*Última actualización del archivo: 2026-08-10*
+*Última actualización del archivo: 2026-08-26*

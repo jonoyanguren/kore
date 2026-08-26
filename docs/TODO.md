@@ -16,6 +16,7 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 ## Ahora
 
 - [ ] Dogfood: chat → **crear bloque Calendar** (directo) · 1 semana
+- [x] **Misiones modos** — Normal / Loco / Experto / Duro + leyenda en Nueva
 - [x] **Dream fiable** — `/dream` en consola + reintento modelo + fallback vivo + Día no vacío
 - [ ] Cuando llegue diseño: plan de maquetación UI 1.6
 

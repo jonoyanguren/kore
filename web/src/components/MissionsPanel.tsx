@@ -5,7 +5,7 @@ import {
   apiCreateMission,
   apiGetMission,
   apiListMissions,
-  apiMissionQualityOptions,
+  apiMissionModeOptions,
   apiRelaunchMission,
   type ClarifyHistoryItem,
 } from '../api'
@@ -14,7 +14,7 @@ import {
   sectionToMarkdown,
   splitMissionMarkdown,
 } from '../lib/missionReport'
-import type { Mission, MissionCostInfo, MissionQualityOption } from '../types'
+import type { Mission, MissionCostInfo, MissionMode, MissionModeOption } from '../types'
 import { useToast } from './Toasts'
 
 type Props = {
@@ -76,6 +76,62 @@ function missionListCost(m: Mission): string | null {
   return formatMissionCost(cost)
 }
 
+const FALLBACK_MODES: MissionModeOption[] = [
+  {
+    id: 'normal',
+    label: 'Normal',
+    when: 'Mira esto y dime qué harías',
+    legend: 'Investiga y decide. Default.',
+    blurb: 'Flash — barato y rápido',
+    model: '',
+    approx_usd: 0.04,
+    approx_label: '~$0.02–0.06',
+  },
+  {
+    id: 'loco',
+    label: 'Loco',
+    when: 'Quieres volumen y rareza, no la opción sensata',
+    legend: 'Volumen y rareza; mapa, no una decisión.',
+    blurb: 'Pro — divergente',
+    model: '',
+    approx_usd: 0.2,
+    approx_label: '~$0.10–0.30',
+  },
+  {
+    id: 'experto',
+    label: 'Experto',
+    when: 'Ya sabes el básico; quieres rigor',
+    legend: 'Rigor; asume que ya sabes el básico.',
+    blurb: 'Pro — profundo',
+    model: '',
+    approx_usd: 0.2,
+    approx_label: '~$0.10–0.30',
+  },
+  {
+    id: 'duro',
+    label: 'Duro',
+    when: 'Quieres que te tumben la idea',
+    legend: 'Te tumba la idea; peor caso, cero ánimo.',
+    blurb: 'Pro — red team',
+    model: '',
+    approx_usd: 0.2,
+    approx_label: '~$0.10–0.30',
+  },
+]
+
+function missionModeId(m: Mission): string {
+  return m.mode || m.quality || 'normal'
+}
+
+function missionModeLabel(m: Mission, options: MissionModeOption[]): string {
+  if (m.mode_label) return m.mode_label
+  const id = missionModeId(m)
+  const hit = options.find((o) => o.id === id)
+  if (hit) return hit.label
+  if (id === 'pro') return 'Experto'
+  return id.charAt(0).toUpperCase() + id.slice(1)
+}
+
 export function MissionsPanel({ active = true }: Props) {
   const [missions, setMissions] = useState<Mission[]>([])
   const [hideDone, setHideDone] = useState(false)
@@ -90,16 +146,16 @@ export function MissionsPanel({ active = true }: Props) {
   const [history, setHistory] = useState<ClarifyHistoryItem[]>([])
   const [round, setRound] = useState(1)
   const [refinedBrief, setRefinedBrief] = useState('')
-  const [quality, setQuality] = useState<'normal' | 'pro'>('normal')
-  const [qualityOptions, setQualityOptions] = useState<MissionQualityOption[]>(
-    [],
-  )
+  const [mode, setMode] = useState<MissionMode>('normal')
+  const [modeOptions, setModeOptions] =
+    useState<MissionModeOption[]>(FALLBACK_MODES)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const toast = useToast()
 
   const panelOpen = selectedId != null
-  const selectedQuality = qualityOptions.find((o) => o.id === quality)
+  const selectedMode =
+    modeOptions.find((o) => o.id === mode) || FALLBACK_MODES[0]
 
   function resetForm() {
     setTitle('')
@@ -110,7 +166,7 @@ export function MissionsPanel({ active = true }: Props) {
     setHistory([])
     setRound(1)
     setRefinedBrief('')
-    setQuality('normal')
+    setMode('normal')
   }
 
   async function loadList() {
@@ -132,9 +188,9 @@ export function MissionsPanel({ active = true }: Props) {
 
   useEffect(() => {
     let cancelled = false
-    void apiMissionQualityOptions()
+    void apiMissionModeOptions()
       .then((opts) => {
-        if (!cancelled && opts.length) setQualityOptions(opts)
+        if (!cancelled && opts.length) setModeOptions(opts)
       })
       .catch(() => {
         /* fallback UI labels below */
@@ -189,7 +245,7 @@ export function MissionsPanel({ active = true }: Props) {
       brief: brief.trim(),
       history: nextHistory,
       round: nextRound,
-      quality,
+      mode,
     })
     setRound(result.round)
     setRefinedBrief(result.refined_brief)
@@ -245,7 +301,7 @@ export function MissionsPanel({ active = true }: Props) {
         brief: finalBrief.trim(),
         launch: true,
         tick_seconds: 10,
-        quality,
+        mode,
       })
       toast.ok(`Misión #${m.id} en cola`)
       resetForm()
@@ -268,36 +324,45 @@ export function MissionsPanel({ active = true }: Props) {
     await launchWithBrief(brief)
   }
 
-  function qualityField() {
-    const approx =
-      selectedQuality?.approx_label ||
-      (quality === 'pro' ? '~$0.10–0.30' : '~$0.02–0.06')
-    const blurb =
-      selectedQuality?.blurb ||
-      (quality === 'pro'
-        ? 'V4 Pro — más profundo'
-        : 'Flash — barato y rápido')
+  function modeField() {
+    const approx = selectedMode.approx_label
     return (
-      <label className="missions__quality">
-        Calidad
-        <select
-          value={quality}
-          onChange={(e) =>
-            setQuality(e.target.value === 'pro' ? 'pro' : 'normal')
-          }
-          disabled={busy}
-        >
-          <option value="normal">
-            Normal · {qualityOptions.find((o) => o.id === 'normal')?.approx_label || '~$0.02–0.06'}
-          </option>
-          <option value="pro">
-            Pro · {qualityOptions.find((o) => o.id === 'pro')?.approx_label || '~$0.10–0.30'}
-          </option>
-        </select>
+      <div className="missions__mode">
+        <label className="missions__quality">
+          Modo
+          <select
+            value={mode}
+            onChange={(e) => setMode(e.target.value as MissionMode)}
+            disabled={busy}
+          >
+            {modeOptions.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.label} · {o.approx_label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <ul className="missions__mode-legend" aria-label="Leyenda de modos">
+          {modeOptions.map((o) => (
+            <li
+              key={o.id}
+              className={o.id === mode ? 'is-active' : undefined}
+            >
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setMode(o.id as MissionMode)}
+              >
+                <strong>{o.label}</strong>
+                <span>{o.legend}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
         <span className="muted missions__quality-hint">
-          {blurb} · estimado {approx} / misión
+          {selectedMode.blurb} · estimado {approx} / misión
         </span>
-      </label>
+      </div>
     )
   }
 
@@ -395,7 +460,7 @@ export function MissionsPanel({ active = true }: Props) {
                     disabled={busy}
                   />
                 </label>
-                {qualityField()}
+                {modeField()}
                 <p className="muted missions__form-hint">
                   Plan automático → tareas en secuencia con handoff entre pasos.
                 </p>
@@ -420,7 +485,7 @@ export function MissionsPanel({ active = true }: Props) {
                 <p className="missions__clarify-lede">
                   Antes de lanzar, unas preguntas:
                 </p>
-                {qualityField()}
+                {modeField()}
                 {questions.map((q, i) => (
                   <label key={`${round}-${i}`}>
                     {q}
@@ -471,7 +536,7 @@ export function MissionsPanel({ active = true }: Props) {
                     disabled={busy}
                   />
                 </label>
-                {qualityField()}
+                {modeField()}
                 <div className="missions__form-actions">
                   <button
                     type="submit"
@@ -536,7 +601,7 @@ export function MissionsPanel({ active = true }: Props) {
                   </div>
                   <span className="missions__item-meta muted">
                     {STATUS_LABEL[m.status] || m.status}
-                    {m.quality === 'pro' ? ' · Pro' : ' · Normal'}
+                    {` · ${missionModeLabel(m, modeOptions)}`}
                     {isActiveStatus(m.status) || m.status === 'done'
                       ? ` · ${missionProgressLabel(m) || `${m.step_index}/${m.max_ticks}`}`
                       : ''}
@@ -590,7 +655,7 @@ export function MissionsPanel({ active = true }: Props) {
                 <h3>{detail.title}</h3>
                 <p className="muted">
                   {STATUS_LABEL[detail.status] || detail.status}
-                  {` · ${detail.quality === 'pro' ? 'Pro' : 'Normal'}`}
+                  {` · ${missionModeLabel(detail, modeOptions)}`}
                   {detail.model ? ` · ${detail.model.split('/').pop()}` : ''}
                   {isActiveStatus(detail.status) || detail.status === 'done'
                     ? ` · ${missionProgressLabel(detail) || `tick ${detail.step_index}/${detail.max_ticks}`}`

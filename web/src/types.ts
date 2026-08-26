@@ -23,6 +23,8 @@ export type MissionStatus =
   | 'failed'
   | 'cancelled'
 
+export type MissionMode = 'normal' | 'loco' | 'experto' | 'duro'
+
 export type MissionTaskItem = {
   title: string
   goal: string
@@ -51,7 +53,9 @@ export type Mission = {
   title: string
   status: MissionStatus | string
   brief: string
-  quality?: 'normal' | 'pro' | string
+  quality?: MissionMode | 'pro' | string
+  mode?: MissionMode | string
+  mode_label?: string
   model?: string
   step_index: number
   max_ticks: number
@@ -65,11 +69,16 @@ export type Mission = {
   plan?: MissionPlanView | null
 }
 
-export type MissionQualityOption = {
-  id: 'normal' | 'pro' | string
+export type MissionModeOption = {
+  id: MissionMode | string
   label: string
-  model: string
+  when: string
+  legend: string
   blurb: string
+  model: string
   approx_usd: number
   approx_label: string
 }
+
+/** @deprecated use MissionModeOption */
+export type MissionQualityOption = MissionModeOption

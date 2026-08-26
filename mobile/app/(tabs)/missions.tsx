@@ -7,7 +7,7 @@ import { useColorScheme } from '@/components/useColorScheme'
 import Colors from '@/constants/Colors'
 import { apiMissions } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
-import type { Mission } from '@/lib/types'
+import { missionModeLabel, type Mission } from '@/lib/types'
 
 const STATUS: Record<string, string> = {
   draft: 'Borrador',
@@ -72,7 +72,7 @@ export default function MissionsScreen() {
               </Text>
               <Muted>
                 {STATUS[m.status] || m.status}
-                {m.quality === 'pro' ? ' · Pro' : ' · Normal'}
+                {` · ${missionModeLabel(m)}`}
                 {m.plan?.total
                   ? ` · ${m.plan.completed}/${m.plan.total}`
                   : ''}

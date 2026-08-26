@@ -18,7 +18,7 @@ from app.kernel.mission_plan import (
     render_mission_markdown,
 )
 from app.kernel.review_common import is_blank_report, looks_like_tool_markup, run_tool_loop
-from app.llm.mission_quality import resolve_mission_model
+from app.llm.mission_quality import mode_label, resolve_mission_model, task_addon_for
 from app.llm.openrouter_credits import fetch_usage
 from app.llm.usage_cost import UsageAccumulator, format_cost_usd
 from app.storage.memory import MemoryStore, MissionRow
@@ -153,6 +153,7 @@ async def _execute_task(
     user = (
         f"MISIÓN — TAREA {task_index + 1}/{n}: {task.title}\n\n"
         f"Título misión: {mission.title}\n"
+        f"Modo: {mode_label(mission.quality)}\n"
         f"Encargo original:\n{mission.brief}\n\n"
         f"Handoff de la tarea anterior:\n{ctx}\n\n"
         f"Objetivo de ESTA tarea:\n{task.goal}\n\n"
@@ -161,6 +162,7 @@ async def _execute_task(
 
     tools, handlers = build_web_tools()
     model = resolve_mission_model(mission.quality)
+    system = f"{MISSION_SYSTEM}\n\n{task_addon_for(mission.quality)}"
     logger.info(
         "Mission %s task %s/%s model=%s title=%r",
         mission.id,
@@ -171,7 +173,7 @@ async def _execute_task(
     )
     text = await run_tool_loop(
         llm,
-        system=MISSION_SYSTEM,
+        system=system,
         user_payload=user,
         tools=tools,
         handlers=handlers,

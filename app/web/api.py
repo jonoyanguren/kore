@@ -54,8 +54,9 @@ from app.kernel.briefing import build_day_briefing
 from app.kernel.mission_clarify import clarify_mission
 from app.kernel.mission_plan import MissionPlan
 from app.llm.mission_quality import (
-    mission_quality_options,
-    normalize_quality,
+    mission_mode_options,
+    mode_label,
+    normalize_mode,
     resolve_mission_model,
 )
 from app.llm.openrouter_credits import fetch_usage
@@ -471,7 +472,11 @@ class CreateMissionBody(BaseModel):
     brief: str = Field(default="", max_length=8000)
     launch: bool = True
     tick_seconds: int = Field(default=10, ge=5, le=3600)
-    quality: str = Field(default="normal", pattern="^(normal|pro)$")
+    quality: str = Field(default="normal", max_length=20)
+    mode: str | None = Field(default=None, max_length=20)
+
+    def resolved_mode(self) -> str:
+        return normalize_mode(self.mode or self.quality)
 
 
 class ClarifyHistoryItem(BaseModel):
@@ -484,7 +489,11 @@ class ClarifyMissionBody(BaseModel):
     brief: str = Field(default="", max_length=8000)
     history: list[ClarifyHistoryItem] = Field(default_factory=list)
     round: int = Field(default=1, ge=1, le=2)
-    quality: str = Field(default="normal", pattern="^(normal|pro)$")
+    quality: str = Field(default="normal", max_length=20)
+    mode: str | None = Field(default=None, max_length=20)
+
+    def resolved_mode(self) -> str:
+        return normalize_mode(self.mode or self.quality)
 
 
 def _mission_dict(row: MissionRow, *, markdown: str | None = None) -> dict[str, Any]:
@@ -506,14 +515,16 @@ def _mission_dict(row: MissionRow, *, markdown: str | None = None) -> dict[str, 
         }
         if plan.cost and (plan.cost.usd > 0 or plan.cost.llm_calls > 0):
             plan_out["cost"] = plan.cost.to_dict()
-    quality = normalize_quality(row.quality)
+    mode = normalize_mode(row.quality)
     out: dict[str, Any] = {
         "id": row.id,
         "title": row.title,
         "status": row.status,
         "brief": row.brief,
-        "quality": quality,
-        "model": resolve_mission_model(quality),
+        "quality": mode,
+        "mode": mode,
+        "mode_label": mode_label(mode),
+        "model": resolve_mission_model(mode),
         "step_index": row.step_index,
         "max_ticks": row.max_ticks,
         "tick_seconds": row.tick_seconds,
@@ -531,7 +542,13 @@ def _mission_dict(row: MissionRow, *, markdown: str | None = None) -> dict[str, 
 
 @router.get("/missions/quality-options", dependencies=[Depends(require_console_auth)])
 async def missions_quality_options() -> dict[str, Any]:
-    return {"ok": True, "options": mission_quality_options()}
+    opts = mission_mode_options()
+    return {"ok": True, "options": opts}
+
+
+@router.get("/missions/mode-options", dependencies=[Depends(require_console_auth)])
+async def missions_mode_options() -> dict[str, Any]:
+    return {"ok": True, "options": mission_mode_options()}
 
 
 @router.get("/missions", dependencies=[Depends(require_console_auth)])
@@ -549,7 +566,7 @@ async def create_mission(request: Request, body: CreateMissionBody) -> dict[str,
     vault = request.app.state.vault
     status_v = "queued" if body.launch else "draft"
     next_run = now_madrid().replace(microsecond=0).isoformat() if body.launch else None
-    quality = normalize_quality(body.quality)
+    quality = body.resolved_mode()
     mid = await memory.add_mission(
         body.title.strip(),
         brief=body.brief.strip(),
@@ -560,12 +577,11 @@ async def create_mission(request: Request, body: CreateMissionBody) -> dict[str,
         next_run_at=next_run,
     )
     model = resolve_mission_model(quality)
-    q_label = "Pro" if quality == "pro" else "Normal"
     path = vault.write_mission(
         mid,
         f"# {body.title.strip()}\n\n"
         f"> Estado: {'en cola · planificando…' if body.launch else 'borrador'}\n"
-        f"> Calidad: {q_label} · `{model}`\n\n"
+        f"> Modo: {mode_label(quality)} · `{model}`\n\n"
         f"## Encargo\n\n{body.brief.strip() or '(sin brief)'}\n",
     )
     rel = str(path.relative_to(vault.root)) if path.is_relative_to(vault.root) else str(path)
@@ -593,7 +609,7 @@ async def clarify_mission_endpoint(
         brief=body.brief.strip(),
         history=hist,
         round_n=body.round,
-        quality=normalize_quality(body.quality),
+        quality=body.resolved_mode(),
     )
     return {
         "ok": True,

@@ -7,7 +7,7 @@ import { useColorScheme } from '@/components/useColorScheme'
 import Colors from '@/constants/Colors'
 import { apiMission } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
-import type { Mission } from '@/lib/types'
+import { missionModeLabel, type Mission } from '@/lib/types'
 
 export default function MissionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -53,7 +53,7 @@ export default function MissionDetailScreen() {
             <>
               <Muted>
                 {mission.status}
-                {mission.quality === 'pro' ? ' · Pro' : ' · Normal'}
+                {` · ${missionModeLabel(mission)}`}
               </Muted>
               {mission.brief ? (
                 <Card>

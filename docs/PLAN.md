@@ -10,7 +10,7 @@
 | Fase actual | **Agenda + Google Calendar (read)** — post–Phase 3 |
 | Canal | Consola web = operar / día · Telegram = captura móvil opcional |
 | Deploy | Fly.io · `/data` |
-| LLM | OpenRouter · diario `deepseek/deepseek-v4-pro` · strong `claude-haiku-4.5` · misiones Normal=`deepseek-v4-flash` / Pro=`deepseek-v4-pro` · prompt cache en tool loops |
+| LLM | OpenRouter · diario `deepseek/deepseek-v4-pro` · strong `claude-haiku-4.5` · misiones Normal=`deepseek-v4-flash` / Loco·Experto·Duro=`deepseek-v4-pro` · prompt cache en tool loops |
 | Diseño largo | `companion-plan.md` · Consola 1.5: `web-console-plan.md` |
 | Backlog | `TODO.md` · **Producto** vs **Plataforma** |
 
@@ -53,6 +53,7 @@
 | D23 | Dogfood Phase 0–3 **cerrado** (2026-08-10); siguiente = features nuevas, no más “vivir el MVP” |
 | D24 | **Google Calendar read-only** vía mismo OAuth (`calendar.readonly`); solo calendario **primary** (no suscripciones); eventos live en Día + dream + tool chat; **no** duplicar a SQLite en v1; agenda local sigue para captura chat |
 | D25 | **Chat → crear bloque Calendar**: tool `create_calendar_block` escribe ya en primary; pregunta solo si hay duda real |
+| D26 | **Misiones modos** (2026-08-26): Normal / Loco / Experto / Duro. Un eje (sustituye Calidad Normal/Pro). Legacy `pro` → Experto. Modelo: Normal=Flash; resto=Pro |
 
 ## Roadmap (lean)
 
@@ -99,6 +100,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-08-26 | **D26** Misiones: modos Normal / Loco / Experto / Duro + leyenda en Nueva (sustituye Calidad) |
 | 2026-08-10 | **Dream fiable:** `/dream` consola; retry modelo; fallback determinista; Día con help vivo |
 | 2026-08-10 | Calendar Día: acciones **Abrir / Tarea / Prep**; spike write desde chat (`docs/spikes/calendar-write.md`) |
 | 2026-08-10 | **D24 shipped (code):** Calendar read — primary only; Día/dream/tool |

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import aiosqlite
 
+from app.llm.mission_quality import VALID_MODES, normalize_mode
 from app.timeutil import session_date_str
 
 
@@ -870,8 +871,8 @@ class MemoryStore:
         next_run_at: str | None = None,
         result_path: str | None = None,
     ) -> int:
-        q = (quality or "normal").strip().lower()
-        if q not in ("normal", "pro"):
+        q = normalize_mode(quality)
+        if q not in VALID_MODES:
             q = "normal"
         async with aiosqlite.connect(self._db_path) as db:
             cursor = await db.execute(
@@ -993,8 +994,7 @@ class MemoryStore:
             new_error = error
         new_quality = current.quality
         if quality is not None:
-            q = quality.strip().lower()
-            new_quality = q if q in ("normal", "pro") else "normal"
+            new_quality = normalize_mode(quality)
         async with aiosqlite.connect(self._db_path) as db:
             await db.execute(
                 """

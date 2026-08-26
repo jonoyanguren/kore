@@ -1,4 +1,4 @@
-import type { Mission, Task, TaskStatus } from './types'
+import type { Mission, MissionMode, Task, TaskStatus } from './types'
 
 async function req<T>(
   path: string,
@@ -552,7 +552,8 @@ export async function apiCreateMission(input: {
   launch?: boolean
   max_ticks?: number
   tick_seconds?: number
-  quality?: 'normal' | 'pro'
+  quality?: MissionMode | 'pro'
+  mode?: MissionMode
 }): Promise<Mission> {
   const r = await req<{ mission: Mission }>('/api/missions', {
     method: 'POST',
@@ -577,7 +578,8 @@ export async function apiClarifyMission(input: {
   brief?: string
   history?: ClarifyHistoryItem[]
   round?: number
-  quality?: 'normal' | 'pro'
+  quality?: MissionMode | 'pro'
+  mode?: MissionMode
 }): Promise<ClarifyResult> {
   const r = await req<{
     ok: boolean
@@ -600,14 +602,24 @@ export async function apiClarifyMission(input: {
   }
 }
 
-export async function apiMissionQualityOptions(): Promise<
-  import('./types').MissionQualityOption[]
+export async function apiMissionModeOptions(): Promise<
+  import('./types').MissionModeOption[]
 > {
-  const r = await req<{ options: import('./types').MissionQualityOption[] }>(
+  const r = await req<{ options: import('./types').MissionModeOption[] }>(
+    '/api/missions/mode-options',
+  )
+  if (r.ok) return r.data.options
+  const legacy = await req<{ options: import('./types').MissionModeOption[] }>(
     '/api/missions/quality-options',
   )
-  if (!r.ok) throw new Error(`mission quality ${r.status}`)
-  return r.data.options
+  if (!legacy.ok) throw new Error(`mission modes ${legacy.status}`)
+  return legacy.data.options
+}
+
+export async function apiMissionQualityOptions(): Promise<
+  import('./types').MissionModeOption[]
+> {
+  return apiMissionModeOptions()
 }
 
 export async function apiCancelMission(id: number): Promise<Mission> {

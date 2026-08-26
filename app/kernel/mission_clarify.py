@@ -10,7 +10,7 @@ from typing import Any
 
 import openai
 
-from app.llm.mission_quality import resolve_mission_model
+from app.llm.mission_quality import clarify_addon_for, resolve_mission_model
 from app.llm.prompt_cache import openrouter_extra_body, with_system_cache_control
 
 logger = logging.getLogger(__name__)
@@ -158,9 +158,10 @@ async def clarify_mission(
     user = build_clarify_user_payload(
         title=title, brief=brief, history=hist, round_n=round_n
     )
+    system = f"{CLARIFY_SYSTEM}\n\n{clarify_addon_for(quality)}"
     messages = with_system_cache_control(
         [
-            {"role": "system", "content": CLARIFY_SYSTEM},
+            {"role": "system", "content": system},
             {"role": "user", "content": user},
         ],
         model=model,

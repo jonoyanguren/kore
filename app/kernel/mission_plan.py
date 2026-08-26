@@ -10,7 +10,15 @@ from typing import Any
 
 import openai
 
-from app.llm.mission_quality import resolve_mission_model
+from app.llm.mission_quality import (
+    mode_label,
+    plan_system_for,
+    plan_temperature_for,
+    resolve_mission_model,
+    summary_system_for,
+    summary_temperature_for,
+    task_range_for,
+)
 from app.llm.prompt_cache import openrouter_extra_body, with_system_cache_control
 from app.llm.spend_ledger import log_completion
 from app.llm.usage_cost import MissionCostInfo, UsageAccumulator, format_cost_usd
@@ -295,15 +303,17 @@ async def plan_mission(
     spend_ref: str | None = None,
 ) -> MissionPlan:
     model = resolve_mission_model(quality)
+    min_t, max_t = task_range_for(quality)
     user = (
         f"Título: {title.strip()}\n"
-        f"Encargo:\n{(brief or '').strip() or '(vacío)'}\n\n"
-        f"Genera {MIN_TASKS}–{MAX_TASKS} tareas ejecutables.\n"
+        f"Encargo:\n{(brief or '').strip() or '(vacío)'}\n"
+        f"Modo: {mode_label(quality)}\n\n"
+        f"Genera {min_t}–{max_t} tareas ejecutables.\n"
         'Responde SOLO JSON: {{"tasks":[{{"title":"…","goal":"…"}}]}}'
     )
     base_messages = with_system_cache_control(
         [
-            {"role": "system", "content": PLAN_SYSTEM},
+            {"role": "system", "content": plan_system_for(quality)},
             {"role": "user", "content": user},
         ],
         model=model,
@@ -317,7 +327,7 @@ async def plan_mission(
         usage_acc=usage_acc,
         spend_store=spend_store,
         spend_ref=spend_ref,
-        temperature=0.2,
+        temperature=plan_temperature_for(quality),
     )
     data = _extract_json(text)
     plan = _normalize_plan(data) if data else None
@@ -522,13 +532,14 @@ async def generate_mission_summary(
     body = "\n\n".join(chunks) if chunks else "(sin hallazgos)"
     user = (
         f"Misión: {title.strip()}\n"
+        f"Modo: {mode_label(quality)}\n"
         f"Encargo:\n{brief.strip()}\n\n"
         f"Hallazgos de las tareas:\n\n{body}\n\n"
-        "Escribe el Resultado final para Jon."
+        "Escribe el Resultado final para Jon, en el modo indicado."
     )
     messages = with_system_cache_control(
         [
-            {"role": "system", "content": SUMMARY_SYSTEM},
+            {"role": "system", "content": summary_system_for(quality)},
             {"role": "user", "content": user},
         ],
         model=model,
@@ -537,7 +548,7 @@ async def generate_mission_summary(
         "model": model,
         "messages": messages,
         "max_tokens": 2800,
-        "temperature": 0.3,
+        "temperature": summary_temperature_for(quality),
     }
     session_id = f"mission-{mission_id}-summary"
     extra = openrouter_extra_body(model=model, session_id=session_id)

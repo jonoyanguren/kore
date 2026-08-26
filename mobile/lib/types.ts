@@ -15,6 +15,8 @@ export type Mission = {
   status: string
   brief: string
   quality?: string
+  mode?: string
+  mode_label?: string
   model?: string
   step_index: number
   max_ticks: number
@@ -26,6 +28,15 @@ export type Mission = {
     total: number
     cost?: { usd: number; estimated: boolean } | null
   } | null
+}
+
+export function missionModeLabel(m: Mission): string {
+  if (m.mode_label) return m.mode_label
+  const id = (m.mode || m.quality || 'normal').toLowerCase()
+  if (id === 'loco') return 'Loco'
+  if (id === 'experto' || id === 'pro') return 'Experto'
+  if (id === 'duro') return 'Duro'
+  return 'Normal'
 }
 
 export type DaySnapshot = {
