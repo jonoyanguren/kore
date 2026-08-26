@@ -132,6 +132,12 @@ function missionModeLabel(m: Mission, options: MissionModeOption[]): string {
   return id.charAt(0).toUpperCase() + id.slice(1)
 }
 
+function modeTone(id: string): MissionMode {
+  if (id === 'pro' || id === 'experto') return 'experto'
+  if (id === 'loco' || id === 'duro') return id
+  return 'normal'
+}
+
 export function MissionsPanel({ active = true }: Props) {
   const [missions, setMissions] = useState<Mission[]>([])
   const [hideDone, setHideDone] = useState(false)
@@ -324,44 +330,52 @@ export function MissionsPanel({ active = true }: Props) {
     await launchWithBrief(brief)
   }
 
-  function modeField() {
+  function modeField(variant: 'cards' | 'pills' = 'cards') {
     const approx = selectedMode.approx_label
     return (
       <div className="missions__mode">
-        <label className="missions__quality">
+        <span className="missions__mode-label" id="missions-mode-label">
           Modo
-          <select
-            value={mode}
-            onChange={(e) => setMode(e.target.value as MissionMode)}
-            disabled={busy}
-          >
-            {modeOptions.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.label} · {o.approx_label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <ul className="missions__mode-legend" aria-label="Leyenda de modos">
-          {modeOptions.map((o) => (
-            <li
-              key={o.id}
-              className={o.id === mode ? 'is-active' : undefined}
-            >
+        </span>
+        <div
+          className={
+            variant === 'pills' ? 'missions__mode-pills' : 'missions__mode-grid'
+          }
+          role="radiogroup"
+          aria-labelledby="missions-mode-label"
+        >
+          {modeOptions.map((o) => {
+            const active = o.id === mode
+            const tone = modeTone(String(o.id))
+            return (
               <button
+                key={o.id}
                 type="button"
+                role="radio"
+                aria-checked={active}
                 disabled={busy}
+                className={
+                  (variant === 'pills'
+                    ? 'missions__mode-pill'
+                    : 'missions__mode-card') +
+                  ` missions__mode--${tone}` +
+                  (active ? ' is-active' : '')
+                }
                 onClick={() => setMode(o.id as MissionMode)}
               >
-                <strong>{o.label}</strong>
-                <span>{o.legend}</span>
+                <span className="missions__mode-name">{o.label}</span>
+                {variant === 'cards' ? (
+                  <span className="missions__mode-copy">{o.legend}</span>
+                ) : null}
               </button>
-            </li>
-          ))}
-        </ul>
-        <span className="muted missions__quality-hint">
-          {selectedMode.blurb} · estimado {approx} / misión
-        </span>
+            )
+          })}
+        </div>
+        <p className="muted missions__mode-hint">
+          {variant === 'cards' ? selectedMode.when : selectedMode.legend}
+          {' · '}
+          {approx} / misión
+        </p>
       </div>
     )
   }
@@ -460,7 +474,7 @@ export function MissionsPanel({ active = true }: Props) {
                     disabled={busy}
                   />
                 </label>
-                {modeField()}
+                {modeField('cards')}
                 <p className="muted missions__form-hint">
                   Plan automático → tareas en secuencia con handoff entre pasos.
                 </p>
@@ -485,7 +499,7 @@ export function MissionsPanel({ active = true }: Props) {
                 <p className="missions__clarify-lede">
                   Antes de lanzar, unas preguntas:
                 </p>
-                {modeField()}
+                {modeField('pills')}
                 {questions.map((q, i) => (
                   <label key={`${round}-${i}`}>
                     {q}
@@ -536,7 +550,7 @@ export function MissionsPanel({ active = true }: Props) {
                     disabled={busy}
                   />
                 </label>
-                {modeField()}
+                {modeField('pills')}
                 <div className="missions__form-actions">
                   <button
                     type="submit"
@@ -601,7 +615,14 @@ export function MissionsPanel({ active = true }: Props) {
                   </div>
                   <span className="missions__item-meta muted">
                     {STATUS_LABEL[m.status] || m.status}
-                    {` · ${missionModeLabel(m, modeOptions)}`}
+                    <span
+                      className={
+                        'missions__mode-tag missions__mode--' +
+                        modeTone(missionModeId(m))
+                      }
+                    >
+                      {missionModeLabel(m, modeOptions)}
+                    </span>
                     {isActiveStatus(m.status) || m.status === 'done'
                       ? ` · ${missionProgressLabel(m) || `${m.step_index}/${m.max_ticks}`}`
                       : ''}
@@ -653,9 +674,16 @@ export function MissionsPanel({ active = true }: Props) {
             <>
               <header className="missions__panel-head">
                 <h3>{detail.title}</h3>
-                <p className="muted">
+                <p className="muted missions__panel-meta">
                   {STATUS_LABEL[detail.status] || detail.status}
-                  {` · ${missionModeLabel(detail, modeOptions)}`}
+                  <span
+                    className={
+                      'missions__mode-tag missions__mode--' +
+                      modeTone(missionModeId(detail))
+                    }
+                  >
+                    {missionModeLabel(detail, modeOptions)}
+                  </span>
                   {detail.model ? ` · ${detail.model.split('/').pop()}` : ''}
                   {isActiveStatus(detail.status) || detail.status === 'done'
                     ? ` · ${missionProgressLabel(detail) || `tick ${detail.step_index}/${detail.max_ticks}`}`
