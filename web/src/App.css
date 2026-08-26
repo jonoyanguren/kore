@@ -3699,49 +3699,18 @@ a.more-drawer__btn {
   font-weight: 500;
 }
 
+.missions__research-heading {
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 .missions__md--muted {
   font-size: 0.9rem;
   color: rgba(21, 32, 43, 0.78);
-}
-
-.missions__detail {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.4);
-  overflow: hidden;
-}
-
-.missions__detail summary {
-  cursor: pointer;
-  list-style: none;
-  padding: 0.65rem 0.85rem;
-  font-size: 0.88rem;
-  font-weight: 500;
-  color: var(--muted);
-  user-select: none;
-}
-
-.missions__detail summary::-webkit-details-marker {
-  display: none;
-}
-
-.missions__detail summary::before {
-  content: '▸ ';
-  color: var(--muted);
-  font-size: 0.75rem;
-}
-
-.missions__detail[open] summary::before {
-  content: '▾ ';
-}
-
-.missions__detail[open] summary {
-  border-bottom: 1px solid var(--line);
-  color: var(--ink);
-}
-
-.missions__detail .missions__md {
-  padding: 0.75rem 0.85rem 1rem;
 }
 
 @media (max-width: 700px) {

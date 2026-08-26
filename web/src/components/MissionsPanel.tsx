@@ -421,7 +421,7 @@ export function MissionsPanel({ active = true }: Props) {
   const missionRunning = detail ? isActiveStatus(detail.status) : false
   const showLiveResearch =
     missionRunning && !report.result && report.research.length > 0
-  const showDetailAccordion =
+  const showFullResearch =
     Boolean(report.result) && report.detailMarkdown.trim().length > 0
 
   return (
@@ -749,16 +749,21 @@ export function MissionsPanel({ active = true }: Props) {
                       />
                     </section>
                   ) : null}
-                  {showDetailAccordion ? (
-                    <details className="missions__detail">
-                      <summary>Ver investigación completa</summary>
+                  {showFullResearch ? (
+                    <section
+                      className="missions__research"
+                      aria-label="Investigación"
+                    >
+                      <h4 className="missions__research-heading">
+                        Investigación
+                      </h4>
                       <div
-                        className="missions__md missions__md--muted"
+                        className="missions__md"
                         dangerouslySetInnerHTML={{
                           __html: renderMissionMarkdown(report.detailMarkdown),
                         }}
                       />
-                    </details>
+                    </section>
                   ) : null}
                   {showLiveResearch ? (
                     <div className="missions__research missions__research--live">
