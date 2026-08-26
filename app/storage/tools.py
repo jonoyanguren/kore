@@ -16,25 +16,37 @@ def build_memory_tools(
 ) -> tuple[list[dict], dict[str, ToolHandler]]:
     """Return (tool schemas, handlers) for categorical memory + diary."""
 
+    def _store() -> MemoryStore:
+        from app.accounts.context import current_memory
+
+        return current_memory.get() or store
+
+    def _vault() -> Vault | None:
+        from app.accounts.context import current_vault
+
+        return current_vault.get() or vault
+
     async def _save_memory(args: dict[str, Any]) -> str:
-        item_id = await store.save_memory(
+        item_id = await _store().save_memory(
             category=args.get("category", "general"),
             text=args["text"],
         )
         category = (args.get("category") or "general").strip().lower()
-        if vault is not None:
-            vault.append_memory(category, item_id, args["text"])
+        v = _vault()
+        if v is not None:
+            v.append_memory(category, item_id, args["text"])
         return f"Memoria guardada en '{category}' (id {item_id})."
 
     async def _add_diary_entry(args: dict[str, Any]) -> str:
         day = args.get("day") or session_date_str()
-        entry_id = await store.add_diary_entry(text=args["text"], day=day)
-        if vault is not None:
-            vault.append_diary(day, entry_id, args["text"])
+        entry_id = await _store().add_diary_entry(text=args["text"], day=day)
+        v = _vault()
+        if v is not None:
+            v.append_diary(day, entry_id, args["text"])
         return f"Entrada de diario guardada (id {entry_id})."
 
     async def _forget_memory(args: dict[str, Any]) -> str:
-        deleted = await store.delete_memory(int(args["memory_id"]))
+        deleted = await _store().delete_memory(int(args["memory_id"]))
         return "Memoria eliminada." if deleted else "No encontré esa memoria."
 
     async def _list_memory(args: dict[str, Any]) -> str:
@@ -44,7 +56,7 @@ def build_memory_tools(
         except (TypeError, ValueError):
             limit = 40
         limit = max(1, min(limit, 80))
-        rows = await store.list_memory(category=category, limit=limit)
+        rows = await _store().list_memory(category=category, limit=limit)
         if not rows:
             scope = f"categoría '{category}'" if category else "memoria"
             return f"No hay items en {scope}."

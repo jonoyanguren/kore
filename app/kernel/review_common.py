@@ -142,7 +142,10 @@ def transcript_block(messages: list[tuple[str, str]]) -> str:
         return "(sin mensajes de chat ese día)"
     lines = []
     for role, content in messages:
-        label = "Jon" if role == "user" else "Jone"
+        from app.accounts.context import active_names
+
+        assistant, owner = active_names()
+        label = owner if role == "user" else assistant
         text = (content or "").strip()
         if not text:
             continue

@@ -107,6 +107,7 @@ async def run_scheduled_dream(
     *,
     gmail: GmailClient | None = None,
     calendar: CalendarClient | None = None,
+    allow_telegram: bool = True,
 ) -> dict[str, str | bool]:
     """Consolidate yesterday once; deliver morning briefing once per Madrid day.
 
@@ -116,6 +117,7 @@ async def run_scheduled_dream(
     target = (today_madrid() - timedelta(days=1)).isoformat()
     morning = today_madrid().isoformat()
     chat_id = settings.telegram_allowed_chat_id
+    notify_telegram = bool(allow_telegram and settings.dream_notify_telegram)
 
     last_run, last_status, last_err = await store.get_job(JOB_DREAM)
     if not needs_dream_consolidate(
@@ -158,7 +160,7 @@ async def run_scheduled_dream(
                 "day": target,
                 "morning": morning,
                 "notified": False,
-                "telegram": settings.dream_notify_telegram,
+                "telegram": notify_telegram,
                 "error": error or "dream consolidate failed or blank",
                 "preview": summary[:200],
             }
@@ -168,7 +170,7 @@ async def run_scheduled_dream(
     notified = False
     if already_notified:
         logger.info("Cron dream morning notify skip — already ok for %s", morning)
-    elif not settings.dream_notify_telegram:
+    elif not notify_telegram:
         # UI-first: mark morning done without Telegram (vista Día reads vault).
         await store.mark_job(JOB_MORNING, status="ok", ran_at=morning, error=None)
         logger.info(
@@ -196,32 +198,63 @@ async def run_scheduled_dream(
         "day": target,
         "morning": morning,
         "notified": notified,
-        "telegram": settings.dream_notify_telegram,
+        "telegram": notify_telegram,
         "error": error,
         "preview": summary[:200],
     }
 
 
-async def dream_cron_loop(
-    store: MemoryStore,
-    vault: Vault,
+async def run_dreams_for_all_homes(
+    homes: "Homes",
+    accounts: "AccountStore",
     llm_client: openai.AsyncOpenAI,
     telegram: TelegramClient,
     *,
     gmail: GmailClient | None = None,
     calendar: CalendarClient | None = None,
+) -> list[dict[str, str | bool]]:
+    from app.accounts.homes import bind_tenant_home
+
+    results: list[dict[str, str | bool]] = []
+    for home in await homes.all_open():
+        user = await accounts.get_user(home.user_id)
+        if user is None:
+            continue
+        bind_tenant_home(home, user)
+        results.append(
+            await run_scheduled_dream(
+                home.memory,
+                home.vault,
+                llm_client,
+                telegram,
+                gmail=gmail,
+                calendar=calendar,
+                allow_telegram=user.legacy_prompts,
+            )
+        )
+    return results
+
+
+async def dream_cron_loop(
+    llm_client: openai.AsyncOpenAI,
+    telegram: TelegramClient,
+    *,
+    homes: "Homes",
+    accounts: "AccountStore",
+    gmail: GmailClient | None = None,
+    calendar: CalendarClient | None = None,
     hour: int | None = None,
     minute: int | None = None,
 ) -> None:
-    """Fire `run_scheduled_dream` every day at hour:minute Europe/Madrid.
+    """Fire each home's dream every day at hour:minute Europe/Madrid.
 
-    Catch-up: if the process starts after today's fire and morning notify
-    has not run yet, fire immediately then wait until tomorrow.
+    Catch-up: if the process starts after today's fire, run immediately
+    (per-home jobs stay idempotent) then wait until tomorrow.
     """
     hour = settings.dream_cron_hour if hour is None else hour
     minute = settings.dream_cron_minute if minute is None else minute
     logger.info(
-        "Dream cron loop started — daily %02d:%02d Europe/Madrid",
+        "Dream cron loop started — daily %02d:%02d Europe/Madrid (multi-home)",
         hour,
         minute,
     )
@@ -230,41 +263,22 @@ async def dream_cron_loop(
             now = now_madrid()
             fire_today = today_fire_at(now, hour=hour, minute=minute)
             morning = today_madrid().isoformat()
-            last_m, status_m, _ = await store.get_job(JOB_MORNING)
-            done_today = last_m == morning and status_m == "ok"
-            if done_today:
-                # Prior bug: morning ok + vault "(vacío)" — still need catch-up.
-                target = (today_madrid() - timedelta(days=1)).isoformat()
-                last_d, status_d, err_d = await store.get_job(JOB_DREAM)
-                if needs_dream_consolidate(vault, target, last_d, status_d, err_d):
-                    logger.warning(
-                        "Dream cron morning marked ok but vault blank/fallback — re-fire morning=%s",
-                        morning,
-                    )
-                    done_today = False
-
-            if now >= fire_today and not done_today:
+            if now >= fire_today:
                 logger.info(
                     "Dream cron firing (on-time or catch-up) morning=%s", morning
                 )
-                await run_scheduled_dream(
-                    store,
-                    vault,
+                await run_dreams_for_all_homes(
+                    homes,
+                    accounts,
                     llm_client,
                     telegram,
                     gmail=gmail,
                     calendar=calendar,
                 )
                 await sleep_until(fire_today + timedelta(days=1))
-            elif now < fire_today:
+            else:
                 logger.info("Dream cron sleeping until %s", fire_today.isoformat())
                 await sleep_until(fire_today)
-            else:
-                nxt = fire_today + timedelta(days=1)
-                logger.info(
-                    "Dream cron already done today — sleep until %s", nxt.isoformat()
-                )
-                await sleep_until(nxt)
         except asyncio.CancelledError:
             logger.info("Dream cron loop cancelled")
             raise

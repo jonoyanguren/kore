@@ -41,14 +41,19 @@ def oauth_state_path(storage_db_path: str) -> Path:
     return Path(storage_db_path).resolve().parent / "gmail_oauth_state.json"
 
 
-def create_oauth_state(storage_db_path: str, ttl_seconds: float = 600.0) -> str:
+def create_oauth_state(
+    storage_db_path: str,
+    ttl_seconds: float = 600.0,
+    *,
+    user_id: int | None = None,
+) -> str:
     state = secrets.token_urlsafe(32)
     path = oauth_state_path(storage_db_path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps({"state": state, "expires_at": time.time() + ttl_seconds}) + "\n",
-        encoding="utf-8",
-    )
+    payload: dict = {"state": state, "expires_at": time.time() + ttl_seconds}
+    if user_id is not None:
+        payload["user_id"] = int(user_id)
+    path.write_text(json.dumps(payload) + "\n", encoding="utf-8")
     try:
         path.chmod(0o600)
     except OSError:
@@ -56,10 +61,10 @@ def create_oauth_state(storage_db_path: str, ttl_seconds: float = 600.0) -> str:
     return state
 
 
-def consume_oauth_state(storage_db_path: str, provided: str) -> bool:
+def consume_oauth_state(storage_db_path: str, provided: str) -> dict | None:
     path = oauth_state_path(storage_db_path)
     if not path.is_file():
-        return False
+        return None
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
@@ -69,12 +74,14 @@ def consume_oauth_state(storage_db_path: str, provided: str) -> bool:
     except OSError:
         pass
     if not isinstance(raw, dict):
-        return False
+        return None
     expected = str(raw.get("state") or "")
     expires = float(raw.get("expires_at") or 0)
     if not expected or time.time() > expires:
-        return False
-    return secrets.compare_digest(expected, provided or "")
+        return None
+    if not secrets.compare_digest(expected, provided or ""):
+        return None
+    return raw
 
 
 def build_authorize_url(

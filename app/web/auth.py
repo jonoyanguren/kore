@@ -1,15 +1,19 @@
-"""Console auth: shared secret via cookie or Bearer."""
+"""Console auth: session cookie, email/password, or legacy CONSOLE_SECRET."""
 
 from __future__ import annotations
 
 import secrets
 from typing import Annotated
 
-from fastapi import Cookie, Depends, Header, HTTPException, status
+from fastapi import Cookie, Depends, Header, HTTPException, Request, status
 
+from app.accounts.context import bind_tenant
+from app.accounts.homes import Homes
+from app.accounts.store import AccountStore, UserRow
 from app.config import settings
 
 COOKIE_NAME = "kore_console"
+SESSION_MAX_AGE = 60 * 60 * 24 * 30
 
 
 def console_secret_configured() -> str:
@@ -20,7 +24,6 @@ def _secrets_match(provided: str, expected: str) -> bool:
     if not expected or not provided:
         return False
     if len(provided) != len(expected):
-        # compare_digest requires equal length; avoid leaking via exception
         secrets.compare_digest(provided, provided)
         return False
     return secrets.compare_digest(provided, expected)
@@ -37,12 +40,59 @@ def extract_console_secret(
     return None
 
 
-def require_console_auth(
+def accounts_of(request: Request) -> AccountStore | None:
+    return getattr(request.app.state, "accounts", None)
+
+
+def homes_of(request: Request) -> Homes | None:
+    return getattr(request.app.state, "homes", None)
+
+
+async def resolve_user(
+    request: Request, token: str | None
+) -> UserRow | None:
+    if not token:
+        return None
+    accounts = accounts_of(request)
+    if accounts is None:
+        return None
+    user = await accounts.user_for_session(token)
+    if user is not None:
+        return user
+    if _secrets_match(token, console_secret_configured()):
+        return await accounts.legacy_user()
+    return None
+
+
+async def bind_home(request: Request, user: UserRow) -> None:
+    homes = homes_of(request)
+    if homes is None:
+        return
+    home = await homes.open(user.id)
+    request.state.user = user
+    request.state.memory = home.memory
+    request.state.vault = home.vault
+    request.state.home = home
+    bind_tenant(
+        memory=home.memory,
+        vault=home.vault,
+        profile=user.profile(),
+        gmail_tokens=home.gmail_tokens,
+    )
+
+
+async def require_console_auth(
+    request: Request,
     provided: Annotated[str | None, Depends(extract_console_secret)],
 ) -> None:
+    user = await resolve_user(request, provided)
+    if user is not None:
+        await bind_home(request, user)
+        return
     expected = console_secret_configured()
-    if not _secrets_match(provided or "", expected):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="unauthorized",
-        )
+    if _secrets_match(provided or "", expected):
+        return
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="unauthorized",
+    )

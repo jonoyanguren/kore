@@ -321,20 +321,28 @@ def format_approx_range(usd: float) -> str:
 
 
 def plan_system_for(quality: str | None) -> str:
+    from app.accounts.context import personalize_prompt
+
     spec = mode_spec(quality)
-    return f"{_PLAN_BASE}\n\nModo {spec.label}:\n{spec.plan_addon}"
+    return personalize_prompt(f"{_PLAN_BASE}\n\nModo {spec.label}:\n{spec.plan_addon}")
 
 
 def summary_system_for(quality: str | None) -> str:
-    return mode_spec(quality).summary_system
+    from app.accounts.context import personalize_prompt
+
+    return personalize_prompt(mode_spec(quality).summary_system)
 
 
 def task_addon_for(quality: str | None) -> str:
-    return mode_spec(quality).task_addon
+    from app.accounts.context import personalize_prompt
+
+    return personalize_prompt(mode_spec(quality).task_addon)
 
 
 def clarify_addon_for(quality: str | None) -> str:
-    return mode_spec(quality).clarify_addon
+    from app.accounts.context import personalize_prompt
+
+    return personalize_prompt(mode_spec(quality).clarify_addon)
 
 
 def task_range_for(quality: str | None) -> tuple[int, int]:

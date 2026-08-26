@@ -16,6 +16,7 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 ## Ahora
 
 - [ ] Dogfood: chat → **crear bloque Calendar** (directo) · 1 semana
+- [x] **Cuentas aisladas** — registro abierto, un SQLite por usuario (D14 superseded)
 - [x] **Misiones modos** — Normal / Loco / Experto / Duro + leyenda en Nueva
 - [x] **Dream fiable** — `/dream` en consola + reintento modelo + fallback vivo + Día no vacío
 - [ ] Cuando llegue diseño: plan de maquetación UI 1.6
@@ -51,6 +52,7 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 - Autorrelleno tareas en chat
 - Push nativo (vía app)
 - Escribir/sync 2 vías Calendar (mover/borrar, multi-cal) — create bloque ya en D25
+- Invitaciones / allowlist (registro ahora es abierto)
 
 ### Fuera de Kore
 

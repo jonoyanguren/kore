@@ -41,7 +41,7 @@
 | D9 | Memoria por categoría |
 | D12 | UI web 1.5 antes de Gmail |
 | D13 | Vite + React + TS |
-| D14 | 1.6 = super-herramienta personal; no multi-user |
+| D14 | **Cuentas aisladas** (2026-08-26): registro abierto email+password, **sin invitaciones**. Cada usuario = home propio (`/data/users/{id}/kore.db` + `vault/` + Gmail tokens). `accounts.db` solo usuarios/sesiones. Telegram sigue siendo Jon (`telegram_allowed_chat_id`). Prompts Kimay/Slow/investing/PLAN solo si `legacy_prompts`. MVP original “no multi-user” → **superseded**. |
 | D15 | Briefing matutino → **vista Día**; Telegram notify off por defecto |
 | D16 | Gmail MVP = OAuth + Día/`/inbox` + dream Inbox + triage log |
 | D17 | Gmail send = **reply/answer**: borrador editable → confirmar (`gmail.send`; no compose frío en v1) |
@@ -100,6 +100,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-08-26 | **D14 superseded:** registro abierto; homes SQLite aislados; onboarding nombre+tono; Telegram = Jon |
 | 2026-08-26 | **D26** Misiones: modos Normal / Loco / Experto / Duro + leyenda en Nueva (sustituye Calidad) |
 | 2026-08-10 | **Dream fiable:** `/dream` consola; retry modelo; fallback determinista; Día con help vivo |
 | 2026-08-10 | Calendar Día: acciones **Abrir / Tarea / Prep**; spike write desde chat (`docs/spikes/calendar-write.md`) |

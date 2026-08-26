@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     assistant_name: str = "Jone"
     # Owner display name (Day greeting, etc.)
     owner_name: str = "Jon"
+    # Email for the bootstrap account that inherits the existing /data home.
+    owner_email: str = "jon@kore.local"
 
     # Storage — local path by default; overridden to the mounted Fly volume
     # path (/data/kore.db) in production so it survives redeploys.

@@ -8,6 +8,7 @@ from typing import Any
 
 import openai
 
+from app.accounts.context import personalize_prompt
 from app.integrations.gmail.client import GmailClient
 from app.integrations.gmail.dream_inbox import fetch_inbox_block_for_dream
 from app.integrations.google_calendar.client import CalendarClient
@@ -235,7 +236,7 @@ async def run_dream(
         try:
             report = await run_tool_loop(
                 llm_client,
-                system=DREAM_SYSTEM,
+                system=personalize_prompt(DREAM_SYSTEM),
                 user_payload=payload,
                 tools=tools,
                 handlers=handlers,

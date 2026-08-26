@@ -158,7 +158,9 @@ async def clarify_mission(
     user = build_clarify_user_payload(
         title=title, brief=brief, history=hist, round_n=round_n
     )
-    system = f"{CLARIFY_SYSTEM}\n\n{clarify_addon_for(quality)}"
+    from app.accounts.context import personalize_prompt
+
+    system = f"{personalize_prompt(CLARIFY_SYSTEM)}\n\n{clarify_addon_for(quality)}"
     messages = with_system_cache_control(
         [
             {"role": "system", "content": system},

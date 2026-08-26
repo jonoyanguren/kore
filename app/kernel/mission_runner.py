@@ -8,6 +8,8 @@ from datetime import timedelta
 
 import openai
 
+from app.accounts.homes import Homes, bind_tenant_home
+from app.accounts.store import AccountStore
 from app.integrations.web.tools import build_web_tools
 from app.kernel.mission_plan import (
     MissionPlan,
@@ -162,7 +164,11 @@ async def _execute_task(
 
     tools, handlers = build_web_tools()
     model = resolve_mission_model(mission.quality)
-    system = f"{MISSION_SYSTEM}\n\n{task_addon_for(mission.quality)}"
+    from app.accounts.context import personalize_prompt
+
+    system = (
+        f"{personalize_prompt(MISSION_SYSTEM)}\n\n{task_addon_for(mission.quality)}"
+    )
     logger.info(
         "Mission %s task %s/%s model=%s title=%r",
         mission.id,
@@ -404,17 +410,23 @@ async def run_mission_tick(
 
 
 async def mission_runner_loop(
-    store: MemoryStore,
-    vault: Vault,
     llm: openai.AsyncOpenAI,
+    *,
+    homes: Homes,
+    accounts: AccountStore,
 ) -> None:
-    logger.info("Mission runner started (poll=%ss, tasks=on)", POLL_SECONDS)
+    logger.info("Mission runner started (poll=%ss, tasks=on, multi-home)", POLL_SECONDS)
     while True:
         try:
             now = _iso(now_madrid())
-            due = await store.list_due_missions(now_iso=now, limit=1)
-            if due:
-                await run_mission_tick(store, vault, due[0], llm)
+            for home in await homes.all_open():
+                user = await accounts.get_user(home.user_id)
+                if user is None:
+                    continue
+                bind_tenant_home(home, user)
+                due = await home.memory.list_due_missions(now_iso=now, limit=1)
+                if due:
+                    await run_mission_tick(home.memory, home.vault, due[0], llm)
             await asyncio.sleep(POLL_SECONDS)
         except asyncio.CancelledError:
             raise

@@ -16,6 +16,12 @@ import openai
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 
+from app.accounts.homes import (
+    Homes,
+    accounts_db_path,
+    bind_tenant_home,
+)
+from app.accounts.store import AccountStore
 from app.config import settings
 from app.integrations.clickup.clickup_client import ClickUpClient
 from app.integrations.clickup.tools import build_clickup_tools
@@ -29,7 +35,7 @@ from app.kernel.command_router import CommandRouter
 from app.kernel.dream import run_dream
 from app.kernel.project_tools import build_project_tools
 from app.kernel.prompt_assembler import PromptAssembler
-from app.kernel.scheduler import dream_cron_loop, run_scheduled_dream
+from app.kernel.scheduler import dream_cron_loop, run_dreams_for_all_homes
 from app.kernel.mission_runner import mission_runner_loop
 from app.kernel.skill_registry import SkillRegistry
 from app.kernel.time_tools import build_time_tools
@@ -90,10 +96,24 @@ async def lifespan(app: FastAPI):
         default_headers={"X-Title": "kore"},
     )
 
-    memory_store = MemoryStore(settings.storage_db_path)
-    await memory_store.init()
-    vault = Vault(settings.resolved_vault_root())
-    vault.ensure()
+    accounts = AccountStore(str(accounts_db_path()))
+    await accounts.init()
+    homes = Homes(accounts)
+    legacy = await homes.bootstrap_legacy()
+
+    if legacy is not None:
+        boot_home = await homes.open(legacy.id)
+        memory_store = boot_home.memory
+        vault = boot_home.vault
+        gmail_token_store = boot_home.gmail_tokens
+    else:
+        memory_store = MemoryStore(settings.storage_db_path)
+        await memory_store.init()
+        vault = Vault(settings.resolved_vault_root())
+        vault.ensure()
+        gmail_token_store = GmailTokenStore(
+            token_path_for_db(settings.storage_db_path)
+        )
 
     memory_tool_schemas, memory_handlers = build_memory_tools(memory_store, vault)
     task_tool_schemas, task_handlers = build_task_tools(memory_store, vault)
@@ -108,7 +128,7 @@ async def lifespan(app: FastAPI):
     skill_registry.load()
     gmail_client = GmailClient(
         http_client,
-        GmailTokenStore(token_path_for_db(settings.storage_db_path)),
+        gmail_token_store,
     )
     gmail_tool_schemas, gmail_handlers = build_gmail_tools(gmail_client)
     calendar_client = CalendarClient(http_client, gmail_client)
@@ -167,6 +187,8 @@ async def lifespan(app: FastAPI):
     app.state.calendar = calendar_client
     app.state.memory = memory_store
     app.state.vault = vault
+    app.state.accounts = accounts
+    app.state.homes = homes
     app.state.llm_client = llm_client
     app.state.skills = skill_registry
     app.state.commands = command_router
@@ -179,10 +201,10 @@ async def lifespan(app: FastAPI):
     if settings.dream_cron_enabled:
         dream_task = asyncio.create_task(
             dream_cron_loop(
-                memory_store,
-                vault,
                 llm_client,
                 telegram,
+                homes=homes,
+                accounts=accounts,
                 gmail=gmail_client,
                 calendar=calendar_client,
             ),
@@ -192,7 +214,7 @@ async def lifespan(app: FastAPI):
         logger.info("Dream cron disabled (DREAM_CRON_ENABLED=false)")
 
     mission_task = asyncio.create_task(
-        mission_runner_loop(memory_store, vault, llm_client),
+        mission_runner_loop(llm_client, homes=homes, accounts=accounts),
         name="mission-runner",
     )
 
@@ -240,6 +262,20 @@ def _claim_pending_photo(
     return pending
 
 
+async def _bind_telegram_owner(app: FastAPI) -> tuple[MemoryStore, Vault]:
+    """Telegram is Jon-only; bind his isolated home for tools/prompts."""
+    accounts: AccountStore | None = getattr(app.state, "accounts", None)
+    homes: Homes | None = getattr(app.state, "homes", None)
+    if accounts is None or homes is None:
+        return app.state.memory, app.state.vault
+    user = await accounts.legacy_user()
+    if user is None:
+        return app.state.memory, app.state.vault
+    home = await homes.open(user.id)
+    bind_tenant_home(home, user)
+    return home.memory, home.vault
+
+
 async def handle_text_message(
     telegram: TelegramClient,
     llm: LLMAssistant,
@@ -254,7 +290,11 @@ async def handle_text_message(
     llm_client: openai.AsyncOpenAI | None = None,
     gmail: GmailClient | None = None,
     calendar: CalendarClient | None = None,
+    app: FastAPI | None = None,
 ) -> None:
+    if app is not None:
+        memory, bound_vault = await _bind_telegram_owner(app)
+        vault = bound_vault
     match = commands.match(text)
 
     if match is not None and match.builtin == "start":
@@ -379,7 +419,11 @@ async def handle_photo_message(
     chat_id: int,
     file_id: str,
     caption: str | None,
+    *,
+    app: FastAPI | None = None,
 ) -> None:
+    if app is not None:
+        await _bind_telegram_owner(app)
     typing_task = asyncio.create_task(_keep_typing(telegram, chat_id))
     try:
         image_bytes, mime = await telegram.download_file(file_id)
@@ -440,15 +484,15 @@ async def cron_dream(request: Request) -> dict:
     if not expected or not secrets.compare_digest(auth, expected):
         raise HTTPException(status_code=403, detail="forbidden")
 
-    result = await run_scheduled_dream(
-        request.app.state.memory,
-        request.app.state.vault,
+    results = await run_dreams_for_all_homes(
+        request.app.state.homes,
+        request.app.state.accounts,
         request.app.state.llm_client,
         request.app.state.telegram,
         gmail=getattr(request.app.state, "gmail", None),
         calendar=getattr(request.app.state, "calendar", None),
     )
-    return {"ok": True, **result}
+    return {"ok": True, "homes": len(results), **(results[0] if results else {})}
 
 
 @app.post(WEBHOOK_PATH)
@@ -494,6 +538,7 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks) 
             chat_id,
             largest.file_id,
             message.caption,
+            app=request.app,
         )
     elif text is None:
         background_tasks.add_task(handle_non_text, telegram, chat_id)
@@ -512,6 +557,7 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks) 
             llm_client=llm_client,
             gmail=getattr(request.app.state, "gmail", None),
             calendar=getattr(request.app.state, "calendar", None),
+            app=request.app,
         )
 
     return {"ok": True}

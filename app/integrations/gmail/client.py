@@ -69,16 +69,26 @@ class GmailClient:
         token_store: GmailTokenStore,
     ) -> None:
         self._http = http
-        self._tokens = token_store
+        self._default_tokens = token_store
+
+    def _token_store(self) -> GmailTokenStore:
+        from app.accounts.context import current_gmail_tokens
+
+        return current_gmail_tokens.get() or self._default_tokens
+
+    def _marked_read_path(self):
+        from app.accounts.context import active_db_path
+
+        return marked_read_path_for_db(active_db_path(settings.storage_db_path))
 
     def configured(self) -> bool:
         return bool(settings.google_client_id.strip() and settings.google_client_secret.strip())
 
     def connected(self) -> bool:
-        return self._tokens.connected()
+        return self._token_store().connected()
 
     def status(self) -> dict[str, Any]:
-        tokens = self._tokens.load()
+        tokens = self._token_store().load()
         scope = (tokens.scope if tokens else "") or ""
         has_gmail = scope_has_gmail(scope)
         has_cal = scope_has_calendar(scope)
@@ -98,7 +108,7 @@ class GmailClient:
         """Bearer headers for Google APIs that share this OAuth token."""
         if not self.configured():
             raise GmailConfigError("GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET not set")
-        tokens = self._tokens.load()
+        tokens = self._token_store().load()
         if not tokens or not tokens.refresh_token:
             raise GmailNotConnectedError("Gmail not connected — open /api/gmail/connect")
         if not tokens.access_valid():
@@ -116,7 +126,7 @@ class GmailClient:
                     dict.fromkeys(f"{tokens.scope} {refreshed.scope}".split())
                 )
                 refreshed.scope = merged
-            self._tokens.save(refreshed)
+            self._token_store().save(refreshed)
             tokens = refreshed
         return {"Authorization": f"Bearer {tokens.access_token}"}
 
@@ -222,7 +232,7 @@ class GmailClient:
         if meta is not None:
             try:
                 append_marked_read(
-                    marked_read_path_for_db(settings.storage_db_path),
+                    self._marked_read_path(),
                     MarkedReadEntry(
                         at=time.time(),
                         message_id=meta.id,
@@ -237,15 +247,15 @@ class GmailClient:
         return True
 
     async def save_tokens(self, tokens: GmailTokens) -> None:
-        existing = self._tokens.load()
+        existing = self._token_store().load()
         if existing and existing.refresh_token and not tokens.refresh_token:
             tokens.refresh_token = existing.refresh_token
         if existing and existing.email and not tokens.email:
             tokens.email = existing.email
-        self._tokens.save(tokens)
+        self._token_store().save(tokens)
 
     def disconnect(self) -> None:
-        self._tokens.clear()
+        self._token_store().clear()
 
 
 class GmailApiError(RuntimeError):

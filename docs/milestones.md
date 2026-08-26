@@ -133,6 +133,13 @@ Pendiente 1.6 → UI viva (aparte) / fricciones dogfood.
 - Prompts de plan / tarea / Resultado / aclarar cambian con el modo
 - Legacy `pro` → Experto
 
+## 2026-08-26 — Cuentas aisladas (D14 superseded)
+
+- Registro abierto email+password (sin invitaciones)
+- Un SQLite + vault por usuario; `accounts.db` compartido
+- Bootstrap: Jon hereda `/data/kore.db` → `users/{id}/`
+- Onboarding: nombre + tono; Telegram sigue siendo Jon
+
 ## Prompting (baseline cerrado)
 
 - `personality.md`, `kimay.md`, Datafine, `slow-project.md`, `investing.md` (azValor baseline)

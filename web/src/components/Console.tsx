@@ -29,6 +29,7 @@ const ACCENT = '#2f6f5e'
 
 type Props = {
   onLogout: () => void
+  companionName?: string
 }
 
 function readLayout(): LayoutMode {
@@ -38,7 +39,7 @@ function readLayout(): LayoutMode {
   return 'day'
 }
 
-export function Console({ onLogout }: Props) {
+export function Console({ onLogout, companionName = 'Jone' }: Props) {
   const [boardToken, setBoardToken] = useState(0)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
@@ -207,10 +208,15 @@ export function Console({ onLogout }: Props) {
         <ChatPanel
           ref={chatRef}
           active={layout === 'focus'}
+          companionName={companionName}
           onAfterChat={() => bump()}
           onOpenTask={onOpenTask}
         />
-        <TaskBoard ref={boardRef} refreshToken={boardToken} />
+        <TaskBoard
+          ref={boardRef}
+          refreshToken={boardToken}
+          companionName={companionName}
+        />
       </div>
 
       <CommandPalette

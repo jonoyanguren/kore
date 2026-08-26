@@ -59,14 +59,24 @@ async def find_task_collision(
 def build_task_tools(
     store: MemoryStore, vault: Vault
 ) -> tuple[list[dict], dict[str, ToolHandler]]:
+    def _s() -> MemoryStore:
+        from app.accounts.context import current_memory
+
+        return current_memory.get() or store
+
+    def _v() -> Vault:
+        from app.accounts.context import current_vault
+
+        return current_vault.get() or vault
+
     async def _add_task(args: dict[str, Any]) -> str:
         title = (args.get("title") or "").strip()
         if not title:
             return "No pude crear la tarea: falta el título."
-        collision = await find_task_collision(store, vault, title)
+        collision = await find_task_collision(_s(), _v(), title)
         if collision:
             return collision
-        task_id = await store.add_task(
+        task_id = await _s().add_task(
             title=title,
             due_at=args.get("due_at"),
             priority=int(args.get("priority") or 0),
@@ -75,8 +85,8 @@ def build_task_tools(
             project=args.get("project"),
             status=args.get("status") or "open",
         )
-        await sync_tasks_vault(store, vault)
-        task = await store.get_task(task_id)
+        await sync_tasks_vault(_s(), _v())
+        task = await _s().get_task(task_id)
         assert task is not None
         body = "\n".join(format_task_lines([task], detailed=True))
         return f"Creada.\n\n{body}"
@@ -85,7 +95,7 @@ def build_task_tools(
         status = args.get("status", "open")
         if status == "all":
             status = "all"
-        rows = await store.list_tasks(
+        rows = await _s().list_tasks(
             status=status,
             limit=int(args.get("limit") or 30),
             project=args.get("project"),
@@ -98,13 +108,13 @@ def build_task_tools(
         return format_tasks_message(rows, heading=heading)
 
     async def _get_task(args: dict[str, Any]) -> str:
-        task = await store.get_task(int(args["task_id"]))
+        task = await _s().get_task(int(args["task_id"]))
         if task is None:
             return "No encontré esa tarea."
         return "\n".join(format_task_lines([task], detailed=True))
 
     async def _update_task(args: dict[str, Any]) -> str:
-        ok = await store.update_task(
+        ok = await _s().update_task(
             int(args["task_id"]),
             title=args.get("title"),
             status=args.get("status"),
@@ -120,34 +130,34 @@ def build_task_tools(
         )
         if not ok:
             return "No pude actualizar esa tarea."
-        await sync_tasks_vault(store, vault)
-        task = await store.get_task(int(args["task_id"]))
+        await sync_tasks_vault(_s(), _v())
+        task = await _s().get_task(int(args["task_id"]))
         assert task is not None
         return "Actualizada.\n\n" + "\n".join(
             format_task_lines([task], detailed=True)
         )
 
     async def _complete_task(args: dict[str, Any]) -> str:
-        ok = await store.complete_task(int(args["task_id"]))
+        ok = await _s().complete_task(int(args["task_id"]))
         if ok:
-            await sync_tasks_vault(store, vault)
+            await sync_tasks_vault(_s(), _v())
         return "Tarea marcada como hecha." if ok else "No encontré esa tarea."
 
     async def _delete_task(args: dict[str, Any]) -> str:
-        ok = await store.delete_task(int(args["task_id"]))
+        ok = await _s().delete_task(int(args["task_id"]))
         if ok:
-            await sync_tasks_vault(store, vault)
+            await sync_tasks_vault(_s(), _v())
         return "Tarea eliminada (cancelada)." if ok else "No encontré esa tarea."
 
     async def _add_agenda_item(args: dict[str, Any]) -> str:
-        item_id = await store.add_agenda_item(
+        item_id = await _s().add_agenda_item(
             title=args["title"],
             starts_at=args["starts_at"],
             ends_at=args.get("ends_at"),
         )
         month = args["starts_at"][:7]
-        rows = await store.list_agenda_for_month(month)
-        vault.write_agenda_month(
+        rows = await _s().list_agenda_for_month(month)
+        _v().write_agenda_month(
             month,
             [
                 f"- (id {i}) {starts} — {title} [{st}]"
@@ -158,7 +168,7 @@ def build_task_tools(
 
     async def _list_agenda(args: dict[str, Any]) -> str:
         from_day = args.get("from_day") or session_date_str()
-        rows = await store.list_agenda_upcoming(
+        rows = await _s().list_agenda_upcoming(
             from_day=from_day, limit=int(args.get("limit") or 15)
         )
         if not rows:

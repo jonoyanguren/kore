@@ -241,6 +241,11 @@ class LLMAssistant:
         self._memory = memory
         self._prompt_assembler = prompt_assembler
 
+    def _active_memory(self) -> MemoryStore:
+        from app.accounts.context import current_memory
+
+        return current_memory.get() or self._memory
+
     async def ask(
         self,
         user_text: str,
@@ -279,7 +284,7 @@ class LLMAssistant:
         messages: list[dict[str, Any]] = [{"role": "system", "content": system_prompt}]
 
         try:
-            for role, content in await self._memory.recent_messages(
+            for role, content in await self._active_memory().recent_messages(
                 SESSION_HISTORY_LIMIT
             ):
                 if role in ("user", "assistant") and content.strip():
@@ -541,8 +546,8 @@ class LLMAssistant:
                 )
                 if image_bytes is not None:
                     history_user = f"[imagen] {history_user}".strip()
-                await self._memory.add_message("user", history_user)
-                await self._memory.add_message(
+                await self._active_memory().add_message("user", history_user)
+                await self._active_memory().add_message(
                     "assistant", final_text or "(sin respuesta)"
                 )
             except Exception:
@@ -576,7 +581,7 @@ class LLMAssistant:
                 kwargs["extra_body"] = extra
             response = await self._client.chat.completions.create(**kwargs)
             await log_completion(
-                self._memory,
+                self._active_memory(),
                 response,
                 model=model,
                 kind="chat",

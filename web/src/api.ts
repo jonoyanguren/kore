@@ -1,4 +1,4 @@
-import type { Mission, MissionMode, Task, TaskStatus } from './types'
+import type { MeUser, Mission, MissionMode, Task, TaskStatus } from './types'
 
 async function req<T>(
   path: string,
@@ -18,17 +18,64 @@ async function req<T>(
   return { ok: true, data }
 }
 
-export async function apiMe(): Promise<boolean> {
-  const r = await req<{ ok: boolean }>('/api/me')
-  return r.ok
+export async function apiMe(): Promise<MeUser | null> {
+  const r = await req<{ ok: boolean; user: MeUser | null }>('/api/me')
+  if (!r.ok || !r.data.ok) return null
+  return r.data.user
 }
 
-export async function apiLogin(secret: string): Promise<boolean> {
-  const r = await req<{ ok: boolean }>('/api/login', {
+export async function apiLogin(
+  email: string,
+  password: string,
+): Promise<MeUser | null> {
+  const r = await req<{ ok: boolean; user?: MeUser | null }>('/api/login', {
     method: 'POST',
-    body: JSON.stringify({ secret }),
+    body: JSON.stringify({ email, password }),
   })
-  return r.ok
+  if (!r.ok) return null
+  return r.data.user ?? null
+}
+
+export async function apiRegister(
+  email: string,
+  password: string,
+  ownerName = '',
+): Promise<{ ok: true; user: MeUser } | { ok: false; status: number; detail?: string }> {
+  const res = await fetch('/api/register', {
+    credentials: 'include',
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email,
+      password,
+      owner_name: ownerName,
+    }),
+  })
+  if (!res.ok) {
+    let detail: string | undefined
+    try {
+      const body = (await res.json()) as { detail?: string }
+      detail = body.detail
+    } catch {
+      /* ignore */
+    }
+    return { ok: false, status: res.status, detail }
+  }
+  const data = (await res.json()) as { ok: boolean; user: MeUser }
+  return { ok: true, user: data.user }
+}
+
+export async function apiSaveCompanion(body: {
+  owner_name: string
+  companion_name: string
+  companion_tone: string
+}): Promise<MeUser | null> {
+  const r = await req<{ ok: boolean; user: MeUser }>('/api/me/companion', {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  })
+  if (!r.ok || !r.data.ok) return null
+  return r.data.user
 }
 
 export async function apiLogout(): Promise<void> {

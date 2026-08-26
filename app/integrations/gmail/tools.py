@@ -159,8 +159,10 @@ def build_gmail_tools(
         if today_only is None:
             today_only = True
         since = today_madrid_start_unix() if today_only else None
+        from app.accounts.context import active_db_path
+
         entries = list_marked_read(
-            marked_read_path_for_db(settings.storage_db_path),
+            marked_read_path_for_db(active_db_path(settings.storage_db_path)),
             limit=limit,
             since=since,
         )

@@ -10,6 +10,7 @@ from typing import Any
 
 import openai
 
+from app.accounts.context import personalize_prompt
 from app.llm.mission_quality import (
     mode_label,
     plan_system_for,
@@ -397,7 +398,7 @@ async def generate_handoff(
     )
     messages = with_system_cache_control(
         [
-            {"role": "system", "content": HANDOFF_SYSTEM},
+            {"role": "system", "content": personalize_prompt(HANDOFF_SYSTEM)},
             {"role": "user", "content": user},
         ],
         model=model,
@@ -535,7 +536,7 @@ async def generate_mission_summary(
         f"Modo: {mode_label(quality)}\n"
         f"Encargo:\n{brief.strip()}\n\n"
         f"Hallazgos de las tareas:\n\n{body}\n\n"
-        "Escribe el Resultado final para Jon, en el modo indicado."
+        "Escribe el Resultado final para el usuario, en el modo indicado."
     )
     messages = with_system_cache_control(
         [

@@ -27,6 +27,7 @@ export type ChatPanelHandle = {
 type Props = {
   /** True when Chat layout is visible (not Day/Board). */
   active?: boolean
+  companionName?: string
   onAfterChat?: (info: { tasksChanged: boolean }) => void
   onOpenTask?: (task: Task) => void
 }
@@ -87,7 +88,7 @@ function firstPersistedId(messages: ChatMessage[]): number | undefined {
 type MicState = 'idle' | 'recording' | 'transcribing'
 
 export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
-  { active = true, onAfterChat, onOpenTask },
+  { active = true, companionName = 'Jone', onAfterChat, onOpenTask },
   ref,
 ) {
   const toast = useToast()
@@ -510,7 +511,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         ) : null}
         {messages.length === 0 && !busy ? (
           <div className="chat__empty empty-state">
-            <p className="empty-state__title">Habla con Jone</p>
+            <p className="empty-state__title">Habla con {companionName}</p>
             <p className="muted">
               Escribe, usa el micrófono o pulsa ⌘K. Captura, tareas, memoria.
             </p>
@@ -523,7 +524,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           >
             <div className="chat__meta">
               <span className="chat__who">
-                {m.role === 'user' ? 'Tú' : 'Jone'}
+                {m.role === 'user' ? 'Tú' : companionName}
               </span>
               {whenLabel(m, now) ? (
                 <time className="chat__when" dateTime={m.created_at}>

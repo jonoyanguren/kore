@@ -28,43 +28,77 @@ class PromptAssembler:
         self._vault = vault
         self._calendar = calendar
 
-    def _read_prompt(self, name: str) -> str:
+    def _active_memory(self) -> MemoryStore:
+        from app.accounts.context import current_memory
+
+        return current_memory.get() or self._memory
+
+    def _active_vault(self) -> Vault | None:
+        from app.accounts.context import current_vault
+
+        return current_vault.get() or self._vault
+
+    def _read_prompt(self, name: str, *, assistant_name: str, owner_name: str) -> str:
         path = self._prompts_dir / name
         if not path.is_file():
             return ""
         text = path.read_text(encoding="utf-8")
         return (
-            text.replace("{{ASSISTANT_NAME}}", settings.assistant_name)
+            text.replace("{{ASSISTANT_NAME}}", assistant_name)
+            .replace("{{OWNER_NAME}}", owner_name)
             .replace("{{OPENROUTER_MODEL}}", settings.openrouter_model)
             .strip()
         )
 
     async def assemble(self, active_skill: Skill | None = None) -> str:
+        from app.accounts.context import current_profile
+
+        profile = current_profile.get()
+        assistant_name = (
+            profile.companion_name if profile and profile.companion_name else settings.assistant_name
+        )
+        owner_name = (
+            profile.owner_name if profile and profile.owner_name else settings.owner_name
+        )
+        legacy = True if profile is None else profile.legacy_prompts
+        tone = (profile.companion_tone if profile else "") or ""
+
         parts: list[str] = []
 
-        system = self._read_prompt("system.md")
+        system = self._read_prompt(
+            "system.md", assistant_name=assistant_name, owner_name=owner_name
+        )
         if system:
             parts.append(system)
 
-        personality = self._read_prompt("personality.md")
-        if personality:
-            parts.append("## Personality\n" + personality)
-
-        kimay = self._read_prompt("kimay.md")
-        if kimay:
-            parts.append("## Kimay\n" + kimay)
-
-        slow = self._read_prompt("slow-project.md")
-        if slow:
-            parts.append("## Slow Project SL\n" + slow)
-
-        investing = self._read_prompt("investing.md")
-        if investing:
-            parts.append("## Investing\n" + investing)
-
-        # Cursor-like alwaysApply: agent rules + living plan + TODO every turn.
-        for rel, content in load_always_inject():
-            parts.append(f"## Project file: {rel}\n{content}")
+        if legacy:
+            personality = self._read_prompt(
+                "personality.md", assistant_name=assistant_name, owner_name=owner_name
+            )
+            if personality:
+                parts.append("## Personality\n" + personality)
+            kimay = self._read_prompt(
+                "kimay.md", assistant_name=assistant_name, owner_name=owner_name
+            )
+            if kimay:
+                parts.append("## Kimay\n" + kimay)
+            slow = self._read_prompt(
+                "slow-project.md", assistant_name=assistant_name, owner_name=owner_name
+            )
+            if slow:
+                parts.append("## Slow Project SL\n" + slow)
+            investing = self._read_prompt(
+                "investing.md", assistant_name=assistant_name, owner_name=owner_name
+            )
+            if investing:
+                parts.append("## Investing\n" + investing)
+            for rel, content in load_always_inject():
+                parts.append(f"## Project file: {rel}\n{content}")
+        elif tone.strip():
+            parts.append(
+                f"## Personality\nYou are {assistant_name}, companion of {owner_name}.\n\n"
+                + tone.strip()
+            )
 
         # Full skill playbooks every turn (not only when /command activates one).
         skill_blocks: list[str] = []
@@ -83,7 +117,10 @@ class PromptAssembler:
 
         parts.append(f"## Time context\nNow (Europe/Madrid): {format_now_for_prompt()}")
 
-        digests = await self._memory.memory_digests(limit_per_category=8)
+        memory = self._active_memory()
+        vault = self._active_vault()
+
+        digests = await memory.memory_digests(limit_per_category=8)
         if digests:
             lines = []
             for category, items in digests.items():
@@ -92,12 +129,12 @@ class PromptAssembler:
                     lines.append(f"- (id {item_id}) {text}")
             parts.append("## Memory digests\n" + "\n".join(lines))
 
-        diary = await self._memory.list_diary_for_day()
+        diary = await memory.list_diary_for_day()
         if diary:
             lines = [f"- (id {item_id}) {text}" for item_id, text in diary]
             parts.append("## Today's diary\n" + "\n".join(lines))
 
-        open_tasks = await self._memory.list_tasks(status="open", limit=12)
+        open_tasks = await memory.list_tasks(status="open", limit=12)
         if open_tasks:
             from app.storage.memory import format_task_lines
 
@@ -105,15 +142,15 @@ class PromptAssembler:
                 "## Open tasks\n" + "\n".join(format_task_lines(open_tasks, detailed=True))
             )
 
-        if self._vault is not None:
-            done_excerpt = self._vault.read_done_tasks_excerpt(max_chars=2200)
+        if vault is not None:
+            done_excerpt = vault.read_done_tasks_excerpt(max_chars=2200)
             if done_excerpt:
                 parts.append(
                     "## Completed tasks archive (cleared from UI; use as context)\n"
                     + done_excerpt
                 )
 
-        agenda = await self._memory.list_agenda_upcoming(limit=10)
+        agenda = await memory.list_agenda_upcoming(limit=10)
         if agenda:
             lines = [
                 f"- (id {i}) {starts} — {title}"

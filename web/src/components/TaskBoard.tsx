@@ -76,10 +76,11 @@ export type TaskBoardHandle = {
 
 type Props = {
   refreshToken?: number
+  companionName?: string
 }
 
 export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
-  { refreshToken = 0 },
+  { refreshToken = 0, companionName = 'Jone' },
   ref,
 ) {
   const toast = useToast()
@@ -510,7 +511,7 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
                 <li className="task-list__empty muted empty-state">
                   <span className="empty-state__title">Sin tareas aquí</span>
                   <span>
-                    Añade una arriba o pide a Jone en el chat.
+                    Añade una arriba o pide a {companionName} en el chat.
                   </span>
                 </li>
               ) : null}

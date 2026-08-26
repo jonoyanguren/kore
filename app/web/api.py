@@ -72,6 +72,9 @@ from app.timeutil import (
 )
 from app.web.auth import (
     COOKIE_NAME,
+    SESSION_MAX_AGE,
+    accounts_of,
+    bind_home,
     console_secret_configured,
     require_console_auth,
 )
@@ -82,8 +85,48 @@ router = APIRouter(prefix="/api", tags=["console"])
 TaskStatus = Literal["open", "in_progress", "done", "cancelled"]
 
 
+def _memory(request: Request):
+    bound = getattr(request.state, "memory", None)
+    if bound is not None:
+        return bound
+    return request.app.state.memory
+
+
+def _vault(request: Request):
+    bound = getattr(request.state, "vault", None)
+    if bound is not None:
+        return bound
+    return request.app.state.vault
+
+
+def _set_session_cookie(response: Response, token: str, request: Request) -> None:
+    response.set_cookie(
+        key=COOKIE_NAME,
+        value=token,
+        httponly=True,
+        samesite="lax",
+        secure=request.url.scheme == "https",
+        max_age=SESSION_MAX_AGE,
+        path="/",
+    )
+
+
 class LoginBody(BaseModel):
-    secret: str
+    secret: str = ""
+    email: str = ""
+    password: str = ""
+
+
+class RegisterBody(BaseModel):
+    email: str = Field(min_length=3, max_length=200)
+    password: str = Field(min_length=8, max_length=200)
+    owner_name: str = Field(default="", max_length=80)
+
+
+class CompanionBody(BaseModel):
+    owner_name: str = Field(default="", max_length=80)
+    companion_name: str = Field(min_length=1, max_length=80)
+    companion_tone: str = Field(min_length=1, max_length=8000)
 
 
 class TaskOut(BaseModel):
@@ -138,32 +181,113 @@ def _task_dict(row: TaskRow) -> dict[str, Any]:
     return TaskOut.from_row(row).model_dump()
 
 
+@router.post("/register")
+async def register(
+    body: RegisterBody, request: Request, response: Response
+) -> dict[str, Any]:
+    accounts = accounts_of(request)
+    if accounts is None:
+        raise HTTPException(status_code=503, detail="accounts not ready")
+    try:
+        user = await accounts.create_user(
+            email=body.email,
+            password=body.password,
+            owner_name=body.owner_name.strip() or body.email.split("@")[0],
+            onboarded=False,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    homes = getattr(request.app.state, "homes", None)
+    if homes is not None:
+        await homes.open(user.id)
+    token = await accounts.create_session(user.id)
+    _set_session_cookie(response, token, request)
+    await bind_home(request, user)
+    return {"ok": True, "user": _user_public(user)}
+
+
 @router.post("/login")
-async def login(body: LoginBody, request: Request, response: Response) -> dict[str, bool]:
+async def login(body: LoginBody, request: Request, response: Response) -> dict[str, Any]:
+    accounts = accounts_of(request)
+    email = (body.email or "").strip()
+    password = body.password or ""
+    secret = (body.secret or "").strip()
+
+    if email and password and accounts is not None:
+        user = await accounts.authenticate(email, password)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="unauthorized"
+            )
+        token = await accounts.create_session(user.id)
+        _set_session_cookie(response, token, request)
+        return {"ok": True, "user": _user_public(user)}
+
     expected = console_secret_configured()
-    if not _secrets_match(body.secret.strip(), expected):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="unauthorized")
-    response.set_cookie(
-        key=COOKIE_NAME,
-        value=body.secret.strip(),
-        httponly=True,
-        samesite="lax",
-        secure=request.url.scheme == "https",
-        max_age=60 * 60 * 24 * 30,
-        path="/",
-    )
+    if not _secrets_match(secret, expected):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="unauthorized"
+        )
+    if accounts is not None:
+        user = await accounts.legacy_user()
+        if user is not None:
+            token = await accounts.create_session(user.id)
+            _set_session_cookie(response, token, request)
+            return {"ok": True, "user": _user_public(user)}
+    _set_session_cookie(response, secret, request)
     return {"ok": True}
 
 
 @router.post("/logout")
-async def logout(response: Response) -> dict[str, bool]:
+async def logout(request: Request, response: Response) -> dict[str, bool]:
+    token = request.cookies.get(COOKIE_NAME)
+    accounts = accounts_of(request)
+    if token and accounts is not None:
+        await accounts.delete_session(token)
     response.delete_cookie(COOKIE_NAME, path="/")
     return {"ok": True}
 
 
+def _user_public(user) -> dict[str, Any]:
+    return {
+        "id": user.id,
+        "email": user.email,
+        "owner_name": user.owner_name,
+        "companion_name": user.companion_name,
+        "companion_tone": user.companion_tone,
+        "onboarded": user.onboarded,
+        "legacy": user.legacy_prompts,
+    }
+
+
 @router.get("/me", dependencies=[Depends(require_console_auth)])
-async def me() -> dict[str, bool]:
-    return {"ok": True}
+async def me(request: Request) -> dict[str, Any]:
+    user = getattr(request.state, "user", None)
+    if user is not None:
+        return {"ok": True, "user": _user_public(user)}
+    return {"ok": True, "user": None}
+
+
+@router.put("/me/companion", dependencies=[Depends(require_console_auth)])
+async def update_companion(request: Request, body: CompanionBody) -> dict[str, Any]:
+    user = getattr(request.state, "user", None)
+    accounts = accounts_of(request)
+    if user is None or accounts is None:
+        raise HTTPException(status_code=401, detail="unauthorized")
+    name = body.companion_name.strip()
+    tone = body.companion_tone.strip()
+    if not name or not tone:
+        raise HTTPException(status_code=400, detail="nombre y tono obligatorios")
+    updated = await accounts.update_companion(
+        user.id,
+        owner_name=body.owner_name.strip() or user.owner_name,
+        companion_name=name,
+        companion_tone=tone,
+        onboarded=True,
+    )
+    assert updated is not None
+    await bind_home(request, updated)
+    return {"ok": True, "user": _user_public(updated)}
 
 
 @router.get("/usage", dependencies=[Depends(require_console_auth)])
@@ -188,7 +312,7 @@ async def spend_ledger(
 
     today = session_date_str()
     start = (now_madrid().date() - timedelta(days=days - 1)).isoformat()
-    memory = request.app.state.memory
+    memory = _memory(request)
     summary = await memory.summarize_llm_spend(day_from=start, day_to=today)
     events = await memory.list_llm_spend(day_from=start, day_to=today, limit=limit)
     today_usd = next(
@@ -223,7 +347,7 @@ class DiaryBody(BaseModel):
 
 @router.get("/memory/categories", dependencies=[Depends(require_console_auth)])
 async def memory_categories(request: Request) -> dict[str, list[str]]:
-    cats = await request.app.state.memory.list_categories()
+    cats = await _memory(request).list_categories()
     return {"categories": cats}
 
 
@@ -233,7 +357,7 @@ async def list_memory(
     category: str | None = None,
     limit: int = 40,
 ) -> dict[str, Any]:
-    rows = await request.app.state.memory.list_memory(
+    rows = await _memory(request).list_memory(
         category=category, limit=min(max(limit, 1), 100)
     )
     return {
@@ -246,17 +370,17 @@ async def list_memory(
 @router.post("/memory", dependencies=[Depends(require_console_auth)])
 async def create_memory(request: Request, body: MemoryBody) -> dict[str, Any]:
     cat = (body.category or "general").strip().lower() or "general"
-    item_id = await request.app.state.memory.save_memory(
+    item_id = await _memory(request).save_memory(
         category=cat, text=body.text, source="console"
     )
-    vault = request.app.state.vault
+    vault = _vault(request)
     vault.append_memory(cat, item_id, body.text)
     return {"item": {"id": item_id, "category": cat, "text": body.text.strip()}}
 
 
 @router.delete("/memory/{item_id}", dependencies=[Depends(require_console_auth)])
 async def delete_memory_item(request: Request, item_id: int) -> dict[str, bool]:
-    memory = request.app.state.memory
+    memory = _memory(request)
     existing = await memory.get_memory(item_id)
     if existing is None:
         raise HTTPException(status_code=404, detail="memory not found")
@@ -265,7 +389,7 @@ async def delete_memory_item(request: Request, item_id: int) -> dict[str, bool]:
     if not ok:
         raise HTTPException(status_code=404, detail="memory not found")
     items = await memory.list_memory_all_by_category(cat)
-    request.app.state.vault.rewrite_memory_category(cat, items)
+    _vault(request).rewrite_memory_category(cat, items)
     return {"ok": True}
 
 
@@ -277,14 +401,14 @@ async def delete_memory_category(request: Request, category: str) -> dict[str, A
     cat = category.strip().lower()
     if not cat or len(cat) > 64:
         raise HTTPException(status_code=400, detail="invalid category")
-    deleted = await request.app.state.memory.delete_memory_category(cat)
-    request.app.state.vault.rewrite_memory_category(cat, [])
+    deleted = await _memory(request).delete_memory_category(cat)
+    _vault(request).rewrite_memory_category(cat, [])
     return {"ok": True, "category": cat, "deleted": deleted}
 
 
 @router.get("/privacy/overview", dependencies=[Depends(require_console_auth)])
 async def privacy_overview(request: Request) -> dict[str, Any]:
-    memory = request.app.state.memory
+    memory = _memory(request)
     counts = await memory.memory_category_counts()
     diary_today = await memory.list_diary_for_day(session_date_str())
     open_tasks = await memory.list_tasks(status="open", limit=100)
@@ -295,15 +419,15 @@ async def privacy_overview(request: Request) -> dict[str, Any]:
         "memory_total": sum(n for _c, n in counts),
         "diary_today": len(diary_today),
         "tasks_open": len(open_tasks),
-        "vault_root": str(request.app.state.vault.root),
+        "vault_root": str(_vault(request).root),
     }
 
 
 @router.get("/vault/export", dependencies=[Depends(require_console_auth)])
 async def vault_export(request: Request) -> StreamingResponse:
     """Zip of markdown vault (memory/diary/agenda/dreams/tasks)."""
-    root = request.app.state.vault.root
-    request.app.state.vault.ensure()
+    root = _vault(request).root
+    _vault(request).ensure()
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         for path in sorted(root.rglob("*")):
@@ -346,7 +470,7 @@ async def list_diary(
     day: str | None = None,
 ) -> dict[str, Any]:
     day = day or session_date_str()
-    rows = await request.app.state.memory.list_diary_for_day(day)
+    rows = await _memory(request).list_diary_for_day(day)
     return {
         "day": day,
         "entries": [{"id": i, "text": text} for i, text in rows],
@@ -356,21 +480,21 @@ async def list_diary(
 @router.post("/diary", dependencies=[Depends(require_console_auth)])
 async def create_diary(request: Request, body: DiaryBody) -> dict[str, Any]:
     day = body.day or session_date_str()
-    entry_id = await request.app.state.memory.add_diary_entry(
+    entry_id = await _memory(request).add_diary_entry(
         text=body.text, day=day, source="console"
     )
-    request.app.state.vault.append_diary(day, entry_id, body.text)
+    _vault(request).append_diary(day, entry_id, body.text)
     return {"entry": {"id": entry_id, "text": body.text.strip(), "day": day}}
 
 
 @router.delete("/diary/{entry_id}", dependencies=[Depends(require_console_auth)])
 async def delete_diary(request: Request, entry_id: int) -> dict[str, bool]:
-    memory = request.app.state.memory
+    memory = _memory(request)
     day = await memory.delete_diary_entry(entry_id)
     if day is None:
         raise HTTPException(status_code=404, detail="diary entry not found")
     entries = await memory.list_diary_for_day(day)
-    request.app.state.vault.rewrite_diary_day(day, entries)
+    _vault(request).rewrite_diary_day(day, entries)
     return {"ok": True}
 
 
@@ -381,7 +505,7 @@ async def list_tasks(
     project: str | None = None,
     limit: int = 50,
 ) -> dict[str, list[dict[str, Any]]]:
-    rows = await request.app.state.memory.list_tasks(
+    rows = await _memory(request).list_tasks(
         status=status_filter,
         limit=min(limit, 100),
         project=project,
@@ -393,7 +517,7 @@ async def list_tasks(
 async def create_task(request: Request, body: CreateTaskBody) -> dict[str, Any]:
     if body.status not in VALID_TASK_STATUSES:
         raise HTTPException(status_code=400, detail="invalid status")
-    task_id = await request.app.state.memory.add_task(
+    task_id = await _memory(request).add_task(
         title=body.title,
         due_at=body.due_at,
         priority=body.priority,
@@ -402,8 +526,8 @@ async def create_task(request: Request, body: CreateTaskBody) -> dict[str, Any]:
         project=body.project,
         status=body.status,
     )
-    await sync_tasks_vault(request.app.state.memory, request.app.state.vault)
-    task = await request.app.state.memory.get_task(task_id)
+    await sync_tasks_vault(_memory(request), _vault(request))
+    task = await _memory(request).get_task(task_id)
     assert task is not None
     return {"task": _task_dict(task)}
 
@@ -412,7 +536,7 @@ async def create_task(request: Request, body: CreateTaskBody) -> dict[str, Any]:
 async def patch_task(
     request: Request, task_id: int, body: PatchTaskBody
 ) -> dict[str, Any]:
-    ok = await request.app.state.memory.update_task(
+    ok = await _memory(request).update_task(
         task_id,
         title=body.title,
         status=body.status,
@@ -428,8 +552,8 @@ async def patch_task(
     )
     if not ok:
         raise HTTPException(status_code=404, detail="task not found")
-    await sync_tasks_vault(request.app.state.memory, request.app.state.vault)
-    task = await request.app.state.memory.get_task(task_id)
+    await sync_tasks_vault(_memory(request), _vault(request))
+    task = await _memory(request).get_task(task_id)
     assert task is not None
     return {"task": _task_dict(task)}
 
@@ -438,29 +562,29 @@ async def patch_task(
 async def purge_completed_tasks(request: Request) -> dict[str, Any]:
     """Archive done tasks to vault/tasks/done.md, then hard-delete from DB."""
     deleted = await purge_done_tasks_archiving(
-        request.app.state.memory,
-        request.app.state.vault,
+        _memory(request),
+        _vault(request),
     )
     return {"ok": True, "deleted": deleted, "archived": deleted > 0}
 
 
 @router.post("/tasks/{task_id}/complete", dependencies=[Depends(require_console_auth)])
 async def complete_task(request: Request, task_id: int) -> dict[str, Any]:
-    ok = await request.app.state.memory.complete_task(task_id)
+    ok = await _memory(request).complete_task(task_id)
     if not ok:
         raise HTTPException(status_code=404, detail="task not found")
-    await sync_tasks_vault(request.app.state.memory, request.app.state.vault)
-    task = await request.app.state.memory.get_task(task_id)
+    await sync_tasks_vault(_memory(request), _vault(request))
+    task = await _memory(request).get_task(task_id)
     assert task is not None
     return {"task": _task_dict(task)}
 
 
 @router.delete("/tasks/{task_id}", dependencies=[Depends(require_console_auth)])
 async def delete_task(request: Request, task_id: int) -> dict[str, Any]:
-    ok = await request.app.state.memory.delete_task(task_id)
+    ok = await _memory(request).delete_task(task_id)
     if not ok:
         raise HTTPException(status_code=404, detail="task not found")
-    await sync_tasks_vault(request.app.state.memory, request.app.state.vault)
+    await sync_tasks_vault(_memory(request), _vault(request))
     return {"ok": True}
 
 
@@ -556,14 +680,14 @@ async def list_missions(
     request: Request,
     include_done: bool = Query(True),
 ) -> dict[str, Any]:
-    rows = await request.app.state.memory.list_missions(include_done=include_done)
+    rows = await _memory(request).list_missions(include_done=include_done)
     return {"missions": [_mission_dict(r) for r in rows]}
 
 
 @router.post("/missions", dependencies=[Depends(require_console_auth)])
 async def create_mission(request: Request, body: CreateMissionBody) -> dict[str, Any]:
-    memory = request.app.state.memory
-    vault = request.app.state.vault
+    memory = _memory(request)
+    vault = _vault(request)
     status_v = "queued" if body.launch else "draft"
     next_run = now_madrid().replace(microsecond=0).isoformat() if body.launch else None
     quality = body.resolved_mode()
@@ -623,10 +747,10 @@ async def clarify_mission_endpoint(
 
 @router.get("/missions/{mission_id}", dependencies=[Depends(require_console_auth)])
 async def get_mission(request: Request, mission_id: int) -> dict[str, Any]:
-    row = await request.app.state.memory.get_mission(mission_id)
+    row = await _memory(request).get_mission(mission_id)
     if row is None:
         raise HTTPException(status_code=404, detail="mission not found")
-    md = request.app.state.vault.read_mission(mission_id)
+    md = _vault(request).read_mission(mission_id)
     return {"mission": _mission_dict(row, markdown=md or "")}
 
 
@@ -635,17 +759,17 @@ async def get_mission(request: Request, mission_id: int) -> dict[str, Any]:
     dependencies=[Depends(require_console_auth)],
 )
 async def cancel_mission(request: Request, mission_id: int) -> dict[str, Any]:
-    row = await request.app.state.memory.get_mission(mission_id)
+    row = await _memory(request).get_mission(mission_id)
     if row is None:
         raise HTTPException(status_code=404, detail="mission not found")
     if row.status in ("done", "failed", "cancelled"):
         return {"mission": _mission_dict(row)}
-    updated = await request.app.state.memory.update_mission(
+    updated = await _memory(request).update_mission(
         mission_id,
         status="cancelled",
         clear_next_run=True,
     )
-    await request.app.state.memory.add_mission_event(mission_id, "cancelled", None)
+    await _memory(request).add_mission_event(mission_id, "cancelled", None)
     assert updated is not None
     return {"mission": _mission_dict(updated)}
 
@@ -656,11 +780,11 @@ async def cancel_mission(request: Request, mission_id: int) -> dict[str, Any]:
 )
 async def relaunch_mission(request: Request, mission_id: int) -> dict[str, Any]:
     """Reset a mission and queue it again (useful after stub → real research)."""
-    row = await request.app.state.memory.get_mission(mission_id)
+    row = await _memory(request).get_mission(mission_id)
     if row is None:
         raise HTTPException(status_code=404, detail="mission not found")
     next_run = now_madrid().replace(microsecond=0).isoformat()
-    updated = await request.app.state.memory.update_mission(
+    updated = await _memory(request).update_mission(
         mission_id,
         status="queued",
         step_index=0,
@@ -670,13 +794,13 @@ async def relaunch_mission(request: Request, mission_id: int) -> dict[str, Any]:
         clear_error=True,
     )
     assert updated is not None
-    request.app.state.vault.write_mission(
+    _vault(request).write_mission(
         mission_id,
         f"# {updated.title}\n\n"
         f"> Estado: en cola (relanzada) · planificando…\n\n"
         f"## Encargo\n\n{updated.brief.strip() or '(sin brief)'}\n",
     )
-    await request.app.state.memory.add_mission_event(mission_id, "relaunch", None)
+    await _memory(request).add_mission_event(mission_id, "relaunch", None)
     return {"mission": _mission_dict(updated)}
 
 
@@ -687,8 +811,10 @@ class ChatBody(BaseModel):
 @router.get("/day", dependencies=[Depends(require_console_auth)])
 async def day_snapshot(request: Request) -> dict[str, Any]:
     """Day strip: clock, counts, structured briefing (tasks / meetings / help)."""
-    memory = request.app.state.memory
-    vault = request.app.state.vault
+    memory = _memory(request)
+    vault = _vault(request)
+    user = getattr(request.state, "user", None)
+    owner = (user.owner_name if user is not None else "") or settings.owner_name
     today = session_date_str()
     clock = format_madrid_clock()
     weekday = clock.split(",")[0]
@@ -792,7 +918,7 @@ async def day_snapshot(request: Request) -> dict[str, Any]:
                     "No se pudo cargar el correo. Revisa Más → Gmail."
                 )
             inbox["marked_read_today"] = list_marked_read(
-                marked_read_path_for_db(settings.storage_db_path),
+                marked_read_path_for_db(memory._db_path),
                 limit=12,
                 since=today_madrid_start_unix(),
             )
@@ -801,8 +927,8 @@ async def day_snapshot(request: Request) -> dict[str, Any]:
         "today": today,
         "clock": clock,
         "headline": weekday,
-        "greeting": f"Hola, {settings.owner_name}",
-        "owner_name": settings.owner_name,
+        "greeting": f"Hola, {owner}",
+        "owner_name": owner,
         "tasks": {"in_progress": n_progress, "open": n_pending},
         "agenda": briefing["meetings"],
         "briefing": briefing,
@@ -827,7 +953,7 @@ async def list_messages(
     before: int | None = None,
 ) -> dict[str, Any]:
     page = min(max(limit, 1), 50)
-    memory = request.app.state.memory
+    memory = _memory(request)
     rows = await memory.list_recent_messages(limit=page, before_id=before)
 
     if before is not None:
@@ -913,7 +1039,7 @@ async def _run_chat(
             "calendar_deleted": calendar_deleted,
         }
 
-    memory = request.app.state.memory
+    memory = _memory(request)
     cmd = text.split()[0].lower() if text.startswith("/") else ""
     ask_text = text
 
@@ -1159,8 +1285,8 @@ async def calendar_event_to_task(
     event = body.model_dump()
     result = await create_task_from_event(
         llm=llm,
-        memory=request.app.state.memory,
-        vault=request.app.state.vault,
+        memory=_memory(request),
+        vault=_vault(request),
         event=event,
     )
     if not result.get("ok"):
@@ -1187,8 +1313,8 @@ async def calendar_event_prep(
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="llm_unavailable")
     result = await prep_for_event(
         llm=llm,
-        memory=request.app.state.memory,
-        vault=request.app.state.vault,
+        memory=_memory(request),
+        vault=_vault(request),
         event=body.model_dump(),
     )
     if not result.get("ok"):
@@ -1229,8 +1355,8 @@ async def gmail_to_task(request: Request, message_id: str) -> dict[str, Any]:
         result = await create_task_from_email(
             gmail=gmail,
             llm=llm,
-            memory=request.app.state.memory,
-            vault=request.app.state.vault,
+            memory=_memory(request),
+            vault=_vault(request),
             message_id=message_id,
         )
     except GmailNotConnectedError:
@@ -1341,7 +1467,9 @@ async def gmail_connect(request: Request) -> RedirectResponse:
             status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Gmail OAuth not configured (GOOGLE_CLIENT_ID/SECRET)",
         )
-    state = create_oauth_state(settings.storage_db_path)
+    user = getattr(request.state, "user", None)
+    uid = int(user.id) if user is not None else None
+    state = create_oauth_state(settings.storage_db_path, user_id=uid)
     url = build_authorize_url(
         client_id=settings.google_client_id,
         redirect_uri=settings.google_oauth_redirect_uri,
@@ -1362,13 +1490,21 @@ async def gmail_callback(
         return _gmail_oauth_result_page(ok=False, detail=error)
     if not code or not state:
         return _gmail_oauth_result_page(ok=False, detail="missing_code_or_state")
-    if not consume_oauth_state(settings.storage_db_path, state):
+    payload = consume_oauth_state(settings.storage_db_path, state)
+    if not payload:
         return _gmail_oauth_result_page(ok=False, detail="invalid_or_expired_state")
 
     gmail = getattr(request.app.state, "gmail", None)
     http = getattr(request.app.state, "http", None)
     if gmail is None or http is None:
         return _gmail_oauth_result_page(ok=False, detail="gmail_client_unavailable")
+
+    uid = payload.get("user_id")
+    accounts = accounts_of(request)
+    if uid is not None and accounts is not None:
+        user = await accounts.get_user(int(uid))
+        if user is not None:
+            await bind_home(request, user)
 
     try:
         tokens = await exchange_code(
@@ -1439,12 +1575,13 @@ async def gmail_inbox(
 
 @router.get("/gmail/marked-read", dependencies=[Depends(require_console_auth)])
 async def gmail_marked_read(
+    request: Request,
     limit: int = Query(20, ge=1, le=50),
     today_only: bool = Query(True),
 ) -> dict[str, Any]:
     since = today_madrid_start_unix() if today_only else None
     entries = list_marked_read(
-        marked_read_path_for_db(settings.storage_db_path),
+        marked_read_path_for_db(_memory(request)._db_path),
         limit=limit,
         since=since,
     )

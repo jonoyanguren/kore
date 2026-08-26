@@ -82,3 +82,13 @@ export type MissionModeOption = {
 
 /** @deprecated use MissionModeOption */
 export type MissionQualityOption = MissionModeOption
+
+export type MeUser = {
+  id: number
+  email: string
+  owner_name: string
+  companion_name: string
+  companion_tone: string
+  onboarded: boolean
+  legacy: boolean
+}
