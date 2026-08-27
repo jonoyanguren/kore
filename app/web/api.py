@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import io
+import json
+import logging
 import re
 import zipfile
 from typing import Annotated, Any, Literal
@@ -51,6 +53,7 @@ from app.integrations.gmail.triage_log import (
     today_madrid_start_unix,
 )
 from app.kernel.briefing import build_day_briefing
+from app.kernel.mission_ask import ask_mission, parse_ask_events
 from app.kernel.mission_clarify import clarify_mission
 from app.kernel.mission_plan import MissionPlan
 from app.storage.tools import format_memory_excerpt
@@ -82,6 +85,7 @@ from app.web.auth import (
 from app.web.auth import _secrets_match
 
 router = APIRouter(prefix="/api", tags=["console"])
+logger = logging.getLogger(__name__)
 
 TaskStatus = Literal["open", "in_progress", "done", "cancelled"]
 
@@ -680,6 +684,11 @@ def _mission_dict(row: MissionRow, *, markdown: str | None = None) -> dict[str, 
     return out
 
 
+async def _mission_asks(request: Request, mission_id: int) -> list[dict[str, str]]:
+    rows = await _memory(request).list_mission_events(mission_id)
+    return parse_ask_events(rows)
+
+
 @router.get("/missions/quality-options", dependencies=[Depends(require_console_auth)])
 async def missions_quality_options() -> dict[str, Any]:
     opts = mission_mode_options()
@@ -768,7 +777,9 @@ async def get_mission(request: Request, mission_id: int) -> dict[str, Any]:
     if row is None:
         raise HTTPException(status_code=404, detail="mission not found")
     md = _vault(request).read_mission(mission_id)
-    return {"mission": _mission_dict(row, markdown=md or "")}
+    data = _mission_dict(row, markdown=md or "")
+    data["asks"] = await _mission_asks(request, mission_id)
+    return {"mission": data}
 
 
 @router.post(
@@ -819,6 +830,49 @@ async def relaunch_mission(request: Request, mission_id: int) -> dict[str, Any]:
     )
     await _memory(request).add_mission_event(mission_id, "relaunch", None)
     return {"mission": _mission_dict(updated)}
+
+
+class AskMissionBody(BaseModel):
+    text: str = Field(min_length=1, max_length=2000)
+
+
+@router.post(
+    "/missions/{mission_id}/ask",
+    dependencies=[Depends(require_console_auth)],
+)
+async def ask_mission_endpoint(
+    request: Request, mission_id: int, body: AskMissionBody
+) -> dict[str, Any]:
+    """Follow-up on a mission report. Does not relaunch the loop."""
+    row = await _memory(request).get_mission(mission_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="mission not found")
+    md = (_vault(request).read_mission(mission_id) or "").strip()
+    if not md:
+        raise HTTPException(status_code=400, detail="mission has no report yet")
+    llm = getattr(request.app.state, "llm_client", None)
+    if llm is None:
+        raise HTTPException(status_code=503, detail="llm not ready")
+    question = body.text.strip()
+    history = await _mission_asks(request, mission_id)
+    try:
+        reply = await ask_mission(
+            llm,
+            title=row.title,
+            markdown=md,
+            question=question,
+            history=history,
+            quality=row.quality,
+            mission_id=mission_id,
+            spend_store=_memory(request),
+        )
+    except Exception:
+        logger.exception("Mission %s ask failed", mission_id)
+        raise HTTPException(status_code=502, detail="ask failed")
+    payload = json.dumps({"q": question, "a": reply}, ensure_ascii=False)
+    await _memory(request).add_mission_event(mission_id, "ask", payload)
+    asks = await _mission_asks(request, mission_id)
+    return {"ok": True, "reply": reply, "asks": asks}
 
 
 class ChatBody(BaseModel):

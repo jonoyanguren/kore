@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ClipboardEvent, type FormEvent } from 'react'
 import {
+  apiAskMission,
   apiCancelMission,
   apiClarifyMission,
   apiCreateMission,
@@ -158,6 +159,8 @@ export function MissionsPanel({ active = true }: Props) {
     useState<MissionModeOption[]>(FALLBACK_MODES)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [askText, setAskText] = useState('')
+  const [askBusy, setAskBusy] = useState(false)
   const toast = useToast()
   const resultRef = useRef<HTMLDivElement>(null)
 
@@ -211,6 +214,7 @@ export function MissionsPanel({ active = true }: Props) {
   useEffect(() => {
     if (!active || selectedId == null) {
       setDetail(null)
+      setAskText('')
       return
     }
     let cancelled = false
@@ -439,6 +443,21 @@ export function MissionsPanel({ active = true }: Props) {
     const ok = await copyToClipboard(fromDom || fallback)
     if (ok) toast.ok('Copiado')
     else toast.err('No se pudo copiar')
+  }
+
+  async function onAsk(e: FormEvent) {
+    e.preventDefault()
+    if (selectedId == null || !askText.trim() || askBusy) return
+    setAskBusy(true)
+    try {
+      const { asks } = await apiAskMission(selectedId, askText.trim())
+      setAskText('')
+      setDetail((d) => (d ? { ...d, asks } : d))
+    } catch (err) {
+      toast.err(String(err))
+    } finally {
+      setAskBusy(false)
+    }
   }
 
   return (
@@ -852,6 +871,43 @@ export function MissionsPanel({ active = true }: Props) {
               ) : (
                 <p className="muted">Sin informe aún.</p>
               )}
+              {md ? (
+                <section className="missions__ask" aria-label="Preguntar">
+                  {(detail.asks || []).length > 0 ? (
+                    <ol className="missions__ask-log">
+                      {(detail.asks || []).map((turn, i) => (
+                        <li key={`${i}-${turn.q.slice(0, 32)}`}>
+                          <p className="missions__ask-q">{turn.q}</p>
+                          <div
+                            className="missions__ask-a missions__md"
+                            dangerouslySetInnerHTML={{
+                              __html: renderMissionMarkdown(turn.a),
+                            }}
+                          />
+                        </li>
+                      ))}
+                    </ol>
+                  ) : null}
+                  <form
+                    className="missions__ask-form"
+                    onSubmit={(e) => void onAsk(e)}
+                  >
+                    <input
+                      value={askText}
+                      onChange={(e) => setAskText(e.target.value)}
+                      placeholder="Preguntar sobre este resultado…"
+                      maxLength={2000}
+                      disabled={askBusy}
+                    />
+                    <button
+                      type="submit"
+                      disabled={askBusy || !askText.trim()}
+                    >
+                      {askBusy ? '…' : 'Preguntar'}
+                    </button>
+                  </form>
+                </section>
+              ) : null}
             </>
           )}
         </aside>

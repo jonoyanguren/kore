@@ -593,6 +593,22 @@ export async function apiGetMission(id: number): Promise<Mission> {
   return r.data.mission
 }
 
+export async function apiAskMission(
+  id: number,
+  text: string,
+): Promise<{ reply: string; asks: { q: string; a: string }[] }> {
+  const r = await req<{
+    ok: boolean
+    reply: string
+    asks: { q: string; a: string }[]
+  }>(`/api/missions/${id}/ask`, {
+    method: 'POST',
+    body: JSON.stringify({ text }),
+  })
+  if (!r.ok) throw new Error(`ask mission ${r.status}`)
+  return { reply: r.data.reply, asks: r.data.asks ?? [] }
+}
+
 export async function apiCreateMission(input: {
   title: string
   brief?: string

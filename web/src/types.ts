@@ -66,6 +66,7 @@ export type Mission = {
   created_at: string
   updated_at: string
   markdown?: string
+  asks?: { q: string; a: string }[]
   plan?: MissionPlanView | null
 }
 

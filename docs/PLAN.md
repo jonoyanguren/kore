@@ -55,6 +55,7 @@
 | D25 | **Chat → crear bloque Calendar**: tool `create_calendar_block` escribe ya en primary; pregunta solo si hay duda real |
 | D27 | **Misiones intake** (2026-08-27): aclarar pide 5–8 preguntas (no 1–2); ronda 2 = huecos; ready solo con brief usable |
 | D28 | **Misiones leen memoria** (2026-08-27): digest + `list_memory` (solo lectura). No vuelcan el vault. Web sigue siendo la herramienta principal |
+| D29 | **Preguntar** sobre una misión hecha (2026-08-27): Q&A con el informe; no relanza el loop |
 
 ## Roadmap (lean)
 
@@ -96,6 +97,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-08-27 | **D29** Preguntar en panel de misión: Q&A sobre el informe |
 | 2026-08-27 | Misiones: al abrir una, se oculta el historial; scrollbars invisibles |
 | 2026-08-27 | **D28** Misiones: digest de memoria + tool `list_memory` (lectura). No el vault entero |
 | 2026-08-27 | Consola beige a pantalla completa (sin canvas negro); mismo ancho 52rem |

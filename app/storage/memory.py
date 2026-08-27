@@ -1048,6 +1048,22 @@ class MemoryStore:
             await db.commit()
             return int(cursor.lastrowid)
 
+    async def list_mission_events(
+        self, mission_id: int
+    ) -> list[tuple[str, str | None]]:
+        """Oldest→newest (kind, payload)."""
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                """
+                SELECT kind, payload FROM mission_events
+                WHERE mission_id = ?
+                ORDER BY id ASC
+                """,
+                (mission_id,),
+            )
+            rows = await cursor.fetchall()
+            return [(str(r[0]), r[1] if r[1] is None else str(r[1])) for r in rows]
+
     async def list_due_missions(self, *, now_iso: str, limit: int = 5) -> list[MissionRow]:
         """Missions ready to tick (queued/waiting/running with next_run_at <= now)."""
         async with aiosqlite.connect(self._db_path) as db:

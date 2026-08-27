@@ -178,3 +178,21 @@ def test_list_hides_done():
             assert a in ids_active and b not in ids_active
 
     asyncio.run(_run())
+
+
+def test_mission_ask_events():
+    async def _run() -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = MemoryStore(str(Path(tmp) / "kore.db"))
+            await store.init()
+            mid = await store.add_mission("Ask me", status="done")
+            await store.add_mission_event(
+                mid, "ask", '{"q": "¿Por qué A?", "a": "Más cerca"}'
+            )
+            rows = await store.list_mission_events(mid)
+            from app.kernel.mission_ask import parse_ask_events
+
+            asks = parse_ask_events(rows)
+            assert asks == [{"q": "¿Por qué A?", "a": "Más cerca"}]
+
+    asyncio.run(_run())
