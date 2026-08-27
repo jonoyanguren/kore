@@ -143,7 +143,7 @@ button.lp-btn--ghost:hover {
 
 .lp-hero__stage {
   position: relative;
-  width: min(52rem, 100%);
+  width: min(var(--console-max), 100%);
   margin-top: clamp(2.75rem, 7vh, 4.25rem);
 }
 
