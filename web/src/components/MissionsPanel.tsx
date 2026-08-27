@@ -640,7 +640,10 @@ export function MissionsPanel({ active = true }: Props) {
                       ? 'missions__item missions__item--active'
                       : 'missions__item'
                   }
-                  onClick={() => setSelectedId(m.id)}
+                  onClick={() => {
+                    setCreating(false)
+                    setSelectedId(m.id)
+                  }}
                 >
                   <div className="missions__item-top">
                     <span className="missions__item-title">{m.title}</span>
@@ -686,7 +689,7 @@ export function MissionsPanel({ active = true }: Props) {
               className="ghost missions__panel-close"
               onClick={closePanel}
             >
-              Cerrar
+              ← Lista
             </button>
             <div className="missions__panel-actions">
               {detail && !isDoneStatus(detail.status) ? (

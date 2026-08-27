@@ -96,6 +96,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-08-27 | Misiones: al abrir una, se oculta el historial; scrollbars invisibles |
 | 2026-08-27 | **D28** Misiones: digest de memoria + tool `list_memory` (lectura). No el vault entero |
 | 2026-08-27 | Consola beige a pantalla completa (sin canvas negro); mismo ancho 52rem |
 | 2026-08-27 | Consola: mismo ancho de página (52rem) en Día, Chat, Board y Misiones |

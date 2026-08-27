@@ -3024,13 +3024,15 @@ a.more-drawer__btn {
   max-width: none;
   margin-inline: auto;
   overflow: auto;
+  scrollbar-width: none;
+}
+
+.missions__main::-webkit-scrollbar {
+  display: none;
 }
 
 .missions--panel .missions__main {
-  max-width: 18rem;
-  margin-inline: 0;
-  flex: 0 0 18rem;
-  padding-right: 0.75rem;
+  display: none;
 }
 
 .missions__bar {
@@ -3439,12 +3441,15 @@ a.more-drawer__btn {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  padding: 0 0 0.5rem 1.1rem;
-  margin-left: 0.35rem;
-  border-left: 1px solid rgba(21, 32, 43, 0.12);
+  padding: 0 0 0.5rem;
   overflow: auto;
   box-sizing: border-box;
   animation: missions-panel-in 0.22s ease;
+  scrollbar-width: none;
+}
+
+.missions__panel::-webkit-scrollbar {
+  display: none;
 }
 
 @keyframes missions-panel-in {
@@ -3467,7 +3472,7 @@ a.more-drawer__btn {
   top: 0;
   background: linear-gradient(
     to bottom,
-    var(--paper, #edf1f4) 70%,
+    var(--paper) 70%,
     transparent
   );
   padding-bottom: 0.35rem;
@@ -3913,23 +3918,7 @@ button.missions__result-copy:hover {
 }
 
 @media (max-width: 700px) {
-  .missions--panel {
-    flex-direction: column;
-  }
-
-  .missions--panel .missions__main {
-    flex: 0 0 auto;
-    max-width: none;
-    max-height: 40%;
-    padding-right: 0;
-    border-bottom: 1px solid rgba(21, 32, 43, 0.1);
-    padding-bottom: 0.75rem;
-  }
-
   .missions__panel {
-    padding-left: 0;
-    margin-left: 0;
-    border-left: 0;
-    padding-top: 0.75rem;
+    padding-top: 0;
   }
 }
