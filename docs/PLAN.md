@@ -53,7 +53,7 @@
 | D23 | Dogfood Phase 0–3 **cerrado** (2026-08-10); siguiente = features nuevas, no más “vivir el MVP” |
 | D24 | **Google Calendar read-only** vía mismo OAuth (`calendar.readonly`); solo calendario **primary** (no suscripciones); eventos live en Día + dream + tool chat; **no** duplicar a SQLite en v1; agenda local sigue para captura chat |
 | D25 | **Chat → crear bloque Calendar**: tool `create_calendar_block` escribe ya en primary; pregunta solo si hay duda real |
-| D26 | **Misiones modos** (2026-08-26): Normal / Loco / Experto / Duro. Un eje (sustituye Calidad Normal/Pro). Legacy `pro` → Experto. Modelo: Normal=Flash; resto=Pro |
+| D27 | **Misiones intake** (2026-08-27): aclarar pide 5–8 preguntas (no 1–2); ronda 2 = huecos; ready solo con brief usable |
 
 ## Roadmap (lean)
 
@@ -61,7 +61,7 @@
 
 **Cerrado Calendar (D24/D25):** read primary + crear bloque desde chat. Dogfood aparcado; no más slice ahora.
 
-**Ahora — UI unificada:** consola = mismo lenguaje que la landing (canvas oscuro, papel, píldoras, Instrument Sans). Allowlist aparcado.
+**Ahora — misiones:** intake largo (5–8 preguntas) + UI al lenguaje landing. Allowlist aparcado.
 
 **1.6 / layout:** rediseño externo de estructura → maquetar cuando llegue (el chrome ya no espera).
 
@@ -85,8 +85,8 @@ Detalle shipped → [`milestones.md`](./milestones.md).
 
 ## Next steps
 
-1. Pulir consola contra landing (drawers/board si queda corto)
-2. App móvil Kore: M2 cuando toque (paralelo, no bloquea)
+1. Dogfood intake de una misión vaga → 5–8 Qs → brief
+2. Pulir Board si queda corto vs landing
 3. Allowlist / rate-limit registro si hay spam
 
 No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
@@ -95,6 +95,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-08-27 | **D27 Misiones intake:** 5–8 preguntas ronda 1; follow-up ronda 2; UI Nueva al estilo landing |
 | 2026-08-27 | **UI consola = landing:** canvas `#12151a`, papel `#f3efe8`, Instrument Sans, botones píldora |
 | 2026-08-27 | **Landing pública:** logged-out = hero tipo Revolut (claim + producto); overlay Entrar/Crear cuenta; cookie skip a consola |
 | 2026-08-27 | **D25 cerrado:** Calendar write marcado hecho (dogfood aparcado); siguiente = landing |

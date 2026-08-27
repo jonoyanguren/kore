@@ -152,6 +152,12 @@ Pendiente 1.6 → UI viva (aparte) / fricciones dogfood.
 - Consola = dispositivo papel sobre canvas (como el mock del hero)
 - Onboarding en card tipo overlay; drawers/⌘K con blur oscuro
 
+## 2026-08-27 — Misiones intake (D27)
+
+- Aclarar: 5–8 preguntas en ronda 1 (antes 1–2); ronda 2 solo huecos
+- `ready` solo si el brief ya es usable (decisión, restricciones, alcance, formato)
+- UI Nueva: card papel, preguntas numeradas, respuestas opcionales
+
 ## Prompting (baseline cerrado)
 
 - `personality.md`, `kimay.md`, Datafine, `slow-project.md`, `investing.md` (azValor baseline)

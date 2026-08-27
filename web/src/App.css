@@ -3058,8 +3058,10 @@ a.more-drawer__btn {
 
 .missions__title {
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 650;
+  font-family: var(--display);
+  font-size: 1.45rem;
+  font-weight: 500;
+  letter-spacing: -0.04em;
   flex: 1;
   color: var(--ink, #15202b);
 }
@@ -3080,17 +3082,18 @@ a.more-drawer__btn {
 .missions__form {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
-  padding: 0.85rem;
-  border: 1px solid var(--line);
-  border-radius: 0.65rem;
-  background: rgba(21, 32, 43, 0.03);
+  gap: 0.85rem;
+  padding: 1.15rem 1.2rem 1.3rem;
+  border: 0;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--line);
 }
 
 .missions__form form {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: 0.85rem;
 }
 
 .missions__form-actions {
@@ -3100,9 +3103,75 @@ a.more-drawer__btn {
   align-items: center;
 }
 
+.missions__clarify-kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
 .missions__clarify-lede {
   margin: 0;
-  font-size: 0.9rem;
+  font-family: var(--display);
+  font-size: 1.35rem;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+}
+
+.missions__qs,
+.missions__asked {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.missions__asked {
+  gap: 0.55rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.missions__asked li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.88rem;
+}
+
+.missions__asked strong {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.missions__q {
+  margin: 0;
+}
+
+.missions__q label {
+  gap: 0.35rem;
+}
+
+.missions__q-n {
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.missions__q-text {
+  font-family: var(--display);
+  font-size: 1.02rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.3;
+  color: var(--ink);
 }
 
 .missions__form label {
@@ -3118,11 +3187,16 @@ a.more-drawer__btn {
   font: inherit;
   font-weight: 400;
   font-size: 0.95rem;
-  padding: 0.45rem 0.55rem;
-  border-radius: 0.4rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--paper);
   color: var(--ink, #15202b);
+}
+
+.missions__form textarea {
+  min-height: 4.5rem;
+  resize: vertical;
 }
 
 .missions__form-hint {
@@ -3321,27 +3395,31 @@ a.more-drawer__btn {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  padding: 0.75rem 0.85rem;
-  border-radius: 0.55rem;
-  border: 1px solid rgba(21, 32, 43, 0.08);
-  background: rgba(255, 255, 255, 0.55);
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  border: 0;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--line);
   color: var(--ink, #15202b);
   cursor: pointer;
+  font-weight: 400;
 }
 
 .missions__item:hover {
-  background: rgba(47, 111, 94, 0.06);
-  border-color: rgba(47, 111, 94, 0.25);
+  background: #fff;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, var(--line));
 }
 
 .missions__item--active {
-  border-color: rgba(47, 111, 94, 0.4);
-  background: rgba(47, 111, 94, 0.1);
+  background: color-mix(in srgb, var(--accent) 8%, white);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 42%, transparent);
 }
 
 .missions__item-title {
-  font-size: 1rem;
-  font-weight: 600;
+  font-family: var(--display);
+  font-size: 1.02rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
   line-height: 1.3;
   color: var(--ink, #15202b);
   min-width: 0;

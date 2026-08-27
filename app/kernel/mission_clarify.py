@@ -1,4 +1,4 @@
-"""Clarify a mission brief with 1–2 questions before launch (cheap daily model)."""
+"""Clarify a mission brief with a thorough intake before launch."""
 
 from __future__ import annotations
 
@@ -16,23 +16,40 @@ from app.llm.prompt_cache import openrouter_extra_body, with_system_cache_contro
 logger = logging.getLogger(__name__)
 
 MAX_CLARIFY_ROUNDS = 2
-MAX_QUESTIONS = 2
+MAX_QUESTIONS = 8
+MIN_QUESTIONS_ROUND_1 = 5
 
-CLARIFY_SYSTEM = """Eres Jone, assistant de Jon. Ayudas a aclarar un ENCARGO de investigación
-ANTES de lanzar una misión en background.
+
+CLARIFY_SYSTEM = """Eres el companion del usuario. Aclaras un ENCARGO ANTES de lanzar
+una misión de investigación en background.
 
 Responde SOLO con JSON válido (sin markdown):
 {
   "ready": true|false,
-  "questions": ["…"],   // 0–2 preguntas cortas en español si ready=false
-  "refined_brief": "…"  // brief accionable consolidado (siempre)
+  "questions": ["…"],
+  "refined_brief": "…"
 }
 
-Reglas:
-- ready=true si el brief ya permite investigar (objetivo, restricciones mínimas).
-- Si falta algo clave (presupuesto, zona, tipo, plazo…), ready=false y 1–2 preguntas.
-- No inventes datos. refined_brief resume título+encargo+respuestas útiles.
-- Máximo 2 preguntas. Tono directo, sin relleno."""
+refined_brief: siempre. Resume título + encargo + respuestas. Accionable. No inventes.
+
+ready=true SOLO si el brief ya cubre, de forma usable:
+- qué decisión o entregable se espera
+- restricciones (dinero, sitio, plazo, must / must-not)
+- alcance (qué entra y qué no)
+- formato / profundidad
+- qué ya sabe o no quiere repetir
+
+Si falta más de uno de esos, ready=false.
+
+Preguntas:
+- Una idea por pregunta. Cortas, en español, concretas.
+- No preguntes lo que ya está en el encargo o en respuestas previas.
+- Huecos típicos: para qué / decisión; presupuesto o rango; zona o ámbito;
+  plazo; qué ya investigó; fuentes que fía o evita; formato (tabla, comparativa,
+  veredicto); criterio de éxito; qué NO hacer.
+- Ronda 1: 5–8 preguntas. No marques ready=true con un encargo vago.
+- Ronda 2: 0–4 preguntas solo de huecos críticos. Si ya se puede trabajar, ready=true.
+"""
 
 
 @dataclass
@@ -84,10 +101,19 @@ def build_clarify_user_payload(
             a = (turn.get("answer") or "").strip()
             lines.append(f"{i}. P: {q}\n   R: {a or '(sin respuesta)'}")
         parts.append("Respuestas previas:\n" + "\n".join(lines))
-    if round_n >= MAX_CLARIFY_ROUNDS:
+    if round_n <= 1:
+        parts.append(
+            f"PRIMERA RONDA: ready=false salvo brief ya completo. "
+            f"Haz {MIN_QUESTIONS_ROUND_1}–{MAX_QUESTIONS} preguntas."
+        )
+    elif round_n > MAX_CLARIFY_ROUNDS:
         parts.append(
             "ÚLTIMA RONDA: marca ready=true y consolida el mejor refined_brief "
             "posible con lo que hay (no más questions)."
+        )
+    else:
+        parts.append(
+            "Si siguen huecos críticos, 1–4 preguntas. Si ya se puede investigar, ready=true."
         )
     return "\n\n".join(parts)
 
@@ -101,8 +127,9 @@ def parse_clarify_response(
     round_n: int,
 ) -> ClarifyResult:
     data = _extract_json(text) or {}
-    force_ready = round_n >= MAX_CLARIFY_ROUNDS
+    force_ready = round_n > MAX_CLARIFY_ROUNDS
     ready = bool(data.get("ready")) or force_ready
+    cap = 4 if round_n > 1 else MAX_QUESTIONS
     questions: list[str] = []
     if not ready:
         raw_qs = data.get("questions") or []
@@ -111,7 +138,7 @@ def parse_clarify_response(
                 s = str(q).strip()
                 if s:
                     questions.append(s)
-                if len(questions) >= MAX_QUESTIONS:
+                if len(questions) >= cap:
                     break
         if not questions:
             # Model said not ready but gave no Qs — treat as ready.
@@ -153,7 +180,7 @@ async def clarify_mission(
     quality: str = "normal",
 ) -> ClarifyResult:
     hist = history or []
-    round_n = max(1, min(int(round_n), MAX_CLARIFY_ROUNDS))
+    round_n = max(1, min(int(round_n), MAX_CLARIFY_ROUNDS + 1))
     model = resolve_mission_model(quality)
     user = build_clarify_user_payload(
         title=title, brief=brief, history=hist, round_n=round_n
@@ -170,7 +197,7 @@ async def clarify_mission(
     )
     kwargs: dict[str, Any] = {
         "model": model,
-        "max_tokens": 800,
+        "max_tokens": 2000,
         "messages": messages,
         "temperature": 0.2,
     }

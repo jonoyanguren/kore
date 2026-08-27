@@ -116,8 +116,9 @@ Responde SOLO markdown en español empezando por:
 
 Máx. ~25 líneas. Sin repetir la investigación cruda. Sin inventar datos ni URLs.""",
         clarify_addon=(
-            "Modo Normal: ready=true si el brief ya permite investigar "
-            "(objetivo, restricciones mínimas)."
+            "Modo Normal: intake completo. 5–8 preguntas en ronda 1 "
+            "(decisión, restricciones, alcance, formato, qué evitar). "
+            "No des por listo un título vago."
         ),
     ),
     MODE_LOCO: MissionModeSpec(
@@ -161,8 +162,10 @@ Responde SOLO markdown en español empezando por:
 
 Máx. ~35 líneas. Sin inventar datos ni URLs. Si una idea es especulativa, dilo.""",
         clarify_addon=(
-            "Modo Loco: no preguntes por presupuesto realista ni por \"qué es razonable\". "
-            "ready=true en cuanto haya un tema que explorar. Si preguntas, que abran el mapa."
+            "Modo Loco: no preguntes por presupuesto realista ni por "
+            "\"qué es razonable\". Sí pregunta amplitud del mapa, tabúes, "
+            "si incluir absurdo, y para qué se usará el mapa. "
+            "Ronda 1: 5–8 preguntas que abran, no que cierren."
         ),
     ),
     MODE_EXPERTO: MissionModeSpec(
@@ -212,8 +215,9 @@ Responde SOLO markdown en español empezando por:
 Máx. ~30 líneas. Sin inventar datos ni URLs. Cero relleno introductorio.""",
         clarify_addon=(
             "Modo Experto: no preguntes definiciones ni el 101. "
-            "Solo huecos de dominio (alcance, constraint técnico, para qué decisión). "
-            "Si el brief ya es específico, ready=true."
+            "Sí: decisión concreta, constraint técnico, fuentes que fía, "
+            "qué ya descartó, tolerancia a incertidumbre. "
+            "Ronda 1: 5–8 huecos de dominio. Solo ready=true si el brief ya es de experto."
         ),
     ),
     MODE_DURO: MissionModeSpec(
@@ -261,8 +265,9 @@ Responde SOLO markdown en español empezando por:
 
 Máx. ~25 líneas. Sin inventar datos ni URLs. No endulces el cierre.""",
         clarify_addon=(
-            "Modo Duro: si no hay tesis o idea que atacar, pregunta cuál. "
-            "No pidas tono ni \"qué te gustaría oír\". ready=true si hay una afirmación tumbar."
+            "Modo Duro: si no hay tesis, pregunta cuál. Pregunta también "
+            "qué se juega, qué no quiere oír, y qué le haría cambiar de idea. "
+            "Ronda 1: 5–8 preguntas de ataque. No pidas tono agradable."
         ),
     ),
 }

@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import json
+
 from app.kernel.mission_clarify import (
     MAX_CLARIFY_ROUNDS,
+    MAX_QUESTIONS,
     parse_clarify_response,
 )
 
@@ -34,13 +37,41 @@ def test_parse_questions():
     assert r.rounds_left == MAX_CLARIFY_ROUNDS - 1
 
 
-def test_force_ready_on_last_round():
+def test_parse_keeps_full_intake():
+    qs = [f"¿Q{i}?" for i in range(1, 12)]
+    r = parse_clarify_response(
+        json.dumps({"ready": False, "questions": qs, "refined_brief": "Barcos"}),
+        title="Barcos",
+        brief="quiero un barco",
+        history=[],
+        round_n=1,
+    )
+    assert not r.ready
+    assert len(r.questions) == MAX_QUESTIONS
+    assert r.questions[0] == "¿Q1?"
+    assert r.questions[-1] == f"¿Q{MAX_QUESTIONS}?"
+
+
+def test_round_two_caps_followups():
+    qs = [f"¿Más {i}?" for i in range(6)]
+    r = parse_clarify_response(
+        json.dumps({"ready": False, "questions": qs, "refined_brief": "ok"}),
+        title="X",
+        brief="y",
+        history=[{"question": "¿Zona?", "answer": "Norte"}],
+        round_n=2,
+    )
+    assert not r.ready
+    assert len(r.questions) == 4
+
+
+def test_force_ready_after_max_rounds():
     r = parse_clarify_response(
         '{"ready": false, "questions": ["¿Más?"], "refined_brief": "ok"}',
         title="X",
         brief="y",
         history=[{"question": "¿Zona?", "answer": "Norte"}],
-        round_n=MAX_CLARIFY_ROUNDS,
+        round_n=MAX_CLARIFY_ROUNDS + 1,
     )
     assert r.ready
     assert r.questions == []

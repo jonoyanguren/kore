@@ -736,7 +736,7 @@ async def create_mission(request: Request, body: CreateMissionBody) -> dict[str,
 async def clarify_mission_endpoint(
     request: Request, body: ClarifyMissionBody
 ) -> dict[str, Any]:
-    """Ask 1–2 clarifying questions (or mark ready) before creating a mission."""
+    """Intake questions (or mark ready) before creating a mission."""
     llm = request.app.state.llm_client
     hist = [
         {"question": h.question.strip(), "answer": h.answer.strip()}

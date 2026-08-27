@@ -292,7 +292,7 @@ export function MissionsPanel({ active = true }: Props) {
       }))
       const nextHistory = [...history, ...turns]
       setHistory(nextHistory)
-      await runClarify(nextHistory, Math.min(round + 1, 2))
+      await runClarify(nextHistory, round + 1)
     } catch (err) {
       toast.err(String(err))
     } finally {
@@ -486,14 +486,15 @@ export function MissionsPanel({ active = true }: Props) {
                   <textarea
                     value={brief}
                     onChange={(e) => setBrief(e.target.value)}
-                    placeholder="Condiciones, presupuesto, zona…"
-                    rows={4}
+                    placeholder="Qué quieres saber, para qué, restricciones…"
+                    rows={5}
                     disabled={busy}
                   />
                 </label>
                 {modeField('cards')}
                 <p className="muted missions__form-hint">
-                  Plan automático → tareas en secuencia con handoff entre pasos.
+                  Primero un intake: varias preguntas para que el resultado no
+                  vaya a ciegas. Luego revisas el brief y lanzas.
                 </p>
                 <div className="missions__form-actions">
                   <button type="submit" disabled={busy || !title.trim()}>
@@ -513,29 +514,53 @@ export function MissionsPanel({ active = true }: Props) {
 
             {phase === 'questions' ? (
               <form onSubmit={(e) => void onAnswer(e)}>
-                <p className="missions__clarify-lede">
-                  Antes de lanzar, unas preguntas:
+                <p className="missions__clarify-kicker">
+                  Intake · ronda {round}
+                </p>
+                <h3 className="missions__clarify-lede">
+                  {questions.length} pregunta
+                  {questions.length === 1 ? '' : 's'} para afinar el encargo
+                </h3>
+                <p className="muted missions__form-hint">
+                  Vacío = no aplica. Cuanto más concreto, mejor el resultado.
                 </p>
                 {modeField('pills')}
-                {questions.map((q, i) => (
-                  <label key={`${round}-${i}`}>
-                    {q}
-                    <textarea
-                      value={answers[i] ?? ''}
-                      onChange={(e) => {
-                        const next = [...answers]
-                        next[i] = e.target.value
-                        setAnswers(next)
-                      }}
-                      rows={2}
-                      disabled={busy}
-                      required
-                    />
-                  </label>
-                ))}
+                {history.length > 0 ? (
+                  <ol className="missions__asked">
+                    {history.map((h, i) => (
+                      <li key={`h-${i}`}>
+                        <strong>{h.question}</strong>
+                        <span>{h.answer || '—'}</span>
+                      </li>
+                    ))}
+                  </ol>
+                ) : null}
+                <ol className="missions__qs">
+                  {questions.map((q, i) => (
+                    <li key={`${round}-${i}`} className="missions__q">
+                      <label>
+                        <span className="missions__q-n">
+                          {String(i + 1).padStart(2, '0')}
+                        </span>
+                        <span className="missions__q-text">{q}</span>
+                        <textarea
+                          value={answers[i] ?? ''}
+                          onChange={(e) => {
+                            const next = [...answers]
+                            next[i] = e.target.value
+                            setAnswers(next)
+                          }}
+                          rows={3}
+                          disabled={busy}
+                          placeholder="Tu respuesta"
+                        />
+                      </label>
+                    </li>
+                  ))}
+                </ol>
                 <div className="missions__form-actions">
                   <button type="submit" disabled={busy}>
-                    {busy ? '…' : 'Responder'}
+                    {busy ? '…' : 'Seguir'}
                   </button>
                   <button
                     type="button"
@@ -551,9 +576,10 @@ export function MissionsPanel({ active = true }: Props) {
 
             {phase === 'ready' ? (
               <form onSubmit={(e) => void onLaunch(e)}>
-                <p className="missions__clarify-lede">
-                  Brief listo. Puedes editarlo antes de lanzar.
-                </p>
+                <p className="missions__clarify-kicker">Brief</p>
+                <h3 className="missions__clarify-lede">
+                  Listo para lanzar. Edita si hace falta.
+                </h3>
                 <label>
                   Título
                   <input value={title} disabled readOnly />
@@ -600,7 +626,7 @@ export function MissionsPanel({ active = true }: Props) {
         <ul className="missions__list">
           {visible.length === 0 ? (
             <li className="missions__empty muted">
-              Ninguna misión. Pulsa Nueva para crear una.
+              Ninguna misión. Nueva para lanzar una.
             </li>
           ) : (
             visible.map((m) => {
