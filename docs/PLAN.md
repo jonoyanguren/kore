@@ -7,7 +7,7 @@
 |-------|--------|
 | Repo | `jonoyanguren/kore` |
 | Producto | **Kore** · hablado **Jone** (`ASSISTANT_NAME`) |
-| Fase actual | **Agenda + Google Calendar (read)** — post–Phase 3 |
+| Fase actual | **Landing pública** — post–cuentas aisladas |
 | Canal | Consola web = operar / día · Telegram = captura móvil opcional |
 | Deploy | Fly.io · `/data` |
 | LLM | OpenRouter · diario `deepseek/deepseek-v4-pro` · strong `claude-haiku-4.5` · misiones Normal=`deepseek-v4-flash` / Loco·Experto·Duro=`deepseek-v4-pro` · prompt cache en tool loops |
@@ -23,7 +23,7 @@
 - [x] Phase 2 — Gmail MVP
 - [x] Phase 3 — Misiones *(MVP + dogfood + UI Resultado)*
 - [ ] ~~Phase 4 — Git / código~~ → **fuera de Kore** (proyecto aparte: programar desde el móvil)
-- [ ] Agenda + Google Calendar *(read; en curso)*
+- [x] Agenda + Google Calendar *(read + write bloque; D24/D25 cerrado 2026-08-27)*
 - [ ] Phase 5+ — PDF, media… *(candidatos)*
 - [ ] App móvil Kore — día a día (Expo; no es el IDE móvil)
 
@@ -59,16 +59,9 @@
 
 **Cerrado Phase 3:** misiones usable + dogfood + UI Resultado.
 
-**Ahora — Calendar write (D25):**
+**Cerrado Calendar (D24/D25):** read primary + crear bloque desde chat. Dogfood aparcado; no más slice ahora.
 
-| Slice | Qué |
-|-------|-----|
-| OAuth | `calendar.events` (+ readonly); Reconectar |
-| Tool | `create_calendar_block` (directo) |
-| API | `POST /api/calendar/events` (también usable) |
-| Chat | Sin card de confirmación; toast al crear |
-
-**No v1:** attendees, recurrencia, multi-cal, Telegram confirm.
+**Ahora — landing pública** (cuentas abiertas): `kore.fly.dev` logged-out = producto; Entrar / Crear cuenta ya existen.
 
 **1.6 / UI:** rediseño externo → maquetar cuando llegue.
 
@@ -84,13 +77,13 @@ Detalle shipped → [`milestones.md`](./milestones.md).
 - [x] Dogfood consola + Gmail + Misiones
 - [x] Phase 3 Misiones usable
 - [x] Google Calendar read en Día / dream / chat (D24)
-- [ ] Chat → crear bloque Calendar (D25)
+- [x] Chat → crear bloque Calendar (D25) — cerrado 2026-08-27 (dogfood aparcado)
 - [ ] Rediseño UI (diseño externo → maquetar)
 - [ ] App móvil día a día (Kore)
 
 ## Next steps
 
-1. Deploy D25 + Reconectar OAuth + dogfood “reserva mañana 10–11”
+1. Landing pública (logged-out) + logout cookie HTTPS
 2. Cuando llegue el diseño: maquetación UI 1.6
 3. App móvil Kore: M2 cuando toque (paralelo, no bloquea)
 
@@ -100,6 +93,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-08-27 | **D25 cerrado:** Calendar write marcado hecho (dogfood aparcado); siguiente = landing |
 | 2026-08-26 | **D14 superseded:** registro abierto; homes SQLite aislados; onboarding nombre+tono; Telegram = Jon |
 | 2026-08-26 | **D26** Misiones: modos Normal / Loco / Experto / Duro + leyenda en Nueva (sustituye Calidad) |
 | 2026-08-10 | **Dream fiable:** `/dream` consola; retry modelo; fallback determinista; Día con help vivo |

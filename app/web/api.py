@@ -99,15 +99,30 @@ def _vault(request: Request):
     return request.app.state.vault
 
 
+def _cookie_secure(request: Request) -> bool:
+    return request.url.scheme == "https"
+
+
 def _set_session_cookie(response: Response, token: str, request: Request) -> None:
     response.set_cookie(
         key=COOKIE_NAME,
         value=token,
         httponly=True,
         samesite="lax",
-        secure=request.url.scheme == "https",
+        secure=_cookie_secure(request),
         max_age=SESSION_MAX_AGE,
         path="/",
+    )
+
+
+def _clear_session_cookie(response: Response, request: Request) -> None:
+    # Must match set_cookie flags or the browser keeps the cookie (HTTPS Fly).
+    response.delete_cookie(
+        COOKIE_NAME,
+        path="/",
+        httponly=True,
+        samesite="lax",
+        secure=_cookie_secure(request),
     )
 
 
@@ -244,7 +259,7 @@ async def logout(request: Request, response: Response) -> dict[str, bool]:
     accounts = accounts_of(request)
     if token and accounts is not None:
         await accounts.delete_session(token)
-    response.delete_cookie(COOKIE_NAME, path="/")
+    _clear_session_cookie(response, request)
     return {"ok": True}
 
 

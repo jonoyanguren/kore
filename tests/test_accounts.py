@@ -15,6 +15,7 @@ from app.config import settings
 from app.storage.memory import MemoryStore
 from app.storage.vault import Vault
 from app.web.api import router as console_api_router
+from app.web.auth import COOKIE_NAME
 
 
 def _app(accounts: AccountStore, homes: Homes) -> FastAPI:
@@ -103,6 +104,12 @@ async def _isolation():
                 assert saved.status_code == 200
                 assert saved.json()["user"]["onboarded"] is True
                 assert saved.json()["user"]["companion_name"] == "Mara"
+
+                out = await a.post("/api/logout")
+                assert out.status_code == 200
+                assert COOKIE_NAME not in a.cookies or not a.cookies.get(COOKIE_NAME)
+                me_out = await a.get("/api/me")
+                assert me_out.status_code == 401
 
                 login = await b.post(
                     "/api/logout",

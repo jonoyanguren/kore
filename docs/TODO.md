@@ -15,7 +15,7 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 
 ## Ahora
 
-- [ ] Dogfood: chat → **crear bloque Calendar** (directo) · 1 semana
+- [x] **Calendar write (D25)** — crear bloque desde chat; dogfood aparcado
 - [x] **Cuentas aisladas** — registro abierto, un SQLite por usuario (D14 superseded)
 - [x] **Misiones modos** — Normal / Loco / Experto / Duro + leyenda en Nueva
 - [x] **Dream fiable** — `/dream` en consola + reintento modelo + fallback vivo + Día no vacío
@@ -25,7 +25,7 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 
 ## Producto
 
-### Candidatos (después de Calendar write)
+### Candidatos (después de landing)
 
 - [ ] Dogfood Calendar Día: **Abrir / Tarea / Prep** en eventos
 - [ ] **Misión → tareas** — del Resultado, 1 clic crea ítems en el board
