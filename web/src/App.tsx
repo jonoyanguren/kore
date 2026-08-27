@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { apiMe } from './api'
 import { Console } from './components/Console'
-import { Login } from './components/Login'
+import { Landing } from './components/Landing'
 import { Onboarding } from './components/Onboarding'
 import { ToastProvider } from './components/Toasts'
 import type { MeUser } from './types'
 import './App.css'
+import './Landing.css'
 
 type Auth = 'loading' | 'out' | 'in'
 
@@ -44,13 +45,9 @@ function App() {
 
   let body
   if (auth === 'loading') {
-    body = (
-      <main className="login">
-        <p className="muted">…</p>
-      </main>
-    )
+    body = <main className="lp-boot" aria-busy="true" />
   } else if (auth === 'out') {
-    body = <Login onSuccess={enter} />
+    body = <Landing onSuccess={enter} />
   } else if (needsOnboarding(user)) {
     body = (
       <Onboarding

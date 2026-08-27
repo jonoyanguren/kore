@@ -140,6 +140,12 @@ Pendiente 1.6 → UI viva (aparte) / fricciones dogfood.
 - Bootstrap: Jon hereda `/data/kore.db` → `users/{id}/`
 - Onboarding: nombre + tono; Telegram sigue siendo Jon
 
+## 2026-08-27 — Landing pública
+
+- Logged-out: hero (claim + mock Día) + bandas Día / Companion / Misiones
+- Overlay Entrar / Crear cuenta (mismos endpoints); cookie → consola
+- Mock de producto ficticio (no captura real)
+
 ## Prompting (baseline cerrado)
 
 - `personality.md`, `kimay.md`, Datafine, `slow-project.md`, `investing.md` (azValor baseline)
@@ -147,4 +153,4 @@ Pendiente 1.6 → UI viva (aparte) / fricciones dogfood.
 
 ---
 
-*Última actualización del archivo: 2026-08-26*
+*Última actualización del archivo: 2026-08-27*

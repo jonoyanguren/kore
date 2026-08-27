@@ -19,13 +19,14 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 - [x] **Cuentas aisladas** — registro abierto, un SQLite por usuario (D14 superseded)
 - [x] **Misiones modos** — Normal / Loco / Experto / Duro + leyenda en Nueva
 - [x] **Dream fiable** — `/dream` en consola + reintento modelo + fallback vivo + Día no vacío
+- [x] **Landing pública** — logged-out: producto; overlay Entrar / Crear cuenta
 - [ ] Cuando llegue diseño: plan de maquetación UI 1.6
 
 ---
 
 ## Producto
 
-### Candidatos (después de landing)
+### Candidatos
 
 - [ ] Dogfood Calendar Día: **Abrir / Tarea / Prep** en eventos
 - [ ] **Misión → tareas** — del Resultado, 1 clic crea ítems en el board

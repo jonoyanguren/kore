@@ -7,7 +7,7 @@
 |-------|--------|
 | Repo | `jonoyanguren/kore` |
 | Producto | **Kore** · hablado **Jone** (`ASSISTANT_NAME`) |
-| Fase actual | **Landing pública** — post–cuentas aisladas |
+| Fase actual | **Post-landing** — cuentas abiertas + página pública; 1.6 cuando llegue diseño |
 | Canal | Consola web = operar / día · Telegram = captura móvil opcional |
 | Deploy | Fly.io · `/data` |
 | LLM | OpenRouter · diario `deepseek/deepseek-v4-pro` · strong `claude-haiku-4.5` · misiones Normal=`deepseek-v4-flash` / Loco·Experto·Duro=`deepseek-v4-pro` · prompt cache en tool loops |
@@ -61,7 +61,7 @@
 
 **Cerrado Calendar (D24/D25):** read primary + crear bloque desde chat. Dogfood aparcado; no más slice ahora.
 
-**Ahora — landing pública** (cuentas abiertas): `kore.fly.dev` logged-out = producto; Entrar / Crear cuenta ya existen.
+**Ahora — post-landing:** consola para quien entra; logged-out = producto. Allowlist aparcado (spam = riesgo aceptado del registro abierto).
 
 **1.6 / UI:** rediseño externo → maquetar cuando llegue.
 
@@ -78,14 +78,15 @@ Detalle shipped → [`milestones.md`](./milestones.md).
 - [x] Phase 3 Misiones usable
 - [x] Google Calendar read en Día / dream / chat (D24)
 - [x] Chat → crear bloque Calendar (D25) — cerrado 2026-08-27 (dogfood aparcado)
+- [x] Landing pública (logged-out) — hero + Día/Companion/Misiones; Entrar / Crear cuenta
 - [ ] Rediseño UI (diseño externo → maquetar)
 - [ ] App móvil día a día (Kore)
 
 ## Next steps
 
-1. Landing pública (logged-out) + logout cookie HTTPS
-2. Cuando llegue el diseño: maquetación UI 1.6
-3. App móvil Kore: M2 cuando toque (paralelo, no bloquea)
+1. Cuando llegue el diseño: maquetación UI 1.6
+2. App móvil Kore: M2 cuando toque (paralelo, no bloquea)
+3. Allowlist / rate-limit registro si hay spam
 
 No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
@@ -93,6 +94,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-08-27 | **Landing pública:** logged-out = hero tipo Revolut (claim + producto); overlay Entrar/Crear cuenta; cookie skip a consola |
 | 2026-08-27 | **D25 cerrado:** Calendar write marcado hecho (dogfood aparcado); siguiente = landing |
 | 2026-08-26 | **D14 superseded:** registro abierto; homes SQLite aislados; onboarding nombre+tono; Telegram = Jon |
 | 2026-08-26 | **D26** Misiones: modos Normal / Loco / Experto / Duro + leyenda en Nueva (sustituye Calidad) |

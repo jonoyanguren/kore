@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiLogin, apiRegister } from '../api'
 import type { MeUser } from '../types'
@@ -8,16 +8,28 @@ type Mode = 'login' | 'register'
 
 type Props = {
   onSuccess: (user: MeUser | null) => void
+  initialMode?: Mode
+  embedded?: boolean
+  onModeChange?: (mode: Mode) => void
 }
 
-export function Login({ onSuccess }: Props) {
+export function Login({
+  onSuccess,
+  initialMode = 'login',
+  embedded = false,
+  onModeChange,
+}: Props) {
   const toast = useToast()
-  const [mode, setMode] = useState<Mode>('login')
+  const [mode, setMode] = useState<Mode>(initialMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [ownerName, setOwnerName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    setMode(initialMode)
+  }, [initialMode])
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -52,9 +64,13 @@ export function Login({ onSuccess }: Props) {
   const isRegister = mode === 'register'
 
   return (
-    <main className="login">
-      <h1>Kore</h1>
-      <p>{isRegister ? 'Crea tu cuenta — cada uno su espacio' : 'Entra a tu consola'}</p>
+    <div className="login">
+      {embedded ? null : <h1>Kore</h1>}
+      <p>
+        {isRegister
+          ? 'Cada uno su espacio. Sin invitaciones.'
+          : 'Entra a tu consola'}
+      </p>
       <form onSubmit={onSubmit}>
         {isRegister ? (
           <label>
@@ -65,6 +81,8 @@ export function Login({ onSuccess }: Props) {
               placeholder="Ana"
               value={ownerName}
               onChange={(e) => setOwnerName(e.target.value)}
+              required
+              autoFocus={embedded}
             />
           </label>
         ) : null}
@@ -77,6 +95,7 @@ export function Login({ onSuccess }: Props) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            autoFocus={embedded && !isRegister}
           />
         </label>
         <label>
@@ -99,13 +118,15 @@ export function Login({ onSuccess }: Props) {
         type="button"
         className="ghost login__switch"
         onClick={() => {
-          setMode(isRegister ? 'login' : 'register')
+          const next = isRegister ? 'login' : 'register'
+          setMode(next)
+          onModeChange?.(next)
           setError(null)
         }}
       >
         {isRegister ? 'Ya tengo cuenta' : 'Crear cuenta'}
       </button>
       {error ? <p className="error">{error}</p> : null}
-    </main>
+    </div>
   )
 }
