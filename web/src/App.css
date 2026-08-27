@@ -3369,6 +3369,9 @@ a.more-drawer__btn {
   font-size: 0.95rem;
   line-height: 1.55;
   color: var(--ink, #15202b);
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
 }
 
 .missions__md h1 {
@@ -3458,8 +3461,8 @@ a.more-drawer__btn {
 .missions__md table,
 .missions__table {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 0.4rem;
+  border-collapse: collapse;
+  border-spacing: 0;
   margin: 0;
   font-size: 0.88rem;
 }
@@ -3468,6 +3471,9 @@ a.more-drawer__btn {
   margin: 0 0 0.85rem;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 0 0 1px rgba(21, 32, 43, 0.06);
 }
 
 .missions__md th,
@@ -3492,17 +3498,39 @@ a.more-drawer__btn {
 
 .missions__table tbody tr {
   background: rgba(255, 255, 255, 0.78);
-  box-shadow: 0 0 0 1px rgba(21, 32, 43, 0.06);
+}
+
+.missions__table tbody tr + tr td {
+  border-top: 1px solid rgba(21, 32, 43, 0.08);
+}
+
+.missions__table tbody tr:first-child td:first-child {
+  border-radius: 10px 0 0 0;
+}
+
+.missions__table tbody tr:first-child td:last-child {
+  border-radius: 0 10px 0 0;
+}
+
+.missions__table tbody tr:last-child td:first-child {
+  border-radius: 0 0 0 10px;
+}
+
+.missions__table tbody tr:last-child td:last-child {
+  border-radius: 0 0 10px 0;
+}
+
+.missions__table tbody tr:first-child:last-child td:first-child {
+  border-radius: 10px 0 0 10px;
+}
+
+.missions__table tbody tr:first-child:last-child td:last-child {
+  border-radius: 0 10px 10px 0;
 }
 
 .missions__table tbody tr td:first-child {
-  border-radius: 10px 0 0 10px;
   font-weight: 600;
   color: var(--ink);
-}
-
-.missions__table tbody tr td:last-child {
-  border-radius: 0 10px 10px 0;
 }
 
 .missions__md td a,
@@ -3598,6 +3626,7 @@ a.more-drawer__btn {
 }
 
 .missions__result {
+  position: relative;
   padding: 1.05rem 1.1rem 1.15rem;
   border-radius: 16px;
   border: 1px solid rgba(47, 111, 94, 0.28);
@@ -3611,8 +3640,23 @@ a.more-drawer__btn {
   box-shadow: 0 8px 24px rgba(21, 32, 43, 0.05);
 }
 
-.missions__md--result h2:first-child {
-  display: none;
+button.missions__result-copy {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  z-index: 1;
+  font-size: 0.82rem;
+  color: var(--muted);
+  user-select: none;
+  cursor: pointer;
+}
+
+button.missions__result-copy:hover {
+  color: var(--ink);
+}
+
+.missions__md--result {
+  padding-right: 4.2rem;
 }
 
 .missions__block {

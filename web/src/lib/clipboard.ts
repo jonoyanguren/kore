@@ -1,6 +1,15 @@
+/** Collapse copy artifacts from card/table layouts. */
+export function cleanCopiedText(s: string): string {
+  return (s || '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 /** Copy text to clipboard; returns true on success. */
 export async function copyToClipboard(text: string): Promise<boolean> {
-  const t = (text || '').trim()
+  const t = cleanCopiedText(text)
   if (!t) return false
   try {
     if (navigator.clipboard?.writeText) {

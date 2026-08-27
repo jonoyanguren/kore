@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ClipboardEvent, type FormEvent } from 'react'
 import {
   apiCancelMission,
   apiClarifyMission,
@@ -9,6 +9,7 @@ import {
   apiRelaunchMission,
   type ClarifyHistoryItem,
 } from '../api'
+import { cleanCopiedText, copyToClipboard } from '../lib/clipboard'
 import { renderMissionMarkdown } from '../lib/missionMarkdown'
 import {
   sectionToMarkdown,
@@ -158,6 +159,7 @@ export function MissionsPanel({ active = true }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const toast = useToast()
+  const resultRef = useRef<HTMLDivElement>(null)
 
   const panelOpen = selectedId != null
   const selectedMode =
@@ -423,6 +425,21 @@ export function MissionsPanel({ active = true }: Props) {
     missionRunning && !report.result && report.research.length > 0
   const showFullResearch =
     Boolean(report.result) && report.detailMarkdown.trim().length > 0
+
+  function onCopyResult(e: ClipboardEvent<HTMLDivElement>) {
+    const cleaned = cleanCopiedText(window.getSelection()?.toString() ?? '')
+    if (!cleaned || !e.clipboardData) return
+    e.preventDefault()
+    e.clipboardData.setData('text/plain', cleaned)
+  }
+
+  async function copyResult() {
+    const fromDom = resultRef.current?.innerText || ''
+    const fallback = report.result?.body || ''
+    const ok = await copyToClipboard(fromDom || fallback)
+    if (ok) toast.ok('Copiado')
+    else toast.err('No se pudo copiar')
+  }
 
   return (
     <section className={`missions${panelOpen ? ' missions--panel' : ''}`}>
@@ -739,12 +756,19 @@ export function MissionsPanel({ active = true }: Props) {
                 <div className="missions__report">
                   {report.result ? (
                     <section className="missions__result" aria-label="Resultado">
+                      <button
+                        type="button"
+                        className="ghost missions__result-copy"
+                        onClick={() => void copyResult()}
+                      >
+                        Copiar
+                      </button>
                       <div
+                        ref={resultRef}
                         className="missions__md missions__md--result"
+                        onCopy={onCopyResult}
                         dangerouslySetInnerHTML={{
-                          __html: renderMissionMarkdown(
-                            sectionToMarkdown(report.result),
-                          ),
+                          __html: renderMissionMarkdown(report.result.body),
                         }}
                       />
                     </section>
