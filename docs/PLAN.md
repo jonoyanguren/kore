@@ -7,7 +7,7 @@
 |-------|--------|
 | Repo | `jonoyanguren/kore` |
 | Producto | **Kore** · hablado **Jone** (`ASSISTANT_NAME`) |
-| Fase actual | **Post-landing** — cuentas abiertas + página pública; 1.6 cuando llegue diseño |
+| Fase actual | **UI landing → consola** — mismo sistema visual; 1.6 layout cuando llegue diseño |
 | Canal | Consola web = operar / día · Telegram = captura móvil opcional |
 | Deploy | Fly.io · `/data` |
 | LLM | OpenRouter · diario `deepseek/deepseek-v4-pro` · strong `claude-haiku-4.5` · misiones Normal=`deepseek-v4-flash` / Loco·Experto·Duro=`deepseek-v4-pro` · prompt cache en tool loops |
@@ -19,7 +19,7 @@
 - [x] Phase 0 — Kernel + captura
 - [x] Phase 1 — Vault / tasks / dream (cron 09:00 Madrid in-process)
 - [x] Phase 1.5 — Consola web MVP (chat + board)
-- [ ] Phase 1.6 — UX personal *(parcial; rediseño en curso con diseñadora → luego maquetar)*
+- [ ] Phase 1.6 — UX personal *(parcial: chrome visual = landing 2026-08-27; layout cuando llegue diseño)*
 - [x] Phase 2 — Gmail MVP
 - [x] Phase 3 — Misiones *(MVP + dogfood + UI Resultado)*
 - [ ] ~~Phase 4 — Git / código~~ → **fuera de Kore** (proyecto aparte: programar desde el móvil)
@@ -61,9 +61,9 @@
 
 **Cerrado Calendar (D24/D25):** read primary + crear bloque desde chat. Dogfood aparcado; no más slice ahora.
 
-**Ahora — post-landing:** consola para quien entra; logged-out = producto. Allowlist aparcado (spam = riesgo aceptado del registro abierto).
+**Ahora — UI unificada:** consola = mismo lenguaje que la landing (canvas oscuro, papel, píldoras, Instrument Sans). Allowlist aparcado.
 
-**1.6 / UI:** rediseño externo → maquetar cuando llegue.
+**1.6 / layout:** rediseño externo de estructura → maquetar cuando llegue (el chrome ya no espera).
 
 **App móvil Kore:** captura / Día / audio — **no** sustituye el proyecto de programar desde el móvil.
 
@@ -79,12 +79,13 @@ Detalle shipped → [`milestones.md`](./milestones.md).
 - [x] Google Calendar read en Día / dream / chat (D24)
 - [x] Chat → crear bloque Calendar (D25) — cerrado 2026-08-27 (dogfood aparcado)
 - [x] Landing pública (logged-out) — hero + Día/Companion/Misiones; Entrar / Crear cuenta
-- [ ] Rediseño UI (diseño externo → maquetar)
+- [x] Consola visual = landing (canvas / papel / tipo / píldoras) — 2026-08-27
+- [ ] Rediseño UI layout (diseño externo → maquetar)
 - [ ] App móvil día a día (Kore)
 
 ## Next steps
 
-1. Cuando llegue el diseño: maquetación UI 1.6
+1. Pulir consola contra landing (drawers/board si queda corto)
 2. App móvil Kore: M2 cuando toque (paralelo, no bloquea)
 3. Allowlist / rate-limit registro si hay spam
 
@@ -94,6 +95,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-08-27 | **UI consola = landing:** canvas `#12151a`, papel `#f3efe8`, Instrument Sans, botones píldora |
 | 2026-08-27 | **Landing pública:** logged-out = hero tipo Revolut (claim + producto); overlay Entrar/Crear cuenta; cookie skip a consola |
 | 2026-08-27 | **D25 cerrado:** Calendar write marcado hecho (dogfood aparcado); siguiente = landing |
 | 2026-08-26 | **D14 superseded:** registro abierto; homes SQLite aislados; onboarding nombre+tono; Telegram = Jon |

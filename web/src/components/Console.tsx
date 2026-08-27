@@ -54,6 +54,15 @@ export function Console({ onLogout, companionName = 'Jone' }: Props) {
   const chatRef = useRef<ChatPanelHandle>(null)
   const boardRef = useRef<TaskBoardHandle>(null)
 
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="theme-color"]')
+    const prev = meta?.getAttribute('content') ?? ''
+    meta?.setAttribute('content', '#12151a')
+    return () => {
+      if (meta) meta.setAttribute('content', prev || '#12151a')
+    }
+  }, [])
+
   async function handleLogout() {
     await apiLogout()
     onLogout()

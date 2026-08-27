@@ -20,7 +20,8 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 - [x] **Misiones modos** — Normal / Loco / Experto / Duro + leyenda en Nueva
 - [x] **Dream fiable** — `/dream` en consola + reintento modelo + fallback vivo + Día no vacío
 - [x] **Landing pública** — logged-out: producto; overlay Entrar / Crear cuenta
-- [ ] Cuando llegue diseño: plan de maquetación UI 1.6
+- [x] **UI consola = landing** — canvas oscuro + dispositivo papel
+- [ ] Cuando llegue diseño: plan de maquetación UI 1.6 (layout, no chrome)
 
 ---
 

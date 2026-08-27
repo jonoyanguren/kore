@@ -1,24 +1,26 @@
 :root {
+  --canvas: #12151a;
   --ink: #15202b;
   --muted: #6b7785;
-  --paper: #edf1f4;
-  --lane: rgba(255, 255, 255, 0.42);
-  --card: rgba(255, 255, 255, 0.78);
+  --paper: #f3efe8;
+  --lane: rgba(255, 255, 255, 0.55);
+  --card: #ffffff;
   --line: rgba(21, 32, 43, 0.09);
-  --accent: #1f6f5b;
+  --accent: #2f6f5e;
   --danger: #a33b32;
-  --shadow: 0 12px 40px rgba(21, 32, 43, 0.06);
-  --radius: 12px;
+  --shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+  --radius: 18px;
+  --display: "Instrument Sans", "Outfit", "Segoe UI", sans-serif;
   font-family: "Outfit", "Segoe UI", sans-serif;
   font-weight: 400;
   color: var(--ink);
-  background:
-    radial-gradient(ellipse 90% 60% at 50% -10%, #d9e6ef 0%, transparent 55%),
-    radial-gradient(ellipse 50% 40% at 100% 20%, #e4ebe4 0%, transparent 45%),
-    radial-gradient(ellipse 40% 35% at 0% 80%, #e8e4df 0%, transparent 40%),
-    var(--paper);
+  background: var(--canvas);
   line-height: 1.45;
   letter-spacing: -0.01em;
+}
+
+html {
+  background: var(--canvas);
 }
 
 * {
@@ -28,14 +30,15 @@
 body {
   margin: 0;
   min-height: 100svh;
+  background: var(--canvas);
 }
 
 h1,
 h2,
 h3 {
-  font-family: inherit;
+  font-family: var(--display);
   font-weight: 500;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
   margin: 0;
 }
 
@@ -48,8 +51,8 @@ h3 {
 
 .login h1 {
   font-size: 2.75rem;
-  font-weight: 300;
-  letter-spacing: -0.04em;
+  font-weight: 500;
+  letter-spacing: -0.045em;
 }
 
 .login p {
@@ -85,6 +88,45 @@ h3 {
   margin-top: 1rem;
 }
 
+.gate {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: var(--canvas);
+}
+
+.gate__card {
+  width: min(28rem, 100%);
+  background: var(--paper);
+  color: var(--ink);
+  color-scheme: light;
+  border-radius: 20px;
+  padding: 1.5rem 1.55rem 1.7rem;
+  box-shadow: var(--shadow);
+}
+
+.gate .login {
+  margin: 0;
+  max-width: none;
+  padding: 0;
+  text-align: left;
+}
+
+.gate .login h1 {
+  font-size: clamp(1.75rem, 4vw, 2.15rem);
+  font-weight: 500;
+}
+
+.gate .login p {
+  text-align: left;
+}
+
+.gate .login button[type='submit'] {
+  height: 2.85rem;
+  margin-top: 0.25rem;
+}
+
 input,
 select,
 textarea {
@@ -93,7 +135,7 @@ textarea {
   border: 1px solid var(--line);
   background: var(--card);
   color: var(--ink);
-  border-radius: 8px;
+  border-radius: 12px;
   outline: none;
 }
 
@@ -105,12 +147,14 @@ textarea:focus {
 
 button {
   font: inherit;
-  padding: 0.6rem 1rem;
+  padding: 0.6rem 1.15rem;
   border: 1px solid transparent;
   background: var(--ink);
-  color: #f7fafc;
+  color: #f7f4ee;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 999px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
 }
 
 button:disabled {
@@ -140,22 +184,37 @@ button.ghost:hover {
 /* ——— Console shell ——— */
 
 .console {
-  min-height: 100svh;
-  height: 100svh;
+  height: calc(100svh - 1.7rem);
   width: 100%;
   max-width: 48rem;
-  margin-inline: auto;
-  padding: 1.25rem clamp(1rem, 3vw, 1.75rem) 1.5rem;
+  margin: 0.85rem auto;
+  padding: 1.1rem clamp(1rem, 3vw, 1.5rem) 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.15rem;
   overflow: hidden;
   box-sizing: border-box;
+  background: var(--paper);
+  color-scheme: light;
+  border-radius: var(--radius);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, #fff 8%, transparent),
+    0 28px 80px rgba(0, 0, 0, 0.45);
 }
 
 /* Board needs a bit more room for columns */
 .console--operate {
   max-width: 64rem;
+}
+
+@media (max-width: 700px) {
+  .console {
+    height: 100svh;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+    max-width: none;
+  }
 }
 
 .console__bar {
@@ -170,21 +229,17 @@ button.ghost:hover {
 }
 
 .console__mark {
+  font-family: var(--display);
   font-size: 1.15rem;
   font-weight: 500;
-  letter-spacing: -0.03em;
-  border-bottom: 2px solid var(--space-accent, transparent);
-  padding-bottom: 0.1rem;
+  letter-spacing: -0.04em;
+  color: var(--ink);
 }
 
 .console__layouts {
   display: flex;
   gap: 0.15rem;
   justify-self: center;
-  padding: 0.2rem;
-  background: rgba(255, 255, 255, 0.45);
-  border-radius: 999px;
-  border: 1px solid var(--line);
 }
 
 .console__spaces {
@@ -220,16 +275,17 @@ button.ghost:hover {
   background: transparent;
   color: var(--muted);
   border: 0;
-  padding: 0.4rem 0.95rem;
+  padding: 0.4rem 0.8rem;
   border-radius: 999px;
   font-size: 0.9rem;
   font-weight: 400;
 }
 
 .console__layout.is-active {
-  background: rgba(255, 255, 255, 0.95);
+  background: transparent;
   color: var(--ink);
-  box-shadow: 0 1px 2px rgba(21, 32, 43, 0.06);
+  font-weight: 500;
+  box-shadow: none;
 }
 
 .console__bar-actions {
@@ -523,6 +579,7 @@ button.ghost:hover {
 
 .day-strip__hero-clock {
   margin: 0 0 0.5rem;
+  font-family: var(--display);
   font-size: clamp(4.5rem, 14vw, 7.5rem);
   font-weight: 300;
   letter-spacing: -0.06em;
@@ -1049,10 +1106,10 @@ a.day-cal__ev-title--link:hover {
   min-height: 0;
   height: 100%;
   background: var(--card);
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: var(--radius);
   overflow: hidden;
-  backdrop-filter: blur(10px);
+  box-shadow: 0 0 0 1px var(--line);
 }
 
 .chat__quick {
@@ -1104,19 +1161,28 @@ a.day-cal__ev-title--link:hover {
 
 .chat__bubble {
   max-width: 88%;
-  padding: 0.7rem 0.85rem;
-  border-radius: 10px;
+  padding: 0.95rem 1.15rem;
+  border-radius: 18px;
   border: 0;
-  background: rgba(255, 255, 255, 0.55);
+  background: color-mix(in srgb, var(--ink) 5%, white);
+  font-weight: 300;
 }
 
 .chat__bubble--user {
   align-self: flex-end;
-  background: color-mix(in srgb, var(--accent) 10%, white);
+  background: var(--accent);
+  color: #f7faf8;
+  border-bottom-right-radius: 6px;
+}
+
+.chat__bubble--user .chat__who,
+.chat__bubble--user .chat__when {
+  color: color-mix(in srgb, #fff 72%, transparent);
 }
 
 .chat__bubble--assistant {
   align-self: flex-start;
+  border-bottom-left-radius: 6px;
 }
 
 .chat__meta {
@@ -1390,9 +1456,9 @@ a.day-cal__ev-title--link:hover {
   resize: none;
   padding: 0.65rem 0.8rem;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.75);
+  background: var(--card);
   color: var(--ink);
-  border-radius: 8px;
+  border-radius: 12px;
 }
 
 .empty-state {
@@ -1953,17 +2019,19 @@ a.day-cal__ev-title--link:hover {
   position: absolute;
   inset: 0;
   border: 0;
-  background: rgba(21, 32, 43, 0.35);
+  background: color-mix(in srgb, #000 52%, transparent);
   cursor: default;
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .cmdk__panel {
   position: relative;
   width: min(32rem, 100%);
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  background: var(--paper);
+  color-scheme: light;
+  border: 0;
+  border-radius: 20px;
   box-shadow: var(--shadow);
   overflow: hidden;
 }
@@ -2052,10 +2120,10 @@ a.day-cal__ev-title--link:hover {
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.7rem 0.85rem;
-  border-radius: 10px;
+  padding: 0.7rem 0.95rem;
+  border-radius: 14px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--paper);
   box-shadow: var(--shadow);
   font-size: 0.9rem;
   line-height: 1.35;
@@ -2111,8 +2179,9 @@ a.day-cal__ev-title--link:hover {
   position: absolute;
   inset: 0;
   border: 0;
-  background: rgba(21, 32, 43, 0.28);
-  backdrop-filter: blur(4px);
+  background: color-mix(in srgb, #000 52%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   cursor: default;
 }
 
@@ -2120,8 +2189,9 @@ a.day-cal__ev-title--link:hover {
   position: relative;
   width: min(24rem, 100%);
   height: 100%;
-  background: #fff;
-  border-left: 1px solid var(--line);
+  background: var(--paper);
+  color-scheme: light;
+  border-left: 0;
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
@@ -2131,8 +2201,7 @@ a.day-cal__ev-title--link:hover {
 
 .drawer__panel--docs {
   width: min(44rem, 100%);
-  background:
-    linear-gradient(165deg, #f7fbff 0%, #ffffff 38%, #f6faf7 100%);
+  background: var(--paper);
 }
 
 .drawer__panel--more {

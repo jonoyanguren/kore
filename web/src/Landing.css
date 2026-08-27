@@ -1,12 +1,12 @@
 /* Public marketing page — dark canvas, product as hero. Isolated from console. */
 
 .landing {
-  --lp-ink: #12151a;
-  --lp-paper: #f3efe8;
+  --lp-ink: var(--canvas);
+  --lp-paper: var(--paper);
   --lp-muted: #8b939c;
   --lp-soft: #c8c2b8;
-  --lp-accent: #2f6f5e;
-  --lp-display: "Instrument Sans", "Outfit", "Segoe UI", sans-serif;
+  --lp-accent: var(--accent);
+  --lp-display: var(--display);
   min-height: 100svh;
   background: var(--lp-ink);
   color: var(--lp-paper);

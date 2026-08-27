@@ -40,7 +40,8 @@ export function Onboarding({ user, onDone }: Props) {
   }
 
   return (
-    <main className="login login--wide">
+    <main className="gate">
+      <div className="gate__card login login--wide">
       <h1>¿Cómo te llamo?</h1>
       <p>Elige el nombre del companion y cómo quieres que te hable. Luego puedes cambiarlo.</p>
       <form onSubmit={onSubmit}>
@@ -79,6 +80,7 @@ export function Onboarding({ user, onDone }: Props) {
         </button>
       </form>
       {error ? <p className="error">{error}</p> : null}
+      </div>
     </main>
   )
 }

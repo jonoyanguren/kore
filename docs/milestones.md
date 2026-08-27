@@ -146,6 +146,12 @@ Pendiente 1.6 → UI viva (aparte) / fricciones dogfood.
 - Overlay Entrar / Crear cuenta (mismos endpoints); cookie → consola
 - Mock de producto ficticio (no captura real)
 
+## 2026-08-27 — Consola visual = landing
+
+- Tokens compartidos: canvas `#12151a`, paper `#f3efe8`, accent `#2f6f5e`, Instrument Sans
+- Consola = dispositivo papel sobre canvas (como el mock del hero)
+- Onboarding en card tipo overlay; drawers/⌘K con blur oscuro
+
 ## Prompting (baseline cerrado)
 
 - `personality.md`, `kimay.md`, Datafine, `slow-project.md`, `investing.md` (azValor baseline)
