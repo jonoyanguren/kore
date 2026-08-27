@@ -25,7 +25,7 @@ No subas ni deploys sin QA local verde:
 2. **QA:** `uv run pytest -q` + `./scripts/qa_local.sh` (ambos OK)
 3. **commit**
 4. **push** a `origin`
-5. **fly deploy**
+5. **fly deploy** — lanzar en background y seguir; no esperar a que acabe (ver `ship-deploy`).
 
 No dejes producción adelantada al remoto: el deploy sale del working tree local, pero el historial en GitHub debe reflejar lo mismo.
 

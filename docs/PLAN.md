@@ -95,6 +95,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-08-27 | Consola beige a pantalla completa (sin canvas negro); mismo ancho 52rem |
 | 2026-08-27 | Consola: mismo ancho de página (52rem) en Día, Chat, Board y Misiones |
 | 2026-08-27 | **D27 Misiones intake:** 5–8 preguntas ronda 1; follow-up ronda 2; UI Nueva al estilo landing |
 | 2026-08-27 | **UI consola = landing:** canvas `#12151a`, papel `#f3efe8`, Instrument Sans, botones píldora |

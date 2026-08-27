@@ -1,5 +1,5 @@
 :root {
-  --canvas: #12151a;
+  --canvas: #f3efe8;
   --ink: #15202b;
   --muted: #6b7785;
   --paper: #f3efe8;
@@ -8,7 +8,7 @@
   --line: rgba(21, 32, 43, 0.09);
   --accent: #2f6f5e;
   --danger: #a33b32;
-  --shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+  --shadow: 0 12px 40px rgba(21, 32, 43, 0.08);
   --radius: 18px;
   --console-max: 52rem;
   --display: "Instrument Sans", "Outfit", "Segoe UI", sans-serif;
@@ -185,10 +185,10 @@ button.ghost:hover {
 /* ——— Console shell ——— */
 
 .console {
-  height: calc(100svh - 1.7rem);
+  height: 100svh;
   width: 100%;
   max-width: var(--console-max);
-  margin: 0.85rem auto;
+  margin: 0 auto;
   padding: 1.1rem clamp(1rem, 3vw, 1.5rem) 1.25rem;
   display: flex;
   flex-direction: column;
@@ -197,10 +197,8 @@ button.ghost:hover {
   box-sizing: border-box;
   background: var(--paper);
   color-scheme: light;
-  border-radius: var(--radius);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, #fff 8%, transparent),
-    0 28px 80px rgba(0, 0, 0, 0.45);
+  border-radius: 0;
+  box-shadow: none;
 }
 
 @media (max-width: 700px) {
@@ -2006,7 +2004,7 @@ a.day-cal__ev-title--link:hover {
   position: absolute;
   inset: 0;
   border: 0;
-  background: color-mix(in srgb, #000 52%, transparent);
+  background: color-mix(in srgb, var(--paper) 72%, transparent);
   cursor: default;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -2166,7 +2164,7 @@ a.day-cal__ev-title--link:hover {
   position: absolute;
   inset: 0;
   border: 0;
-  background: color-mix(in srgb, #000 52%, transparent);
+  background: color-mix(in srgb, var(--paper) 72%, transparent);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   cursor: default;

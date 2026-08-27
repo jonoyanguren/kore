@@ -1,7 +1,7 @@
 /* Public marketing page — dark canvas, product as hero. Isolated from console. */
 
 .landing {
-  --lp-ink: var(--canvas);
+  --lp-ink: #12151a;
   --lp-paper: var(--paper);
   --lp-muted: #8b939c;
   --lp-soft: #c8c2b8;
@@ -612,7 +612,7 @@ button.lp-gate__x:hover {
 .lp-boot {
   min-height: 100svh;
   margin: 0;
-  background: #12151a;
+  background: var(--paper, #f3efe8);
 }
 
 /* ——— Motion ——— */

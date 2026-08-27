@@ -11,6 +11,8 @@ When Jon asks to **commit and push** (or "sube", "ship", "manda"), do **all thre
 2. `git push` to `origin`
 3. `fly deploy` (app `kore`) — do **not** stop after push and ask whether to deploy
 
-Report commit hash, push OK, and https://kore.fly.dev/ status when done.
+**No esperes a que Fly termine.** El deploy tarda y atasca el chat. Lánzalo en background (`block_until_ms: 0`) y **sigue** con lo siguiente. No hagas poll / AwaitShell del deploy.
+
+Reporta: commit hash, push OK, deploy lanzado → https://kore.fly.dev/
 
 Exception: only skip deploy if Jon says explicitly "solo commit/push, sin deploy".

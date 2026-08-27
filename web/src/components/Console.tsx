@@ -57,9 +57,9 @@ export function Console({ onLogout, companionName = 'Jone' }: Props) {
   useEffect(() => {
     const meta = document.querySelector('meta[name="theme-color"]')
     const prev = meta?.getAttribute('content') ?? ''
-    meta?.setAttribute('content', '#12151a')
+    meta?.setAttribute('content', '#f3efe8')
     return () => {
-      if (meta) meta.setAttribute('content', prev || '#12151a')
+      if (meta) meta.setAttribute('content', prev || '#f3efe8')
     }
   }, [])
 

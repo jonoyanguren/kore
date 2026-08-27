@@ -10,6 +10,7 @@ Cuando Jon pide un cambio **pequeño de UI/consola** (layout, CSS, copy, drawers
 1. Implementa
 2. QA local verde (`pytest` + `qa_local.sh` si toca backend; al menos build web si solo `web/`)
 3. **commit + push + `fly deploy`** sin preguntar «¿Deploy?»
+   Fly: lánzalo y sigue (no esperes al build). Ver `ship-deploy`.
 
 No hace falta que diga «deploy» / «sube» / «ship» en cada turno.
 
