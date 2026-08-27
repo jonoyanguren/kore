@@ -61,7 +61,7 @@ def test_mission_plan_then_tasks_to_done(monkeypatch):
     async def fake_plan(llm, *, title, brief, usage_acc=None, **kwargs):
         return sample_plan
 
-    async def fake_execute(llm, mission, plan, task_index, usage_acc, store=None):
+    async def fake_execute(llm, mission, plan, task_index, usage_acc, store=None, vault=None):
         task = plan.tasks[task_index]
         return f"## {task.title}\n\nHecho {task_index + 1}.\n"
 
@@ -130,6 +130,34 @@ def test_mission_plan_then_tasks_to_done(monkeypatch):
             plan = MissionPlan.from_json(m.plan_json)
             assert plan is not None
             assert "Resultado" in plan.summary
+
+    asyncio.run(_run())
+
+
+def test_mission_tools_web_plus_readonly_memory():
+    from app.storage.tools import build_mission_tools
+
+    schemas, handlers = build_mission_tools(MemoryStore(":memory:"))
+    names = {s["function"]["name"] for s in schemas}
+    assert "web_search" in names
+    assert "fetch_url" in names
+    assert "list_memory" in names
+    assert "save_memory" not in names
+    assert "add_diary_entry" not in names
+    assert set(handlers) == names
+
+
+def test_memory_excerpt_for_missions():
+    async def _run() -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = MemoryStore(str(Path(tmp) / "kore.db"))
+            await store.init()
+            await store.save_memory("work", "Kimay cierra en septiembre")
+            from app.storage.tools import format_memory_excerpt
+
+            text = await format_memory_excerpt(store)
+            assert "Kimay" in text
+            assert "work" in text
 
     asyncio.run(_run())
 

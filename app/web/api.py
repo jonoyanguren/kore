@@ -53,6 +53,7 @@ from app.integrations.gmail.triage_log import (
 from app.kernel.briefing import build_day_briefing
 from app.kernel.mission_clarify import clarify_mission
 from app.kernel.mission_plan import MissionPlan
+from app.storage.tools import format_memory_excerpt
 from app.llm.mission_quality import (
     mission_mode_options,
     mode_label,
@@ -749,6 +750,7 @@ async def clarify_mission_endpoint(
         history=hist,
         round_n=body.round,
         quality=body.resolved_mode(),
+        memory_excerpt=await format_memory_excerpt(_memory(request)),
     )
     return {
         "ok": True,

@@ -43,7 +43,7 @@ Si falta más de uno de esos, ready=false.
 
 Preguntas:
 - Una idea por pregunta. Cortas, en español, concretas.
-- No preguntes lo que ya está en el encargo o en respuestas previas.
+- No preguntes lo que ya está en el encargo, en respuestas previas, o en MEMORIA.
 - Huecos típicos: para qué / decisión; presupuesto o rango; zona o ámbito;
   plazo; qué ya investigó; fuentes que fía o evita; formato (tabla, comparativa,
   veredicto); criterio de éxito; qué NO hacer.
@@ -88,12 +88,19 @@ def build_clarify_user_payload(
     brief: str,
     history: list[dict[str, str]],
     round_n: int,
+    memory_excerpt: str = "",
 ) -> str:
     parts = [
         f"Título: {title.strip()}",
         f"Encargo:\n{(brief or '').strip() or '(vacío)'}",
         f"Ronda de aclaración: {round_n}/{MAX_CLARIFY_ROUNDS}",
     ]
+    excerpt = (memory_excerpt or "").strip()
+    if excerpt:
+        parts.append(
+            "MEMORIA del usuario (digest; no el vault entero). "
+            "No preguntes esto de nuevo:\n" + excerpt
+        )
     if history:
         lines = []
         for i, turn in enumerate(history, 1):
@@ -178,12 +185,17 @@ async def clarify_mission(
     history: list[dict[str, str]] | None = None,
     round_n: int = 1,
     quality: str = "normal",
+    memory_excerpt: str = "",
 ) -> ClarifyResult:
     hist = history or []
     round_n = max(1, min(int(round_n), MAX_CLARIFY_ROUNDS + 1))
     model = resolve_mission_model(quality)
     user = build_clarify_user_payload(
-        title=title, brief=brief, history=hist, round_n=round_n
+        title=title,
+        brief=brief,
+        history=hist,
+        round_n=round_n,
+        memory_excerpt=memory_excerpt,
     )
     from app.accounts.context import personalize_prompt
 

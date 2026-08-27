@@ -10,7 +10,6 @@ import openai
 
 from app.accounts.homes import Homes, bind_tenant_home
 from app.accounts.store import AccountStore
-from app.integrations.web.tools import build_web_tools
 from app.kernel.mission_plan import (
     MissionPlan,
     apply_usage_to_plan,
@@ -24,6 +23,7 @@ from app.llm.mission_quality import mode_label, resolve_mission_model, task_addo
 from app.llm.openrouter_credits import fetch_usage
 from app.llm.usage_cost import UsageAccumulator, format_cost_usd
 from app.storage.memory import MemoryStore, MissionRow
+from app.storage.tools import build_mission_tools, format_memory_excerpt
 from app.storage.vault import Vault
 from app.timeutil import now_madrid
 
@@ -38,6 +38,9 @@ Trabajas UNA tarea concreta de una misión en background. Escribes SOLO markdown
 
 Reglas:
 - Usa web_search y fetch_url vía la API de tools (no escribas XML ni tool_calls en el texto).
+- Tienes list_memory (solo lectura) para hechos de Jon: trabajo, gente, proyectos, preferencias.
+  Úsala si el encargo toca su vida o si el digest no basta. No es el vault entero.
+  No inventes datos personales si puedes listarlos. No llames save_memory ni escribas en vault.
 - No inventes precios ni URLs. Si no hay dato sólido, dilo.
 - Cita fuentes con links markdown: [nombre](https://…).
 - Cuando ayude (producto, casa, sitio, UI, mapa, foto de referencia): incluye imágenes
@@ -113,6 +116,7 @@ async def _run_planning(
     usage_acc: UsageAccumulator,
     store: MemoryStore,
 ) -> MissionPlan:
+    excerpt = await format_memory_excerpt(store)
     plan = await plan_mission(
         llm,
         title=mission.title,
@@ -121,6 +125,7 @@ async def _run_planning(
         usage_acc=usage_acc,
         spend_store=store,
         spend_ref=f"mission:{mission.id}",
+        memory_excerpt=excerpt,
     )
     for t in plan.tasks:
         t.status = "pending"
@@ -134,6 +139,7 @@ async def _execute_task(
     task_index: int,
     usage_acc: UsageAccumulator,
     store: MemoryStore,
+    vault: Vault | None = None,
 ) -> str:
     task = plan.tasks[task_index]
     n = len(plan.tasks)
@@ -152,17 +158,25 @@ async def _execute_task(
         "No escribas el informe final (habrá una pasada Resultado aparte)."
     )
 
+    excerpt = await format_memory_excerpt(store)
+    mem_block = (
+        f"Memoria del usuario (digest, no el vault entero; "
+        f"usa list_memory si necesitas más):\n{excerpt}\n\n"
+        if excerpt
+        else ""
+    )
     user = (
         f"MISIÓN — TAREA {task_index + 1}/{n}: {task.title}\n\n"
         f"Título misión: {mission.title}\n"
         f"Modo: {mode_label(mission.quality)}\n"
         f"Encargo original:\n{mission.brief}\n\n"
+        f"{mem_block}"
         f"Handoff de la tarea anterior:\n{ctx}\n\n"
         f"Objetivo de ESTA tarea:\n{task.goal}\n\n"
-        f"Ejecuta esta tarea con búsqueda web.\n{shape}"
+        f"Ejecuta esta tarea con web y, si aplica, memoria.\n{shape}"
     )
 
-    tools, handlers = build_web_tools()
+    tools, handlers = build_mission_tools(store, vault)
     model = resolve_mission_model(mission.quality)
     from app.accounts.context import personalize_prompt
 
@@ -288,7 +302,9 @@ async def run_mission_tick(
     )
 
     try:
-        output = await _execute_task(llm, mission, plan, task_index, usage_acc, store)
+        output = await _execute_task(
+            llm, mission, plan, task_index, usage_acc, store, vault
+        )
         task.output = output
         task.status = "done"
 
@@ -321,6 +337,7 @@ async def run_mission_tick(
                 quality=mission.quality,
                 usage_acc=usage_acc,
                 spend_store=store,
+                memory_excerpt=await format_memory_excerpt(store),
             )
             await _maybe_snapshot_account_end(usage_acc)
             apply_usage_to_plan(plan, usage_acc)

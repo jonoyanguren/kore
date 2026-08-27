@@ -7,6 +7,7 @@ import json
 from app.kernel.mission_clarify import (
     MAX_CLARIFY_ROUNDS,
     MAX_QUESTIONS,
+    build_clarify_user_payload,
     parse_clarify_response,
 )
 
@@ -88,3 +89,15 @@ def test_fallback_brief_when_empty_json():
     assert r.ready  # no questions → ready
     assert "Casas" in r.refined_brief
     assert "300k" in r.refined_brief
+
+
+def test_clarify_payload_includes_memory_excerpt():
+    p = build_clarify_user_payload(
+        title="X",
+        brief="y",
+        history=[],
+        round_n=1,
+        memory_excerpt="### work\n- (id 1) Kimay cierra en septiembre",
+    )
+    assert "Kimay" in p
+    assert "MEMORIA" in p

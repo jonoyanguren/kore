@@ -203,3 +203,42 @@ def build_memory_tools(
     }
 
     return schemas, handlers
+
+
+async def format_memory_excerpt(
+    store: MemoryStore, *, max_chars: int = 3500
+) -> str:
+    """Compact digest for mission prompts — not the whole vault."""
+    digests = await store.memory_digests(limit_per_category=8)
+    if not digests:
+        return ""
+    lines: list[str] = []
+    for category, items in digests.items():
+        if not items:
+            continue
+        lines.append(f"### {category}")
+        for item_id, text in items:
+            t = (text or "").strip().replace("\n", " ")
+            if len(t) > 280:
+                t = t[:277] + "…"
+            lines.append(f"- (id {item_id}) {t}")
+    blob = "\n".join(lines).strip()
+    if len(blob) > max_chars:
+        blob = blob[: max_chars - 1] + "…"
+    return blob
+
+
+def build_mission_tools(
+    store: MemoryStore, vault: Vault | None = None
+) -> tuple[list[dict], dict[str, ToolHandler]]:
+    """Web search + read-only memory. Missions must not write vault/SQLite."""
+    from app.integrations.web.tools import build_web_tools
+
+    web_schemas, web_handlers = build_web_tools()
+    mem_schemas, mem_handlers = build_memory_tools(store, vault)
+    read_names = {"list_memory"}
+    mem_schemas = [
+        s for s in mem_schemas if s["function"]["name"] in read_names
+    ]
+    mem_handlers = {n: h for n, h in mem_handlers.items() if n in read_names}
+    return web_schemas + mem_schemas, {**web_handlers, **mem_handlers}

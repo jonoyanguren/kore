@@ -39,7 +39,7 @@ _TYPICAL_COMPLETION_TOKENS = 25_000
 _PLAN_BASE = """Eres Jone, planner de investigación de Jon.
 
 Descompón un ENCARGO en tareas concretas y ejecutables en secuencia.
-Cada tarea = un objetivo claro que se puede cumplir con búsqueda web y lectura de fuentes.
+Cada tarea = un objetivo claro (web, fuentes, y memoria del usuario si aplica).
 
 Responde SOLO JSON válido (sin markdown):
 {
@@ -53,7 +53,8 @@ Reglas:
 - Cada tarea entrega hallazgos concretos (datos, tabla corta, lista, links).
 - Títulos cortos (≤8 palabras). goal = qué entregar.
 - No tareas vagas ("investigar más"). Sí accionables.
-- Español. No inventes datos del encargo."""
+- Español. No inventes datos del encargo.
+- Si hay MEMORIA adjunta, úsala: no planifiques re-descubrir lo que el usuario ya tiene guardado."""
 
 
 @dataclass(frozen=True)

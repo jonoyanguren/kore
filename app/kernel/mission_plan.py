@@ -302,13 +302,21 @@ async def plan_mission(
     usage_acc: UsageAccumulator | None = None,
     spend_store: MemoryStore | None = None,
     spend_ref: str | None = None,
+    memory_excerpt: str = "",
 ) -> MissionPlan:
     model = resolve_mission_model(quality)
     min_t, max_t = task_range_for(quality)
+    excerpt = (memory_excerpt or "").strip()
+    mem_block = (
+        f"Memoria del usuario (digest, no el vault entero):\n{excerpt}\n\n"
+        if excerpt
+        else ""
+    )
     user = (
         f"Título: {title.strip()}\n"
         f"Encargo:\n{(brief or '').strip() or '(vacío)'}\n"
         f"Modo: {mode_label(quality)}\n\n"
+        f"{mem_block}"
         f"Genera {min_t}–{max_t} tareas ejecutables.\n"
         'Responde SOLO JSON: {{"tasks":[{{"title":"…","goal":"…"}}]}}'
     )
@@ -521,6 +529,7 @@ async def generate_mission_summary(
     quality: str = "normal",
     usage_acc: UsageAccumulator | None = None,
     spend_store: MemoryStore | None = None,
+    memory_excerpt: str = "",
 ) -> str:
     """Final pass: one short Resultado from all task outputs."""
     model = resolve_mission_model(quality)
@@ -531,10 +540,15 @@ async def generate_mission_summary(
             out = out[:1790] + "…"
         chunks.append(f"### Tarea {i}: {task.title}\n{out or '(sin texto)'}")
     body = "\n\n".join(chunks) if chunks else "(sin hallazgos)"
+    excerpt = (memory_excerpt or "").strip()
+    mem_block = (
+        f"Memoria del usuario (digest):\n{excerpt}\n\n" if excerpt else ""
+    )
     user = (
         f"Misión: {title.strip()}\n"
         f"Modo: {mode_label(quality)}\n"
         f"Encargo:\n{brief.strip()}\n\n"
+        f"{mem_block}"
         f"Hallazgos de las tareas:\n\n{body}\n\n"
         "Escribe el Resultado final para el usuario, en el modo indicado."
     )

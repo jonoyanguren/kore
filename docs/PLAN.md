@@ -54,6 +54,7 @@
 | D24 | **Google Calendar read-only** vía mismo OAuth (`calendar.readonly`); solo calendario **primary** (no suscripciones); eventos live en Día + dream + tool chat; **no** duplicar a SQLite en v1; agenda local sigue para captura chat |
 | D25 | **Chat → crear bloque Calendar**: tool `create_calendar_block` escribe ya en primary; pregunta solo si hay duda real |
 | D27 | **Misiones intake** (2026-08-27): aclarar pide 5–8 preguntas (no 1–2); ronda 2 = huecos; ready solo con brief usable |
+| D28 | **Misiones leen memoria** (2026-08-27): digest + `list_memory` (solo lectura). No vuelcan el vault. Web sigue siendo la herramienta principal |
 
 ## Roadmap (lean)
 
@@ -95,6 +96,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-08-27 | **D28** Misiones: digest de memoria + tool `list_memory` (lectura). No el vault entero |
 | 2026-08-27 | Consola beige a pantalla completa (sin canvas negro); mismo ancho 52rem |
 | 2026-08-27 | Consola: mismo ancho de página (52rem) en Día, Chat, Board y Misiones |
 | 2026-08-27 | **D27 Misiones intake:** 5–8 preguntas ronda 1; follow-up ronda 2; UI Nueva al estilo landing |
