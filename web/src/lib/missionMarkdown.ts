@@ -12,6 +12,12 @@ function isSafeHttpUrl(url: string): boolean {
   return /^https?:\/\//i.test(url.trim())
 }
 
+export function proxiedMediaSrc(url: string): string {
+  const href = url.trim()
+  if (href.startsWith('/api/media/proxy')) return href
+  return `/api/media/proxy?u=${encodeURIComponent(href)}`
+}
+
 export function renderImageHtml(alt: string, url: string): string {
   const href = url.trim()
   if (!isSafeHttpUrl(href)) {
@@ -20,9 +26,10 @@ export function renderImageHtml(alt: string, url: string): string {
   const caption = alt.trim()
     ? `<figcaption>${esc(alt)}</figcaption>`
     : ''
+  const src = proxiedMediaSrc(href)
   return (
     `<figure class="missions__figure">` +
-    `<img src="${esc(href)}" alt="${esc(alt)}" loading="lazy" referrerpolicy="no-referrer" />` +
+    `<img src="${esc(src)}" alt="${esc(alt)}" decoding="async" />` +
     caption +
     `</figure>`
   )

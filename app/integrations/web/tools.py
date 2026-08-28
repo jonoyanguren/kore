@@ -6,9 +6,11 @@ import html as html_lib
 import logging
 import re
 from typing import Any, Awaitable, Callable
-from urllib.parse import quote_plus, urlparse
+from urllib.parse import quote_plus
 
 import httpx
+
+from app.integrations.web.images import extract_page_images, public_http_url
 
 logger = logging.getLogger(__name__)
 
@@ -37,21 +39,7 @@ def _strip_html(raw: str) -> str:
 
 
 def _safe_http_url(url: str) -> str | None:
-    u = (url or "").strip()
-    if not u:
-        return None
-    parsed = urlparse(u)
-    if parsed.scheme not in ("http", "https"):
-        return None
-    if not parsed.netloc:
-        return None
-    # Block obvious local/metadata targets
-    host = parsed.hostname or ""
-    if host in ("localhost", "127.0.0.1", "0.0.0.0", "::1"):
-        return None
-    if host.startswith("10.") or host.startswith("192.168.") or host.startswith("169.254."):
-        return None
-    return u
+    return public_http_url(url)
 
 
 async def _ddg_search(query: str, *, limit: int) -> list[dict[str, str]]:
@@ -135,7 +123,9 @@ def build_web_tools() -> tuple[list[dict], dict[str, ToolHandler]]:
                 res.raise_for_status()
                 ctype = (res.headers.get("content-type") or "").lower()
                 if "html" in ctype or "text/" in ctype or not ctype:
-                    text = _strip_html(res.text)
+                    raw_html = res.text
+                    images = extract_page_images(raw_html, str(res.url) or url)
+                    text = _strip_html(raw_html)
                 else:
                     return f"Tipo no texto ({ctype}); no leo binarios."
         except Exception as e:
@@ -145,7 +135,14 @@ def build_web_tools() -> tuple[list[dict], dict[str, ToolHandler]]:
             return f"Página vacía: {url}"
         if len(text) > MAX_FETCH_CHARS:
             text = text[:MAX_FETCH_CHARS] + "\n…[truncado]"
-        return f"Contenido de {url}:\n\n{text}"
+        out = f"Contenido de {url}:\n\n{text}"
+        if images:
+            out += (
+                "\n\nImágenes de la página (úsalas en markdown "
+                "![alt](url) si encajan; no inventes otras):\n"
+            )
+            out += "\n".join(f"- {img}" for img in images)
+        return out
 
     schemas: list[dict] = [
         {
@@ -178,7 +175,8 @@ def build_web_tools() -> tuple[list[dict], dict[str, ToolHandler]]:
             "function": {
                 "name": "fetch_url",
                 "description": (
-                    "Abrir una URL http(s) y devolver el texto de la página. "
+                    "Abrir una URL http(s) y devolver el texto de la página, "
+                    "más un bloque «Imágenes de la página» (og:image / fotos). "
                     "Útil tras web_search o si Jon pega un link."
                 ),
                 "parameters": {

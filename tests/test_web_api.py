@@ -36,6 +36,12 @@ async def _run():
             r = await ac.get("/api/tasks")
             assert r.status_code == 401
 
+            prox = await ac.get(
+                "/api/media/proxy",
+                params={"u": "https://cdn.example.com/x.jpg"},
+            )
+            assert prox.status_code == 401
+
             bad = await ac.post("/api/login", json={"secret": "nope"})
             assert bad.status_code == 401
 
@@ -293,6 +299,13 @@ async def _run():
             assert z.status_code == 200
             assert z.headers["content-type"].startswith("application/zip")
             assert len(z.content) > 20
+
+            blocked_img = await ac.get(
+                "/api/media/proxy",
+                params={"u": "http://127.0.0.1/secret.jpg"},
+                headers={"Authorization": f"Bearer {secret}"},
+            )
+            assert blocked_img.status_code == 404
 
 
 def test_web_api_auth_and_tasks():

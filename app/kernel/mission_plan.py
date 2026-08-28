@@ -83,7 +83,9 @@ Responde SOLO markdown en español empezando por:
 ### Fuentes
 (3–8 links)
 
-Máx. ~25 líneas. Sin repetir la investigación cruda. Sin inventar datos ni URLs."""
+Máx. ~25 líneas. Sin repetir la investigación cruda. Sin inventar datos ni URLs.
+Si pones una imagen, copia una URL https que ya salga en los hallazgos (og:image);
+si no hay, no inventes markdown de imagen."""
 
 
 @dataclass

@@ -24,6 +24,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.config import settings
+from app.integrations.web.images import fetch_public_image
 from app.integrations.gmail.client import (
     GmailApiError,
     GmailConfigError,
@@ -687,6 +688,24 @@ def _mission_dict(row: MissionRow, *, markdown: str | None = None) -> dict[str, 
 async def _mission_asks(request: Request, mission_id: int) -> list[dict[str, str]]:
     rows = await _memory(request).list_mission_events(mission_id)
     return parse_ask_events(rows)
+
+
+@router.get("/media/proxy", dependencies=[Depends(require_console_auth)])
+async def media_proxy(
+    u: str = Query(..., min_length=12, max_length=4000),
+) -> Response:
+    """Fetch a public image so the console can show it (hotlink/CDN blocks)."""
+    fetched = await fetch_public_image(u)
+    if fetched is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="image_not_found")
+    return Response(
+        content=fetched.body,
+        media_type=fetched.content_type,
+        headers={
+            "Cache-Control": "private, max-age=86400",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 
 @router.get("/missions/quality-options", dependencies=[Depends(require_console_auth)])

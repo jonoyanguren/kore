@@ -12,6 +12,7 @@ import {
 } from '../api'
 import { cleanCopiedText, copyToClipboard } from '../lib/clipboard'
 import { renderMissionMarkdown } from '../lib/missionMarkdown'
+import { bindMissionImages } from '../lib/bindMissionImages'
 import {
   sectionToMarkdown,
   splitMissionMarkdown,
@@ -42,6 +43,19 @@ function isDoneStatus(s: string): boolean {
 
 function isActiveStatus(s: string): boolean {
   return s === 'queued' || s === 'running' || s === 'waiting'
+}
+
+function sameMissionView(a: Mission, b: Mission): boolean {
+  return (
+    a.status === b.status &&
+    a.markdown === b.markdown &&
+    a.step_index === b.step_index &&
+    a.error === b.error &&
+    (a.asks?.length ?? 0) === (b.asks?.length ?? 0) &&
+    (a.plan?.completed ?? -1) === (b.plan?.completed ?? -1) &&
+    (a.plan?.total ?? -1) === (b.plan?.total ?? -1) &&
+    (a.plan?.cost?.usd ?? 0) === (b.plan?.cost?.usd ?? 0)
+  )
 }
 
 function missionProgressLabel(m: Mission): string {
@@ -163,6 +177,7 @@ export function MissionsPanel({ active = true }: Props) {
   const [askBusy, setAskBusy] = useState(false)
   const toast = useToast()
   const resultRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLElement>(null)
 
   const panelOpen = selectedId != null
   const selectedMode =
@@ -218,21 +233,33 @@ export function MissionsPanel({ active = true }: Props) {
       return
     }
     let cancelled = false
+    let intervalId: number | undefined
     async function load() {
       try {
         const m = await apiGetMission(selectedId!)
-        if (!cancelled) setDetail(m)
+        if (cancelled) return
+        setDetail((prev) => (prev && sameMissionView(prev, m) ? prev : m))
+        if (isDoneStatus(m.status) && intervalId != null) {
+          window.clearInterval(intervalId)
+          intervalId = undefined
+        }
       } catch (e) {
         if (!cancelled) toast.err(String(e))
       }
     }
     void load()
-    const id = window.setInterval(() => void load(), 3000)
+    intervalId = window.setInterval(() => void load(), 3000)
     return () => {
       cancelled = true
-      window.clearInterval(id)
+      if (intervalId != null) window.clearInterval(intervalId)
     }
   }, [active, selectedId])
+
+  useEffect(() => {
+    const el = panelRef.current
+    if (!el || !panelOpen) return
+    return bindMissionImages(el)
+  }, [panelOpen])
 
   useEffect(() => {
     if (!panelOpen) return
@@ -701,7 +728,11 @@ export function MissionsPanel({ active = true }: Props) {
       </div>
 
       {panelOpen ? (
-        <aside className="missions__panel" aria-label="Resumen de misión">
+        <aside
+          ref={panelRef}
+          className="missions__panel"
+          aria-label="Resumen de misión"
+        >
           <div className="missions__panel-bar">
             <button
               type="button"

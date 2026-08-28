@@ -3691,9 +3691,26 @@ a.more-drawer__btn {
 }
 
 .missions__figure {
-  margin: 0.75rem 0;
+  margin: 0;
   padding: 0;
   max-width: 100%;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.missions__figure--ready {
+  height: auto;
+  overflow: visible;
+  visibility: visible;
+  margin: 0.75rem 0;
+}
+
+.missions__figure--broken {
+  display: none !important;
+  height: 0;
+  margin: 0;
+  visibility: hidden;
 }
 
 .missions__figure img {
@@ -3702,7 +3719,7 @@ a.more-drawer__btn {
   height: auto;
   border-radius: 8px;
   border: 1px solid var(--line);
-  background: rgba(21, 32, 43, 0.04);
+  background: transparent;
 }
 
 .missions__figure figcaption {

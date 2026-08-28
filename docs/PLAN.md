@@ -63,7 +63,7 @@
 
 **Cerrado Calendar (D24/D25):** read primary + crear bloque desde chat. Dogfood aparcado; no más slice ahora.
 
-**Ahora:** Board al lenguaje landing (2026-08-28). Allowlist aparcado. Layout 1.6 espera diseño.
+**Ahora:** Misiones con imágenes estables (proxy + sin parpadeo). Board quieto. Misión→tareas aparcado. Layout 1.6 espera diseño.
 
 **1.6 / layout:** rediseño externo de estructura → maquetar cuando llegue (el chrome ya no espera).
 
@@ -96,6 +96,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-08-28 | Misiones: imágenes vía proxy + hide-until-load (sin parpadeo si 404) |
 | 2026-08-28 | Board: quitar cards; lista como Día (filas, no cajas) |
 | 2026-08-28 | Dogfood intake vago (D27): bastante bien |
 | 2026-08-27 | **D29** Preguntar en panel de misión: Q&A sobre el informe |

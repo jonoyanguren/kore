@@ -34,7 +34,6 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 ### Candidatos
 
 - [ ] Dogfood Calendar Día: **Abrir / Tarea / Prep** en eventos
-- [ ] **Misión → tareas** — del Resultado, 1 clic crea ítems en el board
 - [ ] **Gmail tono Jon** — perfil desde sent mail (reply)
 - [ ] **`/entrevista` en uso** — huecos vault/memoria (no board)
 - [ ] **PDF / docs en chat o Día** — ingerir y guardar en memoria
@@ -59,6 +58,7 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 - Push nativo (vía app)
 - Escribir/sync 2 vías Calendar (mover/borrar, multi-cal) — create bloque ya en D25
 - Invitaciones / allowlist (registro ahora es abierto)
+- **Misión → tareas** desde Resultado (aparcado 2026-08-28)
 
 ### Fuera de Kore
 

@@ -11,6 +11,7 @@ def test_safe_http_url():
     assert _safe_http_url("ftp://x") is None
     assert _safe_http_url("https://localhost/x") is None
     assert _safe_http_url("https://127.0.0.1/") is None
+    assert _safe_http_url("https://172.16.0.1/x") is None
     assert _safe_http_url("not a url") is None
 
 
