@@ -96,7 +96,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
-| 2026-08-28 | Board al lenguaje landing: título, píldoras, cards como Misiones; columnas ES |
+| 2026-08-28 | Board: quitar cards; lista como Día (filas, no cajas) |
 | 2026-08-28 | Dogfood intake vago (D27): bastante bien |
 | 2026-08-27 | **D29** Preguntar en panel de misión: Q&A sobre el informe |
 | 2026-08-27 | Misiones: al abrir una, se oculta el historial; scrollbars invisibles |

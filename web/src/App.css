@@ -1527,29 +1527,48 @@ a.day-cal__ev-title--link:hover {
 
 .board-panel__title {
   margin: 0;
-  font-family: var(--display);
-  font-size: 1.45rem;
+  font-size: 0.75rem;
   font-weight: 500;
-  letter-spacing: -0.04em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   flex: 1;
-  color: var(--ink);
+  color: var(--muted);
 }
 
 .board-panel__add {
   width: 100%;
   flex: none;
+  align-items: center;
+  gap: 0.65rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--muted) 22%, transparent);
 }
 
 .board-panel__add input {
-  background: #fff;
-  box-shadow: 0 0 0 1px var(--line);
-  border-color: transparent;
-  border-radius: 999px;
-  padding: 0.65rem 1rem;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0.35rem 0;
 }
 
 .board-panel__add input:focus {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, var(--line));
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.board-panel__add button[type='submit'] {
+  background: transparent;
+  color: var(--accent);
+  border: 0;
+  padding: 0.35rem 0.15rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  border-radius: 0;
+}
+
+.board-panel__add button[type='submit']:hover {
+  color: var(--ink);
 }
 
 .board-panel__purge {
@@ -1602,14 +1621,14 @@ a.day-cal__ev-title--link:hover {
   width: min(28rem, 100%);
   max-height: min(90svh, 40rem);
   overflow: auto;
-  background: #fff;
+  background: var(--paper);
   border: 0;
   border-radius: 18px;
   padding: 1.15rem 1.2rem 1.3rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  box-shadow: 0 0 0 1px var(--line), var(--shadow);
+  box-shadow: var(--shadow);
 }
 
 .task-editor__head {
@@ -1620,20 +1639,19 @@ a.day-cal__ev-title--link:hover {
 }
 
 .task-editor__kicker {
-  margin: 0 0 0.2rem;
+  margin: 0 0 0.15rem;
   font-size: 0.72rem;
   font-weight: 500;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--muted);
 }
 
 .task-editor__head h3 {
-  font-family: var(--display);
-  font-size: 1.35rem;
+  font-size: 1.15rem;
   font-weight: 500;
-  letter-spacing: -0.04em;
-  line-height: 1.15;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
 }
 
 .task-editor label {
@@ -1654,7 +1672,7 @@ a.day-cal__ev-title--link:hover {
   color: var(--ink);
   padding: 0.7rem 0.85rem;
   border: 1px solid var(--line);
-  background: var(--paper);
+  background: #fff;
   border-radius: 12px;
 }
 
@@ -1683,7 +1701,7 @@ a.day-cal__ev-title--link:hover {
 
 .view-toggle {
   display: inline-flex;
-  gap: 0.2rem;
+  gap: 0.15rem;
 }
 
 .view-toggle button {
@@ -1692,8 +1710,8 @@ a.day-cal__ev-title--link:hover {
   border-radius: 999px;
   background: transparent;
   color: var(--muted);
-  padding: 0.4rem 0.85rem;
-  font-size: 0.9rem;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.88rem;
   font-weight: 400;
 }
 
@@ -1702,18 +1720,18 @@ a.day-cal__ev-title--link:hover {
 }
 
 .view-toggle button.is-active {
-  background: var(--ink);
-  color: #f7f4ee;
+  background: transparent;
+  color: var(--ink);
   font-weight: 500;
 }
 
 .task-list {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0.15rem 0 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0;
   flex: 1;
   overflow: auto;
   scrollbar-width: none;
@@ -1726,19 +1744,21 @@ a.day-cal__ev-title--link:hover {
 .task-list__row {
   display: grid;
   grid-template-columns: auto auto auto minmax(0, 1fr) auto;
-  gap: 0.35rem 0.5rem;
-  align-items: center;
-  padding: 0.75rem 0.85rem;
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 0 0 1px var(--line);
+  gap: 0.2rem 0.4rem;
+  align-items: start;
+  padding: 0.7rem 0.1rem;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--muted) 16%, transparent);
 }
 
 .task-list__row--overlay {
-  background: #fff;
-  box-shadow: 0 0 0 1px var(--line), var(--shadow);
-  padding: 0.75rem 0.9rem;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+  padding: 0.7rem 0.85rem;
   width: min(28rem, 90vw);
+  border-bottom: 0;
 }
 
 .task-list__body {
@@ -1786,7 +1806,7 @@ a.day-cal__ev-title--link:hover {
 }
 
 .task-list__row:hover {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, var(--line));
+  box-shadow: none;
 }
 
 .task-list__row.is-done .task-list__title {
@@ -1795,8 +1815,12 @@ a.day-cal__ev-title--link:hover {
 }
 
 .task-list__row.is-starred {
-  background: color-mix(in srgb, var(--accent) 8%, white);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 42%, transparent);
+  background: transparent;
+  box-shadow: none;
+}
+
+.task-list__row.is-starred .task-list__title {
+  font-weight: 500;
 }
 
 .task-list__check {
@@ -1833,11 +1857,11 @@ a.day-cal__ev-title--link:hover {
   background: none;
   border: none;
   padding: 0;
-  font-family: var(--display);
-  font-size: 1.02rem;
-  font-weight: 500;
-  letter-spacing: -0.03em;
-  line-height: 1.3;
+  font: inherit;
+  font-size: 0.98rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
   color: var(--ink);
   cursor: pointer;
 }
@@ -1896,17 +1920,18 @@ a.day-cal__ev-title--link:hover {
 }
 
 .task-list__empty {
-  padding: 2rem 0.5rem;
-  text-align: center;
+  padding: 1.5rem 0;
+  text-align: left;
   list-style: none;
   background: transparent;
   box-shadow: none;
+  border: 0;
 }
 
 .board {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.1rem;
+  gap: 1.5rem;
   align-items: start;
   flex: 1;
 }
@@ -1926,29 +1951,31 @@ a.day-cal__ev-title--link:hover {
 }
 
 .board-col--over .board-col__list {
-  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--accent) 55%, transparent);
-  border-radius: 14px;
+  box-shadow: none;
+  outline: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 4px;
 }
 
 .board-col__head {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: 0.65rem;
-  padding: 0 0.15rem;
+  margin-bottom: 0.55rem;
+  padding: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--muted) 22%, transparent);
+  padding-bottom: 0.45rem;
 }
 
 .board-col__head h2 {
-  font-family: var(--display);
-  font-size: 1.02rem;
+  font-size: 0.75rem;
   font-weight: 500;
-  letter-spacing: -0.03em;
-  text-transform: none;
-  color: var(--ink);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .board-col__head span {
-  font-size: 0.82rem;
+  font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
 }
@@ -1956,29 +1983,30 @@ a.day-cal__ev-title--link:hover {
 .board-col__list {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0;
   min-height: 4rem;
-  padding: 0.15rem;
+  padding: 0;
 }
 
 .board-col__empty {
   margin: 0;
-  padding: 1.5rem 0.5rem;
-  text-align: center;
+  padding: 0.85rem 0;
+  text-align: left;
   color: var(--muted);
   font-size: 0.88rem;
   font-weight: 300;
-  border: 1px dashed var(--line);
-  border-radius: 14px;
+  border: 0;
+  border-radius: 0;
   background: transparent;
 }
 
 .task-card {
-  background: #fff;
+  background: transparent;
   border: 0;
-  border-radius: 14px;
-  padding: 0.85rem 0.95rem;
-  box-shadow: 0 0 0 1px var(--line);
+  border-radius: 0;
+  padding: 0.7rem 0;
+  box-shadow: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--muted) 16%, transparent);
   cursor: grab;
   touch-action: none;
   user-select: none;
@@ -1995,11 +2023,10 @@ a.day-cal__ev-title--link:hover {
 }
 
 .task-card__head h3 {
-  font-family: var(--display);
-  font-size: 1.02rem;
-  font-weight: 500;
-  letter-spacing: -0.03em;
-  line-height: 1.3;
+  font-size: 0.98rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
   flex: 1;
   min-width: 0;
 }
@@ -2043,8 +2070,12 @@ a.day-cal__ev-title--link:hover {
 }
 
 .task-card.is-starred {
-  background: color-mix(in srgb, var(--accent) 8%, white);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 42%, transparent);
+  background: transparent;
+  box-shadow: none;
+}
+
+.task-card.is-starred h3 {
+  font-weight: 500;
 }
 
 .task-card__meta {
