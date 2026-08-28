@@ -1849,7 +1849,7 @@ a.day-cal__ev-title--link:hover {
 }
 
 .task-list__star.is-on {
-  color: var(--accent);
+  color: #c9851a;
 }
 
 .task-list__title {
@@ -2061,7 +2061,7 @@ a.day-cal__ev-title--link:hover {
 }
 
 .task-card__star.is-on {
-  color: var(--accent);
+  color: #c9851a;
 }
 
 .task-card.is-done h3 {
