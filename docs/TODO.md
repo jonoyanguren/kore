@@ -22,7 +22,9 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 - [x] **Landing pública** — logged-out: producto; overlay Entrar / Crear cuenta
 - [x] **UI consola = landing** — canvas oscuro + dispositivo papel
 - [x] **Misiones intake** — 5–8 preguntas, no 1–2
+- [x] **Dogfood intake vago** — 2026-08-28, bastante bien
 - [x] **Preguntar misión** — Q&A sobre el Resultado (D29)
+- [x] **Board vs landing** — título, píldoras, cards; columnas Pendientes/En curso/Hechas
 - [ ] Cuando llegue diseño: plan de maquetación UI 1.6 (layout, no chrome)
 
 ---

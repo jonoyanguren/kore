@@ -440,6 +440,7 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
   return (
     <section className="board-panel">
       <header className="board-panel__bar">
+        <h1 className="board-panel__title">Tareas</h1>
         <div className="view-toggle" role="group" aria-label="Vista">
           <button
             type="button"
@@ -456,16 +457,6 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
             Columnas
           </button>
         </div>
-        <form className="console__add" onSubmit={onAdd}>
-          <input
-            ref={addInputRef}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Nueva tarea…"
-            aria-label="Nueva tarea"
-          />
-          <button type="submit">Añadir</button>
-        </form>
         <button
           type="button"
           className="ghost board-panel__purge"
@@ -481,6 +472,16 @@ export const TaskBoard = forwardRef<TaskBoardHandle, Props>(function TaskBoard(
           {doneCount > 0 ? ` (${doneCount})` : ''}
         </button>
       </header>
+      <form className="console__add board-panel__add" onSubmit={onAdd}>
+        <input
+          ref={addInputRef}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Nueva tarea…"
+          aria-label="Nueva tarea"
+        />
+        <button type="submit">Añadir</button>
+      </form>
 
       {error ? <p className="error">{error}</p> : null}
       {loading ? <p className="muted">Cargando…</p> : null}

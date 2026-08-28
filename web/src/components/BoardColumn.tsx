@@ -7,7 +7,7 @@ import type { BoardColumnId, Task } from '../types'
 import { TaskCard } from './TaskCard'
 
 const LABELS: Record<BoardColumnId, string> = {
-  open: 'TODO',
+  open: 'Pendientes',
   in_progress: 'En curso',
   done: 'Hechas',
 }

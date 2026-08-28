@@ -13,6 +13,13 @@ type Props = {
 
 const STATUSES: TaskStatus[] = ['open', 'in_progress', 'done', 'cancelled']
 
+const STATUS_LABEL: Record<TaskStatus, string> = {
+  open: 'Pendiente',
+  in_progress: 'En curso',
+  done: 'Hecha',
+  cancelled: 'Cancelada',
+}
+
 export function TaskEditor({ task, onClose, onSaved, onDeleted }: Props) {
   const toast = useToast()
   const [title, setTitle] = useState(task.title)
@@ -103,7 +110,10 @@ export function TaskEditor({ task, onClose, onSaved, onDeleted }: Props) {
         onSubmit={onSubmit}
       >
         <header className="task-editor__head">
-          <h3>Tarea {task.id}</h3>
+          <div>
+            <p className="task-editor__kicker">Tarea</p>
+            <h3>{title.trim() || 'Sin título'}</h3>
+          </div>
           <button type="button" className="ghost" onClick={onClose}>
             Cerrar
           </button>
@@ -123,7 +133,7 @@ export function TaskEditor({ task, onClose, onSaved, onDeleted }: Props) {
             >
               {STATUSES.map((s) => (
                 <option key={s} value={s}>
-                  {s}
+                  {STATUS_LABEL[s]}
                 </option>
               ))}
             </select>
@@ -150,7 +160,7 @@ export function TaskEditor({ task, onClose, onSaved, onDeleted }: Props) {
             />
           </label>
           <label>
-            Due
+            Fecha
             <input
               type="date"
               value={dueAt}

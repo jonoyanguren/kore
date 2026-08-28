@@ -63,7 +63,7 @@
 
 **Cerrado Calendar (D24/D25):** read primary + crear bloque desde chat. Dogfood aparcado; no más slice ahora.
 
-**Ahora — misiones:** intake largo (5–8 preguntas) + UI al lenguaje landing. Allowlist aparcado.
+**Ahora:** Board al lenguaje landing (2026-08-28). Allowlist aparcado. Layout 1.6 espera diseño.
 
 **1.6 / layout:** rediseño externo de estructura → maquetar cuando llegue (el chrome ya no espera).
 
@@ -87,9 +87,8 @@ Detalle shipped → [`milestones.md`](./milestones.md).
 
 ## Next steps
 
-1. Dogfood intake de una misión vaga → 5–8 Qs → brief
-2. Pulir Board si queda corto vs landing
-3. Allowlist / rate-limit registro si hay spam
+1. Allowlist / rate-limit registro si hay spam
+2. Layout 1.6 cuando llegue diseño (no inventar)
 
 No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
@@ -97,6 +96,8 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-08-28 | Board al lenguaje landing: título, píldoras, cards como Misiones; columnas ES |
+| 2026-08-28 | Dogfood intake vago (D27): bastante bien |
 | 2026-08-27 | **D29** Preguntar en panel de misión: Q&A sobre el informe |
 | 2026-08-27 | Misiones: al abrir una, se oculta el historial; scrollbars invisibles |
 | 2026-08-27 | **D28** Misiones: digest de memoria + tool `list_memory` (lectura). No el vault entero |

@@ -98,19 +98,23 @@ export function TaskListRow({
       >
         {starred ? '★' : '☆'}
       </button>
-      <button
-        type="button"
-        className="task-list__title"
-        onClick={() => onEdit(task)}
-      >
-        {task.title}
-      </button>
-      <span className="task-list__meta">
-        <ProjectChip project={task.project} />
-        {task.due_at ? (
-          <span className="muted task-list__due">{formatWhen(task.due_at)}</span>
+      <div className="task-list__body">
+        <button
+          type="button"
+          className="task-list__title"
+          onClick={() => onEdit(task)}
+        >
+          {task.title}
+        </button>
+        {task.project || task.due_at ? (
+          <span className="task-list__meta">
+            <ProjectChip project={task.project} />
+            {task.due_at ? (
+              <span className="muted task-list__due">{formatWhen(task.due_at)}</span>
+            ) : null}
+          </span>
         ) : null}
-      </span>
+      </div>
       <span className="task-list__actions">
         {hasUrl ? (
           <button
