@@ -7,6 +7,7 @@
   --card: #ffffff;
   --line: rgba(21, 32, 43, 0.09);
   --accent: #2f6f5e;
+  --star: #e8b923;
   --danger: #a33b32;
   --shadow: 0 12px 40px rgba(21, 32, 43, 0.08);
   --radius: 18px;
@@ -1846,10 +1847,13 @@ a.day-cal__ev-title--link:hover {
   font-size: 1rem;
   line-height: 1;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .task-list__star.is-on {
-  color: #c9851a;
+  color: var(--star);
 }
 
 .task-list__title {
@@ -2058,10 +2062,13 @@ a.day-cal__ev-title--link:hover {
   border: 0;
   font-size: 0.95rem;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .task-card__star.is-on {
-  color: #c9851a;
+  color: var(--star);
 }
 
 .task-card.is-done h3 {

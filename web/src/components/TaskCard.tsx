@@ -3,6 +3,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { formatWhen } from '../dates'
 import { copyToClipboard, shortUrlLabel } from '../lib/clipboard'
 import type { Task } from '../types'
+import { StarIcon } from './StarIcon'
 import { ProjectChip } from './ProjectChip'
 import { useToast } from './Toasts'
 
@@ -98,7 +99,7 @@ export function TaskCard({
             onToggleStar(task)
           }}
         >
-          {starred ? '★' : '☆'}
+          <StarIcon on={starred} />
         </button>
         <h3
           className={onEdit ? 'task-card__title--edit' : undefined}
