@@ -59,6 +59,11 @@ class Settings(BaseSettings):
     # Morning cron Telegram ping. False = UI (vista Día) is the primary channel.
     dream_notify_telegram: bool = False
 
+    # Pilot: comma-separated emails that may register. Empty = nobody new.
+    pilot_allowlist: str = ""
+    # Optional mailto for “Pide acceso” on the landing.
+    pilot_access_email: str = ""
+
     # Shared secret for web console (/api/*). Empty = console always 401.
     # Cookie kore_console or Authorization: Bearer <secret>.
     console_secret: str = ""

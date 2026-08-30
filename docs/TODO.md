@@ -1,6 +1,7 @@
 # Kore — TODO
 
 Backlog **abierto**. Histórico: [`milestones.md`](./milestones.md) · Plan: [`PLAN.md`](./PLAN.md)
+Piloto / cobrar: [`spikes/paid-pilot.md`](./spikes/paid-pilot.md)
 
 Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 
@@ -13,74 +14,63 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 
 ---
 
-## Ahora
+## Ahora — fase: cerrar el piloto
 
-- [x] **Calendar write (D25)** — crear bloque desde chat; dogfood aparcado
-- [x] **Cuentas aisladas** — registro abierto, un SQLite por usuario (D14 superseded)
-- [x] **Misiones modos** — Normal / Loco / Experto / Duro + leyenda en Nueva
-- [x] **Dream fiable** — `/dream` en consola + reintento modelo + fallback vivo + Día no vacío
-- [x] **Landing pública** — logged-out: producto; overlay Entrar / Crear cuenta
-- [x] **UI consola = landing** — canvas oscuro + dispositivo papel
-- [x] **Misiones intake** — 5–8 preguntas, no 1–2
-- [x] **Dogfood intake vago** — 2026-08-28, bastante bien
-- [x] **Preguntar misión** — Q&A sobre el Resultado (D29)
-- [x] **Board vs landing** — título, píldoras, cards; columnas Pendientes/En curso/Hechas
-- [ ] Cuando llegue diseño: plan de maquetación UI 1.6 (layout, no chrome)
+Spike: [`paid-pilot.md`](./spikes/paid-pilot.md)
+
+1. [x] **Allowlist** — solo emails invitados pueden crear cuenta.
+2. [x] **Landing** — “Pide acceso” en vez de registro abierto.
+3. [ ] **Flag en cuenta** — `allowed` / `paid_until` o sub Stripe para dejar entrar o cortar.
+4. [ ] **Gasto por home** — sumar `llm_spend` del SQLite de cada usuario.
+5. [ ] **Tope LLM** — cap €/mes; al llegar, cortar chat, misiones y dream.
+6. [ ] **Chip en Más** — “te queda X de Y este mes”.
+7. [ ] **Stripe** — checkout + webhook.
+8. [ ] **Página legal** — datos Gmail, quién eres, cómo borrar (export ya existe).
+
+### No es del piloto
+
+Notify misión, `/entrevista`, PDF, cola, app, logo, layout 1.6, Telegram multi, misión→tareas.
 
 ---
 
-## Producto
+## Producto (después del piloto)
 
-### Candidatos
-
-- [ ] Dogfood Calendar Día: **Abrir / Tarea / Prep** en eventos
-- [x] **Tono del usuario** — chips onboarding/Más + `/tono` (no solo Jon; Gmail usa el perfil)
-- [ ] **`/entrevista` en uso** — huecos vault/memoria (no board)
-- [ ] **PDF / docs en chat o Día** — ingerir y guardar en memoria
-- [ ] **Cola de misiones** — >1 en cola (sigue max 1 running)
+- [ ] Dogfood Calendar Día: **Abrir / Tarea / Prep**
+- [ ] **`/entrevista` en uso** — huecos vault/memoria
 - [ ] **Notify misión hecha** — toast / Telegram opcional
+- [ ] **PDF / docs** en chat o Día
+- [ ] **Cola de misiones** — >1 en cola (sigue max 1 running por home)
 
-### Abierto (fino / no urgente)
+### Fino
 
-- [ ] **Logo Kore** — icono/marca (web, PWA, Expo)
-- [ ] **Rediseño UI** — diseñadora → maquetar consola (1.6)
+- [ ] Logo Kore
 - [ ] Ledger LLM: kinds gmail/transcribe + export CSV
 
-### Parking (producto)
+### Parking
 
-- Triage Gmail auto → labels/carpetas
-- Compose frío (mail nuevo sin reply)
-- Multi-cuenta / digest IA en Día
-- Ampliar investing / Slow Project–Andrea / Datafine About
-- Agresividad de captura
-- Multi-modelo (imagen / code)
-- Autorrelleno tareas en chat
-- Push nativo (vía app)
-- Escribir/sync 2 vías Calendar (mover/borrar, multi-cal) — create bloque ya en D25
-- Invitaciones / allowlist (registro ahora es abierto)
-- **Misión → tareas** desde Resultado (aparcado 2026-08-28)
+- Triage Gmail auto · compose frío · digest IA en Día
+- Ampliar investing / Slow / Datafine (solo cuenta legacy)
+- Multi-modelo · autorrelleno tareas · push nativo
+- Calendar 2 vías (mover/borrar) — create ya en D25
+- **Misión → tareas** (aparcado 2026-08-28)
 
 ### Fuera de Kore
 
-- Programar / git desde el móvil → **proyecto aparte** (no mezclar con este repo)
+- Programar / git desde el móvil → **proyecto aparte**
+
+---
+
+## Hecho (ago 2026)
+
+- Cuentas aisladas · landing · consola = landing · tono del usuario (D30)
+- Calendar read/write · dream fiable · Misiones (modos, intake, memoria, Preguntar)
+- Board quieto · imágenes misión (proxy)
 
 ---
 
 ## Plataforma
 
-### Abierto
-
-- [x] **M0 scaffold Expo** — `mobile/` login + tabs
-- [x] **Móvil contenido** — Día · Captura · Tareas · Misiones
-- [ ] **App móvil** — M2 audio voz · crear misión · pulido · [`docs/spikes/mobile-app.md`](./spikes/mobile-app.md)
-- [ ] Hardening servidor / ops *(solo si duele)*
-
-### Hecho / no cuenta como app
-
-- [x] PWA install de la consola (atajo) · [`docs/spikes/mobile-pwa.md`](./spikes/mobile-pwa.md)
-
-### Parking (plataforma)
-
-- Clientes extra más allá de web + Telegram captura
-- CI / DX gordo
-- Offline-first
+- [x] Expo M0 + contenido (Día · Captura · Tareas · Misiones)
+- [x] PWA de la consola
+- [ ] App M2 audio / crear misión / pulido — [`spikes/mobile-app.md`](./spikes/mobile-app.md)
+- [ ] Hardening ops *(solo si duele)*

@@ -7,7 +7,7 @@
 |-------|--------|
 | Repo | `jonoyanguren/kore` |
 | Producto | **Kore** · hablado **Jone** (`ASSISTANT_NAME`) |
-| Fase actual | **UI landing → consola** — mismo sistema visual; 1.6 layout cuando llegue diseño |
+| Fase actual | **Cerrar el piloto** — allowlist, tope LLM, Stripe, página legal |
 | Canal | Consola web = operar / día · Telegram = captura móvil opcional |
 | Deploy | Fly.io · `/data` |
 | LLM | OpenRouter · diario `deepseek/deepseek-v4-pro` · strong `claude-haiku-4.5` · misiones Normal=`deepseek-v4-flash` / Loco·Experto·Duro=`deepseek-v4-pro` · prompt cache en tool loops |
@@ -26,6 +26,7 @@
 - [x] Agenda + Google Calendar *(read + write bloque; D24/D25 cerrado 2026-08-27)*
 - [ ] Phase 5+ — PDF, media… *(candidatos)*
 - [ ] App móvil Kore — día a día (Expo; no es el IDE móvil)
+- [ ] **Cerrar el piloto** *(2026-08-30)* — allowlist + landing hechos; quedan flag, tope LLM, Stripe, legal
 
 ## Decisiones (cerradas)
 
@@ -57,6 +58,7 @@
 | D28 | **Misiones leen memoria** (2026-08-27): digest + `list_memory` (solo lectura). No vuelcan el vault. Web sigue siendo la herramienta principal |
 | D29 | **Preguntar** sobre una misión hecha (2026-08-27): Q&A con el informe; no relanza el loop |
 | D30 | **Tono del usuario** (2026-08-30): chips (trato/largo/calidez/humor/firma); onboarding + Más; `/tono` infiere del chat; Gmail reply usa ese perfil (no “como Jon”) |
+| D31 | **Cerrar el piloto** (2026-08-30): fase = las 8 tareas técnicas (allowlist, landing, flags, gasto/tope, Stripe, legal). Registro abierto (D14) queda superseded para el piloto |
 
 ## Roadmap (lean)
 
@@ -64,7 +66,7 @@
 
 **Cerrado Calendar (D24/D25):** read primary + crear bloque desde chat. Dogfood aparcado; no más slice ahora.
 
-**Ahora:** Tono del usuario (onboarding/Más + `/tono`). Misión→tareas aparcado. Layout 1.6 espera diseño.
+**Ahora:** **Cerrar el piloto** (D31). Lista en `TODO.md`. Layout 1.6 espera diseño.
 
 **1.6 / layout:** rediseño externo de estructura → maquetar cuando llegue (el chrome ya no espera).
 
@@ -81,14 +83,14 @@ Detalle shipped → [`milestones.md`](./milestones.md).
 - [x] Phase 3 Misiones usable
 - [x] Google Calendar read en Día / dream / chat (D24)
 - [x] Chat → crear bloque Calendar (D25) — cerrado 2026-08-27 (dogfood aparcado)
-- [x] Landing pública (logged-out) — hero + Día/Companion/Misiones; Entrar / Crear cuenta
+- [x] Landing pública (logged-out) — hero + Día/Companion/Misiones; Entrar / Pide acceso (piloto)
 - [x] Consola visual = landing (canvas / papel / tipo / píldoras) — 2026-08-27
 - [ ] Rediseño UI layout (diseño externo → maquetar)
 - [ ] App móvil día a día (Kore)
 
 ## Next steps
 
-1. Allowlist / rate-limit registro si hay spam
+1. Cerrar el piloto — las 8 tareas en [`TODO.md`](./TODO.md)
 2. Layout 1.6 cuando llegue diseño (no inventar)
 
 No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
@@ -97,6 +99,9 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-08-30 | Piloto: allowlist + landing «Pide acceso» |
+| 2026-08-30 | **D31** Fase: **cerrar el piloto** (8 tareas técnicas) |
+| 2026-08-30 | Foco → piloto de pago (gate, tope LLM, Stripe) |
 | 2026-08-30 | **D30** Tono del usuario: chips + `/tono` + Gmail reply personalizado |
 | 2026-08-28 | Misiones: imágenes vía proxy + hide-until-load (sin parpadeo si 404) |
 | 2026-08-28 | Board: quitar cards; lista como Día (filas, no cajas) |

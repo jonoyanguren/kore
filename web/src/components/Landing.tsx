@@ -3,7 +3,7 @@ import type { MeUser } from '../types'
 import { Login } from './Login'
 import '../Landing.css'
 
-type Gate = 'login' | 'register' | null
+type Gate = 'login' | 'register' | 'access' | null
 
 type Props = {
   onSuccess: (user: MeUser | null) => void
@@ -56,9 +56,9 @@ export function Landing({ onSuccess }: Props) {
           <button
             type="button"
             className="lp-btn lp-btn--solid lp-btn--sm"
-            onClick={() => setGate('register')}
+            onClick={() => setGate('access')}
           >
-            Crear cuenta
+            Pide acceso
           </button>
         </div>
       </header>
@@ -78,9 +78,9 @@ export function Landing({ onSuccess }: Props) {
             <button
               type="button"
               className="lp-btn lp-btn--solid"
-              onClick={() => setGate('register')}
+              onClick={() => setGate('access')}
             >
-              Crear cuenta
+              Pide acceso
             </button>
             <button
               type="button"
@@ -135,14 +135,14 @@ export function Landing({ onSuccess }: Props) {
         </section>
 
         <section className="lp-close">
-          <h2>Empieza en un minuto.</h2>
-          <p>Email, contraseña, nombre del companion. Tu home, cerrado.</p>
+          <h2>Piloto por invitación.</h2>
+          <p>Si te hemos escrito, entra con ese email. Si no, pide acceso.</p>
           <button
             type="button"
             className="lp-btn lp-btn--solid"
-            onClick={() => setGate('register')}
+            onClick={() => setGate('access')}
           >
-            Crear cuenta
+            Pide acceso
           </button>
         </section>
       </main>
@@ -167,7 +167,11 @@ export function Landing({ onSuccess }: Props) {
           >
             <div className="lp-gate__head">
               <h2 id={titleId} className="lp-gate__title">
-                {gate === 'register' ? 'Crea tu cuenta' : 'Entra'}
+                {gate === 'access'
+                  ? 'Pide acceso'
+                  : gate === 'register'
+                    ? 'Invitación'
+                    : 'Entra'}
               </h2>
               <button
                 type="button"
@@ -178,15 +182,69 @@ export function Landing({ onSuccess }: Props) {
                 ×
               </button>
             </div>
-            <Login
-              onSuccess={onSuccess}
-              initialMode={gate}
-              onModeChange={setGate}
-              embedded
-            />
+            {gate === 'access' ? (
+              <AccessAsk
+                onLogin={() => setGate('login')}
+                onInvite={() => setGate('register')}
+              />
+            ) : (
+              <Login
+                onSuccess={onSuccess}
+                initialMode={gate}
+                onModeChange={setGate}
+                embedded
+              />
+            )}
           </div>
         </div>
       ) : null}
+    </div>
+  )
+}
+
+function AccessAsk({
+  onLogin,
+  onInvite,
+}: {
+  onLogin: () => void
+  onInvite: () => void
+}) {
+  const [mail, setMail] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    void fetch('/api/public/pilot')
+      .then((r) => r.json() as Promise<{ access_email?: string }>)
+      .then((d) => {
+        if (!cancelled && d.access_email) setMail(d.access_email)
+      })
+      .catch(() => {
+        /* keep empty */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  return (
+    <div className="login">
+      <p>
+        El piloto está cerrado. Si te hemos invitado, entra o crea la cuenta
+        con ese email.
+      </p>
+      {mail ? (
+        <a className="lp-btn lp-btn--solid" href={`mailto:${mail}`}>
+          Escribir
+        </a>
+      ) : (
+        <p className="muted">Si quieres entrar, escríbenos.</p>
+      )}
+      <button type="button" className="ghost login__switch" onClick={onLogin}>
+        Ya tengo cuenta
+      </button>
+      <button type="button" className="ghost login__switch" onClick={onInvite}>
+        Tengo invitación
+      </button>
     </div>
   )
 }

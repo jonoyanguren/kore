@@ -212,6 +212,14 @@ def _task_dict(row: TaskRow) -> dict[str, Any]:
     return TaskOut.from_row(row).model_dump()
 
 
+@router.get("/public/pilot")
+async def public_pilot() -> dict[str, Any]:
+    return {
+        "invite_only": True,
+        "access_email": (settings.pilot_access_email or "").strip(),
+    }
+
+
 @router.post("/register")
 async def register(
     body: RegisterBody, request: Request, response: Response
@@ -219,6 +227,13 @@ async def register(
     accounts = accounts_of(request)
     if accounts is None:
         raise HTTPException(status_code=503, detail="accounts not ready")
+    from app.accounts.allowlist import email_on_allowlist
+
+    if not email_on_allowlist(body.email):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="invite_required",
+        )
     try:
         user = await accounts.create_user(
             email=body.email,
