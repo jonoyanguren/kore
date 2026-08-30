@@ -29,6 +29,7 @@ def test_skills_load_and_catalog():
         "project-status",
         "tasks",
         "time-madrid",
+        "tono",
     }
     assert "get_madrid_time" in (registry.get("time-madrid").tools or [])
     assert "resolve_madrid_date" in (registry.get("time-madrid").tools or [])
@@ -52,6 +53,8 @@ def test_command_router_builtins_and_skills():
     assert router.match("/entrevista").skill.name == "entrevista"
     assert router.match("/interview presupuesto").skill.name == "entrevista"
     assert router.match("/interview presupuesto").args == "presupuesto"
+    assert router.match("/tono").skill.name == "tono"
+    assert router.match("/voice").skill.name == "tono"
 
 
 def test_resolve_relative_dates():
@@ -98,7 +101,15 @@ def test_assembler_includes_all_skill_playbooks():
     assembler = PromptAssembler(PROMPTS_DIR, registry, memory)
     text = asyncio.run(assembler.assemble())
     assert "## Skills playbooks (full)" in text
-    for name in ("capture", "project-status", "time-madrid", "brainstorm", "plan", "execute"):
+    for name in (
+        "capture",
+        "project-status",
+        "time-madrid",
+        "brainstorm",
+        "plan",
+        "execute",
+        "tono",
+    ):
         assert f"### {name}" in text
     assert "## Personality" in text
     assert "## Kimay" in text

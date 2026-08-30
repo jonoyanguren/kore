@@ -73,6 +73,87 @@ h3 {
   max-width: 28rem;
 }
 
+.login--voice {
+  max-width: 34rem;
+}
+
+.login--voice .gate__card,
+.gate__card.login--voice {
+  width: min(34rem, 100%);
+}
+
+.voice-form {
+  display: grid;
+  gap: 0.85rem;
+  margin: 0.35rem 0 0.15rem;
+}
+
+.voice-form__row {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.voice-form__label {
+  margin: 0;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.voice-form__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.voice-form__chip {
+  height: 2rem;
+  padding: 0 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.voice-form__chip:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+}
+
+.voice-form__chip.is-active {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.voice-form__notes {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.more-drawer__voice {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.more-drawer__voice label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.more-drawer__voice-hint {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
 .login label {
   display: grid;
   gap: 0.3rem;
@@ -2310,7 +2391,7 @@ a.day-cal__ev-title--link:hover {
 }
 
 .drawer__panel--more {
-  width: min(22rem, 100%);
+  width: min(26rem, 100%);
   gap: 1.1rem;
   overflow-y: auto;
   overscroll-behavior: contain;

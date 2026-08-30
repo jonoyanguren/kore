@@ -61,7 +61,10 @@ class PromptAssembler:
             profile.owner_name if profile and profile.owner_name else settings.owner_name
         )
         legacy = True if profile is None else profile.legacy_prompts
-        tone = (profile.companion_tone if profile else "") or ""
+        raw_tone = (profile.companion_tone if profile else "") or ""
+        from app.accounts.voice import voice_for_prompt
+
+        tone = voice_for_prompt(raw_tone, owner_name)
 
         parts: list[str] = []
 
@@ -94,6 +97,8 @@ class PromptAssembler:
                 parts.append("## Investing\n" + investing)
             for rel, content in load_always_inject():
                 parts.append(f"## Project file: {rel}\n{content}")
+            if tone.strip():
+                parts.append("## Tono del usuario\n" + tone.strip())
         elif tone.strip():
             parts.append(
                 f"## Personality\nYou are {assistant_name}, companion of {owner_name}.\n\n"

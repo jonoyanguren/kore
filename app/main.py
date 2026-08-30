@@ -16,6 +16,7 @@ import openai
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 
+from app.accounts.voice_tools import build_voice_tools
 from app.accounts.homes import (
     Homes,
     accounts_db_path,
@@ -120,6 +121,7 @@ async def lifespan(app: FastAPI):
     time_tool_schemas, time_handlers = build_time_tools()
     project_tool_schemas, project_handlers = build_project_tools()
     web_tool_schemas, web_handlers = build_web_tools()
+    voice_tool_schemas, voice_handlers = build_voice_tools(accounts)
 
     if settings.load_dev_skills:
         skill_registry = SkillRegistry(SKILLS_DIR, DEV_SKILLS_DIR)
@@ -167,6 +169,7 @@ async def lifespan(app: FastAPI):
         + gmail_tool_schemas
         + calendar_tool_schemas
         + lol_tool_schemas
+        + voice_tool_schemas
     )
     all_handlers: dict[str, ToolHandler] = {
         **memory_handlers,
@@ -178,6 +181,7 @@ async def lifespan(app: FastAPI):
         **gmail_handlers,
         **calendar_handlers,
         **lol_handlers,
+        **voice_handlers,
     }
 
     telegram = TelegramClient(settings.telegram_bot_token, http_client)

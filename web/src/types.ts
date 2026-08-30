@@ -84,12 +84,22 @@ export type MissionModeOption = {
 /** @deprecated use MissionModeOption */
 export type MissionQualityOption = MissionModeOption
 
+export type VoiceProfile = {
+  address: 'tu' | 'usted' | 'da_igual' | string
+  length: 'telegrafico' | 'corto' | 'normal' | string
+  warmth: 'directo' | 'neutro' | 'cercano' | string
+  humor: 'cero' | 'seco' | 'si' | string
+  signoff: 'nada' | 'nombre' | 'saludo' | string
+  notes: string
+}
+
 export type MeUser = {
   id: number
   email: string
   owner_name: string
   companion_name: string
   companion_tone: string
+  voice?: VoiceProfile
   onboarded: boolean
   legacy: boolean
 }

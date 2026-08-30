@@ -68,7 +68,8 @@ export async function apiRegister(
 export async function apiSaveCompanion(body: {
   owner_name: string
   companion_name: string
-  companion_tone: string
+  companion_tone?: string
+  voice?: MeUser['voice']
 }): Promise<MeUser | null> {
   const r = await req<{ ok: boolean; user: MeUser }>('/api/me/companion', {
     method: 'PUT',

@@ -144,10 +144,20 @@ class RegisterBody(BaseModel):
     owner_name: str = Field(default="", max_length=80)
 
 
+class VoiceBody(BaseModel):
+    address: str = "tu"
+    length: str = "corto"
+    warmth: str = "directo"
+    humor: str = "seco"
+    signoff: str = "nombre"
+    notes: str = Field(default="", max_length=400)
+
+
 class CompanionBody(BaseModel):
     owner_name: str = Field(default="", max_length=80)
     companion_name: str = Field(min_length=1, max_length=80)
-    companion_tone: str = Field(min_length=1, max_length=8000)
+    companion_tone: str = Field(default="", max_length=8000)
+    voice: VoiceBody | None = None
 
 
 class TaskOut(BaseModel):
@@ -270,12 +280,16 @@ async def logout(request: Request, response: Response) -> dict[str, bool]:
 
 
 def _user_public(user) -> dict[str, Any]:
+    from app.accounts.voice import parse_voice
+
+    voice = parse_voice(user.companion_tone)
     return {
         "id": user.id,
         "email": user.email,
         "owner_name": user.owner_name,
         "companion_name": user.companion_name,
         "companion_tone": user.companion_tone,
+        "voice": voice.to_dict(),
         "onboarded": user.onboarded,
         "legacy": user.legacy_prompts,
     }
@@ -296,8 +310,15 @@ async def update_companion(request: Request, body: CompanionBody) -> dict[str, A
     if user is None or accounts is None:
         raise HTTPException(status_code=401, detail="unauthorized")
     name = body.companion_name.strip()
-    tone = body.companion_tone.strip()
-    if not name or not tone:
+    if not name:
+        raise HTTPException(status_code=400, detail="nombre obligatorio")
+    if body.voice is not None:
+        from app.accounts.voice import voice_from_dict
+
+        tone = voice_from_dict(body.voice.model_dump()).to_storage()
+    else:
+        tone = body.companion_tone.strip()
+    if not tone:
         raise HTTPException(status_code=400, detail="nombre y tono obligatorios")
     updated = await accounts.update_companion(
         user.id,

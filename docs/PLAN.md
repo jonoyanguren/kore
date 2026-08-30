@@ -56,6 +56,7 @@
 | D27 | **Misiones intake** (2026-08-27): aclarar pide 5–8 preguntas (no 1–2); ronda 2 = huecos; ready solo con brief usable |
 | D28 | **Misiones leen memoria** (2026-08-27): digest + `list_memory` (solo lectura). No vuelcan el vault. Web sigue siendo la herramienta principal |
 | D29 | **Preguntar** sobre una misión hecha (2026-08-27): Q&A con el informe; no relanza el loop |
+| D30 | **Tono del usuario** (2026-08-30): chips (trato/largo/calidez/humor/firma); onboarding + Más; `/tono` infiere del chat; Gmail reply usa ese perfil (no “como Jon”) |
 
 ## Roadmap (lean)
 
@@ -63,7 +64,7 @@
 
 **Cerrado Calendar (D24/D25):** read primary + crear bloque desde chat. Dogfood aparcado; no más slice ahora.
 
-**Ahora:** Misiones con imágenes estables (proxy + sin parpadeo). Board quieto. Misión→tareas aparcado. Layout 1.6 espera diseño.
+**Ahora:** Tono del usuario (onboarding/Más + `/tono`). Misión→tareas aparcado. Layout 1.6 espera diseño.
 
 **1.6 / layout:** rediseño externo de estructura → maquetar cuando llegue (el chrome ya no espera).
 
@@ -96,6 +97,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-08-30 | **D30** Tono del usuario: chips + `/tono` + Gmail reply personalizado |
 | 2026-08-28 | Misiones: imágenes vía proxy + hide-until-load (sin parpadeo si 404) |
 | 2026-08-28 | Board: quitar cards; lista como Día (filas, no cajas) |
 | 2026-08-28 | Dogfood intake vago (D27): bastante bien |

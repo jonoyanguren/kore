@@ -1,8 +1,17 @@
 import { useEffect, useState } from 'react'
-import { apiGmailDisconnect, apiGmailStatus, type GmailStatus } from '../api'
+import {
+  apiGmailDisconnect,
+  apiGmailStatus,
+  apiMe,
+  apiSaveCompanion,
+  type GmailStatus,
+} from '../api'
+import type { MeUser } from '../types'
 import { LlmRoutingTable } from './LlmRoutingTable'
 import { SpendLedgerPanel } from './SpendLedgerPanel'
 import { UsageChip } from './UsageChip'
+import { DEFAULT_VOICE, VoiceForm } from './VoiceForm'
+import { useToast } from './Toasts'
 
 type Props = {
   open: boolean
@@ -12,6 +21,7 @@ type Props = {
   onOpenSpend: () => void
   onOpenPalette: () => void
   onLogout: () => void
+  onUser?: (user: MeUser) => void
 }
 
 export function MoreDrawer({
@@ -22,15 +32,29 @@ export function MoreDrawer({
   onOpenSpend,
   onOpenPalette,
   onLogout,
+  onUser,
 }: Props) {
+  const toast = useToast()
   const [gmail, setGmail] = useState<GmailStatus | null>(null)
   const [gmailBusy, setGmailBusy] = useState(false)
+  const [me, setMe] = useState<MeUser | null>(null)
+  const [ownerName, setOwnerName] = useState('')
+  const [companionName, setCompanionName] = useState('')
+  const [voice, setVoice] = useState(DEFAULT_VOICE)
+  const [voiceBusy, setVoiceBusy] = useState(false)
 
   useEffect(() => {
     if (!open) return
     let cancelled = false
     void apiGmailStatus().then((st) => {
       if (!cancelled) setGmail(st)
+    })
+    void apiMe().then((user) => {
+      if (cancelled || !user) return
+      setMe(user)
+      setOwnerName(user.owner_name)
+      setCompanionName(user.companion_name)
+      setVoice(user.voice || DEFAULT_VOICE)
     })
     return () => {
       cancelled = true
@@ -67,6 +91,66 @@ export function MoreDrawer({
           />
           <h3 className="more-drawer__h more-drawer__h--sub">Modelos</h3>
           <LlmRoutingTable />
+        </section>
+
+        <section className="more-drawer__section">
+          <h3 className="more-drawer__h">Tu tono</h3>
+          {me ? (
+            <form
+              className="more-drawer__voice"
+              onSubmit={(e) => {
+                e.preventDefault()
+                if (voiceBusy) return
+                setVoiceBusy(true)
+                void apiSaveCompanion({
+                  owner_name: ownerName.trim(),
+                  companion_name: companionName.trim(),
+                  voice,
+                }).then((saved) => {
+                  setVoiceBusy(false)
+                  if (!saved) {
+                    toast.err('No se pudo guardar el tono')
+                    return
+                  }
+                  setMe(saved)
+                  onUser?.(saved)
+                  toast.ok('Tono guardado')
+                })
+              }}
+            >
+              <label>
+                Tu nombre
+                <input
+                  type="text"
+                  value={ownerName}
+                  onChange={(e) => setOwnerName(e.target.value)}
+                  required
+                />
+              </label>
+              <label>
+                Companion
+                <input
+                  type="text"
+                  value={companionName}
+                  onChange={(e) => setCompanionName(e.target.value)}
+                  required
+                />
+              </label>
+              <VoiceForm value={voice} onChange={setVoice} />
+              <p className="muted more-drawer__voice-hint">
+                O en el chat: <code>/tono</code> — lee cómo escribes y actualiza.
+              </p>
+              <button
+                type="submit"
+                className="more-drawer__btn"
+                disabled={voiceBusy || !companionName.trim()}
+              >
+                Guardar tono
+              </button>
+            </form>
+          ) : (
+            <p className="muted">…</p>
+          )}
         </section>
 
         <section className="more-drawer__section">

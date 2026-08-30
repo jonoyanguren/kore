@@ -9,6 +9,8 @@ from typing import Any
 
 import openai
 
+from app.accounts.context import current_profile
+from app.accounts.voice import reply_system_for
 from app.integrations.gmail.client import GmailClient, GmailMessageDetail
 from app.llm.llm_assistant import resolve_model
 
@@ -27,6 +29,13 @@ Reglas:
 - No digas que eres una IA."""
 
 
+def _reply_system() -> str:
+    profile = current_profile.get()
+    if profile is None:
+        return PROPOSE_REPLY_SYSTEM
+    return reply_system_for(profile.owner_name, profile.companion_tone)
+
+
 def reply_subject(subject: str) -> str:
     s = (subject or "").strip() or "(sin asunto)"
     if re.match(r"^(re|fw|fwd)\s*:", s, flags=re.I):
@@ -40,13 +49,20 @@ def reply_to_address(msg: GmailMessageDetail) -> str:
     return addr or raw
 
 
+def _owner_signoff() -> str:
+    profile = current_profile.get()
+    if profile and profile.owner_name.strip():
+        return profile.owner_name.strip()
+    return "Jon"
+
+
 def _fallback_body(msg: GmailMessageDetail) -> str:
     who = parseaddr(msg.from_)[0] or msg.from_.split("<")[0].strip() or "hola"
     first = who.split()[0] if who else "hola"
     return (
         f"Hola {first},\n\n"
         f"Gracias por el mail — lo miro y te contesto con detalle.\n\n"
-        f"Jon"
+        f"{_owner_signoff()}"
     )
 
 
@@ -68,7 +84,7 @@ async def propose_reply_draft(
         response = await llm.chat.completions.create(
             model=resolve_model(strong=True),
             messages=[
-                {"role": "system", "content": PROPOSE_REPLY_SYSTEM},
+                {"role": "system", "content": _reply_system()},
                 {"role": "user", "content": user},
             ],
             max_tokens=800,

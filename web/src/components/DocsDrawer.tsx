@@ -98,6 +98,8 @@ const CHAT_COMMANDS: CmdRow[] = [
   { cmd: '/captura', desc: 'Guardar en memoria o diario' },
   { cmd: '/entrevista', desc: 'Entrevista: preguntas para rellenar datos' },
   { cmd: '/interview', desc: 'Alias de /entrevista' },
+  { cmd: '/tono', desc: 'Actualizar tono (cómo escribes; también el mail)' },
+  { cmd: '/voice', desc: 'Alias de /tono' },
   { cmd: '/diario', desc: 'Ver / añadir diario del día' },
   { cmd: '/hora', desc: 'Hora actual en Madrid' },
   { cmd: '/brainstorm', desc: 'Modo brainstorm' },

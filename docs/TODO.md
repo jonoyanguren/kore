@@ -34,7 +34,7 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 ### Candidatos
 
 - [ ] Dogfood Calendar Día: **Abrir / Tarea / Prep** en eventos
-- [ ] **Gmail tono Jon** — perfil desde sent mail (reply)
+- [x] **Tono del usuario** — chips onboarding/Más + `/tono` (no solo Jon; Gmail usa el perfil)
 - [ ] **`/entrevista` en uso** — huecos vault/memoria (no board)
 - [ ] **PDF / docs en chat o Día** — ingerir y guardar en memoria
 - [ ] **Cola de misiones** — >1 en cola (sigue max 1 running)

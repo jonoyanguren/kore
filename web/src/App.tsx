@@ -59,6 +59,7 @@ function App() {
     body = (
       <Console
         companionName={user?.companion_name || 'Jone'}
+        onUser={setUser}
         onLogout={() => {
           setUser(null)
           setAuth('out')

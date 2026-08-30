@@ -95,7 +95,7 @@ const STATIC: Item[] = [
     id: 'docs-comandos',
     label: 'Docs: comandos',
     hint: '?',
-    keywords: 'docs comandos slash /tareas /dream /hora',
+    keywords: 'docs comandos slash /tareas /dream /hora /tono',
     action: { kind: 'open_docs', section: 'comandos' },
   },
   {
@@ -139,6 +139,13 @@ const STATIC: Item[] = [
     hint: '/entrevista',
     keywords: 'entrevista interview huecos preguntas gaps',
     action: { kind: 'chat', text: '/entrevista' },
+  },
+  {
+    id: 'tono',
+    label: 'Actualizar tono',
+    hint: '/tono',
+    keywords: 'tono voice voz estilo cómo hablo email',
+    action: { kind: 'chat', text: '/tono' },
   },
   {
     id: 'new',

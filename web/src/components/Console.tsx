@@ -12,7 +12,7 @@ import { MissionsPanel } from './MissionsPanel'
 import { MoreDrawer } from './MoreDrawer'
 import { SpendDrawer } from './SpendDrawer'
 import { TaskBoard, type TaskBoardHandle } from './TaskBoard'
-import type { Task } from '../types'
+import type { MeUser, Task } from '../types'
 
 export type LayoutMode = 'day' | 'focus' | 'operate' | 'missions'
 
@@ -30,6 +30,7 @@ const ACCENT = '#2f6f5e'
 type Props = {
   onLogout: () => void
   companionName?: string
+  onUser?: (user: MeUser) => void
 }
 
 function readLayout(): LayoutMode {
@@ -39,7 +40,11 @@ function readLayout(): LayoutMode {
   return 'day'
 }
 
-export function Console({ onLogout, companionName = 'Jone' }: Props) {
+export function Console({
+  onLogout,
+  companionName = 'Jone',
+  onUser,
+}: Props) {
   const [boardToken, setBoardToken] = useState(0)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
@@ -241,6 +246,7 @@ export function Console({ onLogout, companionName = 'Jone' }: Props) {
         onOpenSpend={() => setSpendOpen(true)}
         onOpenPalette={() => setPaletteOpen(true)}
         onLogout={() => void handleLogout()}
+        onUser={onUser}
       />
       <SpendDrawer open={spendOpen} onClose={() => setSpendOpen(false)} />
       <MemoryDrawer
