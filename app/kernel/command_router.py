@@ -40,3 +40,12 @@ class CommandRouter:
         if skill is None:
             return None
         return CommandMatch(command=command, args=args, skill=skill)
+
+
+def skill_ask_text(match: CommandMatch) -> str:
+    """User text to send the LLM when a skill command matched."""
+    if match.skill is None:
+        return match.args
+    if match.args:
+        return match.args
+    return f"Ejecuta la skill {match.skill.name} (comando {match.command})."

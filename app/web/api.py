@@ -1222,10 +1222,21 @@ async def _run_chat(
     if llm is None:
         raise HTTPException(status_code=503, detail="llm not ready")
 
+    active_skill = None
+    commands = getattr(request.app.state, "commands", None)
+    if cmd and commands is not None:
+        match = commands.match(text)
+        if match is not None and match.skill is not None:
+            from app.kernel.command_router import skill_ask_text
+
+            active_skill = match.skill
+            ask_text = skill_ask_text(match)
+
     clear_calendar_stash()
     before = {t.id for t in await memory.list_tasks(status="open", limit=100)}
     reply = await llm.ask(
         ask_text,
+        active_skill=active_skill,
         on_status=on_status,
         persist_user_text=text if ask_text != text else None,
     )

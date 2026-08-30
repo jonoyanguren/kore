@@ -55,6 +55,11 @@ def test_command_router_builtins_and_skills():
     assert router.match("/interview presupuesto").args == "presupuesto"
     assert router.match("/tono").skill.name == "tono"
     assert router.match("/voice").skill.name == "tono"
+    from app.kernel.command_router import skill_ask_text
+
+    tono = router.match("/tono")
+    assert skill_ask_text(tono) == "Ejecuta la skill tono (comando /tono)."
+    assert skill_ask_text(router.match("/tono más corto")) == "más corto"
 
 
 def test_resolve_relative_dates():

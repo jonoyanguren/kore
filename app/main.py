@@ -378,14 +378,10 @@ async def handle_text_message(
     user_text = text
     active_skill = None
     if match is not None and match.skill is not None:
+        from app.kernel.command_router import skill_ask_text
+
         active_skill = match.skill
-        if match.args:
-            user_text = match.args
-        else:
-            user_text = (
-                f"Ejecuta la skill {match.skill.name} "
-                f"(comando {match.command})."
-            )
+        user_text = skill_ask_text(match)
 
     claimed = _claim_pending_photo(pending_photos, chat_id)
     image_bytes = claimed.image_bytes if claimed else None
