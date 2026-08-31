@@ -13,6 +13,8 @@ import {
   apiListMessages,
   apiPatchTask,
   apiTranscribe,
+  isLlmCapError,
+  LLM_CAP_COPY,
   type ChatMessage,
 } from '../api'
 import { formatRelativeEs } from '../relativeTime'
@@ -360,12 +362,18 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       })
     } catch (err) {
       setThinking(null)
-      const msg = String(err)
+      const msg = isLlmCapError(err)
+        ? LLM_CAP_COPY
+        : String(err)
       setError(msg)
       toast.err(msg.includes('abort') ? 'El modelo tardó demasiado' : msg)
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: '(error al responder)', tasks: [] },
+        {
+          role: 'assistant',
+          content: isLlmCapError(err) ? LLM_CAP_COPY : '(error al responder)',
+          tasks: [],
+        },
       ])
     } finally {
       setBusy(false)

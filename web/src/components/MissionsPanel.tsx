@@ -8,6 +8,8 @@ import {
   apiListMissions,
   apiMissionModeOptions,
   apiRelaunchMission,
+  isLlmCapError,
+  LLM_CAP_COPY,
   type ClarifyHistoryItem,
 } from '../api'
 import { cleanCopiedText, copyToClipboard } from '../lib/clipboard'
@@ -176,6 +178,8 @@ export function MissionsPanel({ active = true }: Props) {
   const [askText, setAskText] = useState('')
   const [askBusy, setAskBusy] = useState(false)
   const toast = useToast()
+  const capErr = (err: unknown) =>
+    toast.err(isLlmCapError(err) ? LLM_CAP_COPY : String(err))
   const resultRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLElement>(null)
 
@@ -306,7 +310,7 @@ export function MissionsPanel({ active = true }: Props) {
     try {
       await runClarify([], 1)
     } catch (err) {
-      toast.err(String(err))
+      capErr(err)
     } finally {
       setBusy(false)
     }
@@ -325,7 +329,7 @@ export function MissionsPanel({ active = true }: Props) {
       setHistory(nextHistory)
       await runClarify(nextHistory, round + 1)
     } catch (err) {
-      toast.err(String(err))
+      capErr(err)
     } finally {
       setBusy(false)
     }
@@ -348,7 +352,7 @@ export function MissionsPanel({ active = true }: Props) {
       setSelectedId(m.id)
       await loadList()
     } catch (err) {
-      toast.err(String(err))
+      capErr(err)
     } finally {
       setBusy(false)
     }
@@ -424,7 +428,7 @@ export function MissionsPanel({ active = true }: Props) {
         setDetail(m)
       }
     } catch (err) {
-      toast.err(String(err))
+      capErr(err)
     } finally {
       setBusy(false)
     }
@@ -439,7 +443,7 @@ export function MissionsPanel({ active = true }: Props) {
       await loadList()
       setDetail(await apiGetMission(id))
     } catch (err) {
-      toast.err(String(err))
+      capErr(err)
     } finally {
       setBusy(false)
     }
@@ -481,7 +485,7 @@ export function MissionsPanel({ active = true }: Props) {
       setAskText('')
       setDetail((d) => (d ? { ...d, asks } : d))
     } catch (err) {
-      toast.err(String(err))
+      capErr(err)
     } finally {
       setAskBusy(false)
     }

@@ -223,6 +223,15 @@ async def run_mission_tick(
     mission: MissionRow,
     llm: openai.AsyncOpenAI,
 ) -> None:
+    from app.llm.pilot_cap import is_blocked, next_month_iso
+
+    if await is_blocked(store):
+        nxt = next_month_iso()
+        await store.update_mission(mission.id, status="waiting", next_run_at=nxt)
+        await store.add_mission_event(mission.id, "paused", "llm_cap")
+        logger.info("Mission %s paused — llm cap until %s", mission.id, nxt)
+        return
+
     running = await store.count_missions_in_status("running")
     if running and mission.status != "running":
         later = _iso(now_madrid() + timedelta(seconds=TICK_GAP_SECONDS))

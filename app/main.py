@@ -329,8 +329,13 @@ async def handle_text_message(
         await telegram.send_message(chat_id, format_madrid_clock())
         return
 
+    from app.llm.pilot_cap import USER_MSG, is_blocked
+
     # /dream — consolidate (default yesterday; optional YYYY-MM-DD arg)
     if match is not None and match.skill and match.skill.name == "dream":
+        if await is_blocked(memory):
+            await telegram.send_message(chat_id, USER_MSG)
+            return
         if vault is None or llm_client is None:
             await telegram.send_message(chat_id, "Sueño no disponible ahora.")
             return

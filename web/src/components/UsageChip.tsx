@@ -35,17 +35,20 @@ export function UsageChip({ variant = 'chip' }: { variant?: 'chip' | 'block' }) 
   }
 
   const used = formatUsd(usage.usage_usd)
+  const unlimited = Boolean(usage.unlimited)
+  const remaining = formatUsd(usage.remaining_usd)
   const total = formatUsd(usage.total_usd)
-  const pct = Math.round(usage.pct_used)
-  const label = `${used} / ${total} · ${pct}%`
-  const title =
-    `OpenRouter: ${used} usados de ${total} (${usage.pct_used.toFixed(1)}%). ` +
-    `Quedan ${formatUsd(usage.remaining_usd)}.`
+  const pct = unlimited ? 0 : Math.round(usage.pct_used)
+  const label = unlimited
+    ? `${used} este mes · sin tope`
+    : `te queda ${remaining} de ${total}`
+  const title = unlimited
+    ? `${used} este mes. Sin tope configurado.`
+    : `Este mes: ${used} de ${total} (${usage.pct_used.toFixed(1)}%). Te queda ${remaining}.`
 
-  const hot = usage.pct_used >= 85
-  const warm = usage.pct_used >= 60
-
-  const fill = Math.min(100, Math.max(0, usage.pct_used))
+  const hot = !unlimited && (usage.blocked || usage.pct_used >= 85)
+  const warm = !unlimited && usage.pct_used >= 60
+  const fill = unlimited ? 0 : Math.min(100, Math.max(0, usage.pct_used))
 
   return (
     <span
@@ -60,18 +63,20 @@ export function UsageChip({ variant = 'chip' }: { variant?: 'chip' | 'block' }) 
       <span className="console__usage-label">LLM</span>
       <span className="console__usage-meta">
         <span className="console__usage-text">{label}</span>
-        <span
-          className="console__usage-track"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={pct}
-        >
+        {unlimited ? null : (
           <span
-            className="console__usage-fill"
-            style={{ width: `${fill}%` }}
-          />
-        </span>
+            className="console__usage-track"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={pct}
+          >
+            <span
+              className="console__usage-fill"
+              style={{ width: `${fill}%` }}
+            />
+          </span>
+        )}
       </span>
     </span>
   )

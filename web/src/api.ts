@@ -110,6 +110,10 @@ export type UsageInfo = {
   remaining_usd: number
   pct_used: number
   source: string
+  unlimited?: boolean
+  blocked?: boolean
+  day_from?: string
+  day_to?: string
 }
 
 export async function apiUsage(force = false): Promise<UsageInfo | null> {
@@ -117,6 +121,15 @@ export async function apiUsage(force = false): Promise<UsageInfo | null> {
   const r = await req<{ ok: boolean; usage: UsageInfo | null }>(`/api/usage${qs}`)
   if (!r.ok || !r.data.ok || !r.data.usage) return null
   return r.data.usage
+}
+
+export const LLM_CAP_COPY =
+  'Has llegado al tope de LLM de este mes. Chat, misiones y dream vuelven el día 1.'
+
+export function isLlmCapError(err: unknown, status?: number): boolean {
+  if (status === 402) return true
+  const s = String(err)
+  return s.includes('llm_cap') || s.includes('chat 402') || s.includes('402')
 }
 
 export type SpendEvent = {
@@ -627,7 +640,10 @@ export async function apiAskMission(
     method: 'POST',
     body: JSON.stringify({ text }),
   })
-  if (!r.ok) throw new Error(`ask mission ${r.status}`)
+  if (!r.ok) {
+    if (r.status === 402) throw new Error('llm_cap')
+    throw new Error(`ask mission ${r.status}`)
+  }
   return { reply: r.data.reply, asks: r.data.asks ?? [] }
 }
 
@@ -644,7 +660,10 @@ export async function apiCreateMission(input: {
     method: 'POST',
     body: JSON.stringify(input),
   })
-  if (!r.ok) throw new Error(`create mission ${r.status}`)
+  if (!r.ok) {
+    if (r.status === 402) throw new Error('llm_cap')
+    throw new Error(`create mission ${r.status}`)
+  }
   return r.data.mission
 }
 
@@ -677,7 +696,10 @@ export async function apiClarifyMission(input: {
     method: 'POST',
     body: JSON.stringify(input),
   })
-  if (!r.ok) throw new Error(`clarify mission ${r.status}`)
+  if (!r.ok) {
+    if (r.status === 402) throw new Error('llm_cap')
+    throw new Error(`clarify mission ${r.status}`)
+  }
   return {
     ready: !!r.data.ready,
     questions: r.data.questions ?? [],
@@ -719,7 +741,10 @@ export async function apiRelaunchMission(id: number): Promise<Mission> {
   const r = await req<{ mission: Mission }>(`/api/missions/${id}/relaunch`, {
     method: 'POST',
   })
-  if (!r.ok) throw new Error(`relaunch mission ${r.status}`)
+  if (!r.ok) {
+    if (r.status === 402) throw new Error('llm_cap')
+    throw new Error(`relaunch mission ${r.status}`)
+  }
   return r.data.mission
 }
 
@@ -835,7 +860,10 @@ export async function apiChat(text: string): Promise<ChatResult> {
       body: JSON.stringify({ text }),
       signal: controller.signal,
     })
-    if (!r.ok) throw new Error(`chat ${r.status}`)
+    if (!r.ok) {
+      if (r.status === 402) throw new Error('llm_cap')
+      throw new Error(`chat ${r.status}`)
+    }
     return {
       reply: r.data.reply,
       tasks_created: r.data.tasks_created ?? [],
@@ -901,6 +929,7 @@ export async function apiChatLive(
           calendar_created?: CalendarMeeting | null
           calendar_deleted?: ChatResult['calendar_deleted']
           detail?: string
+          status?: number
         }
         try {
           ev = JSON.parse(raw) as typeof ev
@@ -919,7 +948,10 @@ export async function apiChatLive(
             calendar_deleted: ev.calendar_deleted ?? null,
           }
         } else if (ev.type === 'error') {
-          err = String(ev.detail ?? 'error')
+          err =
+            ev.detail === 'llm_cap' || Number(ev.status) === 402
+              ? 'llm_cap'
+              : String(ev.detail ?? 'error')
         }
       }
     }

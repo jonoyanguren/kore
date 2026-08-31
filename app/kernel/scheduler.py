@@ -119,6 +119,20 @@ async def run_scheduled_dream(
     chat_id = settings.telegram_allowed_chat_id
     notify_telegram = bool(allow_telegram and settings.dream_notify_telegram)
 
+    from app.llm.pilot_cap import is_blocked
+
+    if await is_blocked(store):
+        logger.info("Cron dream skip — llm cap for day=%s", target)
+        return {
+            "status": "skipped",
+            "day": target,
+            "morning": morning,
+            "notified": False,
+            "telegram": notify_telegram,
+            "error": "llm_cap",
+            "preview": "",
+        }
+
     last_run, last_status, last_err = await store.get_job(JOB_DREAM)
     if not needs_dream_consolidate(
         vault, target, last_run, last_status, last_err

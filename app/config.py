@@ -63,6 +63,8 @@ class Settings(BaseSettings):
     pilot_allowlist: str = ""
     # Optional mailto for “Pide acceso” on the landing.
     pilot_access_email: str = ""
+    # Monthly LLM cap per home (USD, from llm_spend). 0 = no cut.
+    pilot_llm_cap_usd: float = 20.0
 
     # Shared secret for web console (/api/*). Empty = console always 401.
     # Cookie kore_console or Authorization: Bearer <secret>.

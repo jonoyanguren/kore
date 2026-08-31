@@ -64,7 +64,7 @@ from app.llm.mission_quality import (
     normalize_mode,
     resolve_mission_model,
 )
-from app.llm.openrouter_credits import fetch_usage
+from app.llm.pilot_cap import require_under_cap, status_for
 from app.llm.llm_routing import llm_routing
 from app.llm.transcribe import MAX_AUDIO_BYTES, transcribe_audio
 from app.storage.memory import TaskRow, VALID_TASK_STATUSES, format_tasks_message, MissionRow
@@ -358,12 +358,11 @@ async def update_companion(request: Request, body: CompanionBody) -> dict[str, A
 
 
 @router.get("/usage", dependencies=[Depends(require_console_auth)])
-async def usage(force: bool = False) -> dict[str, Any]:
-    """OpenRouter spend: usage_usd, total_usd, pct_used (cached ~60s)."""
-    snap = await fetch_usage(force=force)
-    if snap is None:
-        return {"ok": False, "usage": None}
-    return {"ok": True, "usage": snap.as_dict()}
+async def usage(request: Request, force: bool = False) -> dict[str, Any]:
+    """This home's LLM spend this month vs the pilot cap."""
+    del force  # kept for the old OpenRouter chip querystring
+    snap = await status_for(_memory(request))
+    return {"ok": True, "usage": snap.as_usage_dict()}
 
 
 @router.get("/spend", dependencies=[Depends(require_console_auth)])
@@ -777,6 +776,8 @@ async def list_missions(
 @router.post("/missions", dependencies=[Depends(require_console_auth)])
 async def create_mission(request: Request, body: CreateMissionBody) -> dict[str, Any]:
     memory = _memory(request)
+    if body.launch:
+        await require_under_cap(memory)
     vault = _vault(request)
     status_v = "queued" if body.launch else "draft"
     next_run = now_madrid().replace(microsecond=0).isoformat() if body.launch else None
@@ -812,6 +813,7 @@ async def clarify_mission_endpoint(
     request: Request, body: ClarifyMissionBody
 ) -> dict[str, Any]:
     """Intake questions (or mark ready) before creating a mission."""
+    await require_under_cap(_memory(request))
     llm = request.app.state.llm_client
     hist = [
         {"question": h.question.strip(), "answer": h.answer.strip()}
@@ -873,6 +875,7 @@ async def cancel_mission(request: Request, mission_id: int) -> dict[str, Any]:
 )
 async def relaunch_mission(request: Request, mission_id: int) -> dict[str, Any]:
     """Reset a mission and queue it again (useful after stub → real research)."""
+    await require_under_cap(_memory(request))
     row = await _memory(request).get_mission(mission_id)
     if row is None:
         raise HTTPException(status_code=404, detail="mission not found")
@@ -909,6 +912,7 @@ async def ask_mission_endpoint(
     request: Request, mission_id: int, body: AskMissionBody
 ) -> dict[str, Any]:
     """Follow-up on a mission report. Does not relaunch the loop."""
+    await require_under_cap(_memory(request))
     row = await _memory(request).get_mission(mission_id)
     if row is None:
         raise HTTPException(status_code=404, detail="mission not found")
@@ -1214,6 +1218,7 @@ async def _run_chat(
         await _persist_exchange(memory, text, reply)
         return pack(reply=reply)
     if cmd in ("/dream", "/sueno", "/sueño"):
+        await require_under_cap(memory)
         await status("Generando dream…")
         vault = getattr(request.app.state, "vault", None)
         llm_client = getattr(request.app.state, "llm_client", None)
@@ -1242,6 +1247,8 @@ async def _run_chat(
         )
         await _persist_exchange(memory, text, reply)
         return pack(reply=reply)
+
+    await require_under_cap(memory)
 
     llm = getattr(request.app.state, "llm", None)
     if llm is None:
@@ -1494,6 +1501,7 @@ async def gmail_status(request: Request) -> dict[str, Any]:
 )
 async def gmail_to_task(request: Request, message_id: str) -> dict[str, Any]:
     """LLM proposes a local task from a Gmail message (title/project/notes + link)."""
+    await require_under_cap(_memory(request))
     gmail = getattr(request.app.state, "gmail", None)
     llm = getattr(request.app.state, "llm_client", None)
     if gmail is None or llm is None:
@@ -1538,6 +1546,7 @@ class GmailReplyBody(BaseModel):
 )
 async def gmail_reply_draft(request: Request, message_id: str) -> dict[str, Any]:
     """LLM proposes an editable reply body for a Gmail message."""
+    await require_under_cap(_memory(request))
     gmail = getattr(request.app.state, "gmail", None)
     llm = getattr(request.app.state, "llm_client", None)
     if gmail is None or llm is None:

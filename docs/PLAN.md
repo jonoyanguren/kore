@@ -26,7 +26,7 @@
 - [x] Agenda + Google Calendar *(read + write bloque; D24/D25 cerrado 2026-08-27)*
 - [ ] Phase 5+ — PDF, media… *(candidatos)*
 - [ ] App móvil Kore — día a día (Expo; no es el IDE móvil)
-- [ ] **Cerrar el piloto** *(2026-08-30)* — allowlist + landing + flag; quedan tope LLM, Stripe, legal
+- [ ] **Cerrar el piloto** *(2026-08-30)* — allowlist + landing + flag + tope LLM; quedan Stripe, legal
 
 ## Decisiones (cerradas)
 
@@ -99,6 +99,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-08-31 | Piloto: tope LLM por home (`PILOT_LLM_CAP_USD`) + chip «te queda X de Y» |
 | 2026-08-31 | Piloto: flag `allowed` en cuenta (login/sesión; `make account-off/on`) |
 | 2026-08-30 | Piloto: allowlist + landing «Pide acceso» |
 | 2026-08-30 | **D31** Fase: **cerrar el piloto** (8 tareas técnicas) |

@@ -35,9 +35,9 @@ Notify misión, `/entrevista`, PDF, cola, móvil, logo, Telegram multi, misión�
 
 ## Lista de tareas (técnicas)
 
-Ver [`TODO.md`](../TODO.md). Hecho: allowlist + landing «Pide acceso» + flag `allowed` (columna `paid_until` lista para Stripe). Quedan: gasto/tope, Stripe, legal.
+Ver [`TODO.md`](../TODO.md). Hecho: allowlist + landing + flag `allowed` + tope LLM por home (`PILOT_LLM_CAP_USD`, default $20; 0 = sin corte). Quedan: Stripe, legal.
 
-Env: `PILOT_ALLOWLIST=a@x.com,b@y.com` · opcional `PILOT_ACCESS_EMAIL` para el mailto.
+Env: `PILOT_ALLOWLIST=a@x.com,b@y.com` · opcional `PILOT_ACCESS_EMAIL` para el mailto · `PILOT_LLM_CAP_USD=20`.
 
 Fly: `make allowlist EMAILS=…` · `make allowlist-add EMAIL=…` · `make allowlist-show` · `make allowlist-clear`.
 Cortar cuenta: `make account-off EMAIL=…` · reactivar: `make account-on EMAIL=…`.

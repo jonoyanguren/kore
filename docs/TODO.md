@@ -21,9 +21,9 @@ Spike: [`paid-pilot.md`](./spikes/paid-pilot.md)
 1. [x] **Allowlist** — solo emails invitados pueden crear cuenta.
 2. [x] **Landing** — “Pide acceso” en vez de registro abierto.
 3. [x] **Flag en cuenta** — `allowed` (y columna `paid_until` para Stripe). Login/sesión cortan si `allowed=0`. `make account-off/on`.
-4. [ ] **Gasto por home** — sumar `llm_spend` del SQLite de cada usuario.
-5. [ ] **Tope LLM** — cap €/mes; al llegar, cortar chat, misiones y dream.
-6. [ ] **Chip en Más** — “te queda X de Y este mes”.
+4. [x] **Gasto por home** — sumar `llm_spend` del mes (Madrid) por SQLite.
+5. [x] **Tope LLM** — `PILOT_LLM_CAP_USD` (default 20; 0 = sin corte). Corta chat, misiones, dream, Gmail draft.
+6. [x] **Chip en Más** — “te queda X de Y este mes”.
 7. [ ] **Stripe** — checkout + webhook.
 8. [ ] **Página legal** — datos Gmail, quién eres, cómo borrar (export ya existe).
 

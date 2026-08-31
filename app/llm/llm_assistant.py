@@ -264,6 +264,10 @@ class LLMAssistant:
         `on_status` receives short Spanish labels while thinking / using tools
         (for the web console live status line).
         """
+        from app.llm.pilot_cap import USER_MSG, is_blocked
+
+        if await is_blocked(self._active_memory()):
+            return USER_MSG
 
         async def status(msg: str) -> None:
             if on_status is None:

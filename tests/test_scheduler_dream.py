@@ -51,9 +51,16 @@ def test_needs_dream_consolidate_retries_blank_vault():
     assert needs_dream_consolidate(vault, "2026-07-27", None, None) is True
 
 
+def _cap_ok(store: MagicMock) -> None:
+    store.summarize_llm_spend = AsyncMock(
+        return_value={"usd": 0, "prompt_tokens": 0, "completion_tokens": 0, "calls": 0}
+    )
+
+
 def test_scheduled_dream_skips_consolidate_but_notifies():
     async def _run():
         store = MagicMock()
+        _cap_ok(store)
         store.get_job = AsyncMock(
             side_effect=[
                 ("2026-07-26", "ok", None),  # dream already done
@@ -100,6 +107,7 @@ def test_scheduled_dream_skips_consolidate_but_notifies():
 def test_scheduled_dream_no_double_morning_notify():
     async def _run():
         store = MagicMock()
+        _cap_ok(store)
         store.get_job = AsyncMock(
             side_effect=[
                 ("2026-07-26", "ok", None),
@@ -141,6 +149,7 @@ def test_scheduled_dream_no_double_morning_notify():
 def test_scheduled_dream_reconsolidates_blank_placeholder():
     async def _run():
         store = MagicMock()
+        _cap_ok(store)
         # dream job "ok" but vault is the blank placeholder from DeepSeek empty reply
         store.get_job = AsyncMock(
             side_effect=[

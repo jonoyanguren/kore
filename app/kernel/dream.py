@@ -158,6 +158,11 @@ async def run_dream(
     calendar: CalendarClient | None = None,
 ) -> str:
     """Consolidate chat+captures for `day` (default: yesterday). Brief next morning."""
+    from app.llm.pilot_cap import USER_MSG, is_blocked
+
+    if await is_blocked(store):
+        return USER_MSG
+
     target = day or (today_madrid() - timedelta(days=1)).isoformat()
     target_date = date.fromisoformat(target)
     next_day = (target_date + timedelta(days=1)).isoformat()
