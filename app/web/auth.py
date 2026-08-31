@@ -58,9 +58,14 @@ async def resolve_user(
         return None
     user = await accounts.user_for_session(token)
     if user is not None:
+        if not user.allowed:
+            return None
         return user
     if _secrets_match(token, console_secret_configured()):
-        return await accounts.legacy_user()
+        legacy = await accounts.legacy_user()
+        if legacy is not None and not legacy.allowed:
+            return None
+        return legacy
     return None
 
 

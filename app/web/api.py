@@ -265,6 +265,11 @@ async def login(body: LoginBody, request: Request, response: Response) -> dict[s
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="unauthorized"
             )
+        if not user.allowed:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="account_disabled",
+            )
         token = await accounts.create_session(user.id)
         _set_session_cookie(response, token, request)
         return {"ok": True, "user": _user_public(user)}
@@ -277,6 +282,11 @@ async def login(body: LoginBody, request: Request, response: Response) -> dict[s
     if accounts is not None:
         user = await accounts.legacy_user()
         if user is not None:
+            if not user.allowed:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="account_disabled",
+                )
             token = await accounts.create_session(user.id)
             _set_session_cookie(response, token, request)
             return {"ok": True, "user": _user_public(user)}

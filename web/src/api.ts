@@ -27,13 +27,31 @@ export async function apiMe(): Promise<MeUser | null> {
 export async function apiLogin(
   email: string,
   password: string,
-): Promise<MeUser | null> {
-  const r = await req<{ ok: boolean; user?: MeUser | null }>('/api/login', {
+): Promise<
+  | { ok: true; user: MeUser | null }
+  | { ok: false; status: number; detail?: string }
+> {
+  const res = await fetch('/api/login', {
+    credentials: 'include',
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   })
-  if (!r.ok) return null
-  return r.data.user ?? null
+  if (!res.ok) {
+    let detail: string | undefined
+    try {
+      const body = (await res.json()) as { detail?: string }
+      detail =
+        body.detail === 'account_disabled'
+          ? 'Esta cuenta está desactivada.'
+          : undefined
+    } catch {
+      /* ignore */
+    }
+    return { ok: false, status: res.status, detail }
+  }
+  const data = (await res.json()) as { ok: boolean; user?: MeUser | null }
+  return { ok: true, user: data.user ?? null }
 }
 
 export async function apiRegister(

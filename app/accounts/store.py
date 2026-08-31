@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS users (
     companion_tone TEXT NOT NULL DEFAULT '',
     legacy_prompts INTEGER NOT NULL DEFAULT 0,
     onboarded INTEGER NOT NULL DEFAULT 0,
+    allowed INTEGER NOT NULL DEFAULT 1,
+    paid_until TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -66,6 +68,8 @@ class UserRow:
     companion_tone: str
     legacy_prompts: bool
     onboarded: bool
+    allowed: bool
+    paid_until: str | None
 
     def profile(self) -> CompanionProfile:
         return CompanionProfile(
@@ -87,9 +91,21 @@ class AccountStore:
         Path(self._db_path).parent.mkdir(parents=True, exist_ok=True)
         async with aiosqlite.connect(self._db_path) as db:
             await db.executescript(SCHEMA)
+            await self._migrate_access(db)
             await db.commit()
 
+    async def _migrate_access(self, db: aiosqlite.Connection) -> None:
+        cursor = await db.execute("PRAGMA table_info(users)")
+        cols = {row[1] for row in await cursor.fetchall()}
+        if "allowed" not in cols:
+            await db.execute(
+                "ALTER TABLE users ADD COLUMN allowed INTEGER NOT NULL DEFAULT 1"
+            )
+        if "paid_until" not in cols:
+            await db.execute("ALTER TABLE users ADD COLUMN paid_until TEXT")
+
     def _row(self, row: tuple) -> UserRow:
+        paid = row[8]
         return UserRow(
             id=int(row[0]),
             email=row[1],
@@ -98,12 +114,15 @@ class AccountStore:
             companion_tone=row[4] or "",
             legacy_prompts=bool(row[5]),
             onboarded=bool(row[6]),
+            allowed=bool(row[7]),
+            paid_until=(paid or None),
         )
 
     _COLS = (
         "id, email, owner_name, companion_name, companion_tone, "
-        "legacy_prompts, onboarded"
+        "legacy_prompts, onboarded, allowed, paid_until"
     )
+    _NCOLS = 9
 
     async def create_user(
         self,
@@ -127,8 +146,8 @@ class AccountStore:
                     f"""
                     INSERT INTO users (
                         email, password_hash, owner_name, companion_name,
-                        companion_tone, legacy_prompts, onboarded
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        companion_tone, legacy_prompts, onboarded, allowed
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, 1)
                     RETURNING {self._COLS}
                     """,
                     (
@@ -197,9 +216,9 @@ class AccountStore:
             row = await cur.fetchone()
         if row is None:
             return None
-        if not verify_password(password, row[7]):
+        if not verify_password(password, row[self._NCOLS]):
             return None
-        return self._row(row[:7])
+        return self._row(row[: self._NCOLS])
 
     async def update_companion(
         self,
@@ -240,6 +259,26 @@ class AccountStore:
             )
             await db.commit()
         return await self.get_user(user_id)
+
+    async def set_allowed(self, email: str, allowed: bool) -> UserRow | None:
+        user = await self.get_by_email(email)
+        if user is None:
+            return None
+        async with aiosqlite.connect(self._db_path) as db:
+            await db.execute(
+                """
+                UPDATE users SET allowed = ?, updated_at = datetime('now')
+                WHERE id = ?
+                """,
+                (1 if allowed else 0, user.id),
+            )
+            if not allowed:
+                await db.execute(
+                    "DELETE FROM sessions WHERE user_id = ?",
+                    (user.id,),
+                )
+            await db.commit()
+        return await self.get_user(user.id)
 
     async def create_session(self, user_id: int) -> str:
         token = secrets.token_urlsafe(32)

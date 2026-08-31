@@ -48,14 +48,18 @@ export function Login({
         onSuccess(result.user)
         return
       }
-      const user = await apiLogin(email.trim(), password)
-      if (!user) {
-        setError('Email o contraseña incorrectos')
-        toast.err('Email o contraseña incorrectos')
+      const result = await apiLogin(email.trim(), password)
+      if (!result.ok || !result.user) {
+        const msg =
+          result.ok === false && result.detail
+            ? result.detail
+            : 'Email o contraseña incorrectos'
+        setError(msg)
+        toast.err(msg)
         return
       }
       toast.ok('Dentro')
-      onSuccess(user)
+      onSuccess(result.user)
     } finally {
       setBusy(false)
     }

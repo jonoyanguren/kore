@@ -1,4 +1,6 @@
-.PHONY: start back front stop help
+.PHONY: start back front stop help allowlist allowlist-add allowlist-show allowlist-clear account-on account-off
+
+APP ?= kore
 
 # Consola local: API (8000) + Vite (5173). Ctrl+C para ambos.
 start:
@@ -21,8 +23,47 @@ stop:
 	-@lsof -tiTCP:5173 -sTCP:LISTEN | xargs kill 2>/dev/null || true
 	@echo "stopped (8000 / 5173)"
 
+# Piloto Fly: lista de emails que pueden registrarse.
+#   make allowlist EMAILS=ana@x.com,bob@y.com
+#   make allowlist-add EMAIL=ana@x.com
+#   make allowlist-show
+#   make allowlist-clear
+allowlist:
+	@test -n "$(EMAILS)" || { echo "uso: make allowlist EMAILS=a@x.com,b@y.com" >&2; exit 1; }
+	fly secrets set PILOT_ALLOWLIST="$(EMAILS)" -a $(APP)
+
+allowlist-add:
+	@test -n "$(EMAIL)" || { echo "uso: make allowlist-add EMAIL=a@x.com" >&2; exit 1; }
+	@cur=$$(fly ssh console -a $(APP) -C 'printenv PILOT_ALLOWLIST' 2>/dev/null | tr -d '\r'); \
+	case ",$$cur," in *,"$(EMAIL)",*) echo "ya está: $(EMAIL)"; exit 0 ;; esac; \
+	if [ -z "$$cur" ]; then next="$(EMAIL)"; else next="$$cur,$(EMAIL)"; fi; \
+	fly secrets set PILOT_ALLOWLIST="$$next" -a $(APP)
+
+allowlist-show:
+	@fly ssh console -a $(APP) -C 'printenv PILOT_ALLOWLIST' 2>/dev/null || echo "(vacío — nadie nuevo)"
+
+allowlist-clear:
+	fly secrets unset PILOT_ALLOWLIST -a $(APP)
+
+# Piloto Fly: cortar / reactivar una cuenta (columna `allowed` en /data/accounts.db).
+#   make account-off EMAIL=ana@x.com
+#   make account-on EMAIL=ana@x.com
+account-off:
+	@test -n "$(EMAIL)" || { echo "uso: make account-off EMAIL=a@x.com" >&2; exit 1; }
+	fly ssh console -a $(APP) -C "python -m app.accounts.flag off $(EMAIL)"
+
+account-on:
+	@test -n "$(EMAIL)" || { echo "uso: make account-on EMAIL=a@x.com" >&2; exit 1; }
+	fly ssh console -a $(APP) -C "python -m app.accounts.flag on $(EMAIL)"
+
 help:
-	@echo "make start  — API + Vite juntos"
-	@echo "make back   — solo FastAPI :8000"
-	@echo "make front  — solo Vite :5173"
-	@echo "make stop   — mata puertos 8000/5173"
+	@echo "make start           — API + Vite juntos"
+	@echo "make back            — solo FastAPI :8000"
+	@echo "make front           — solo Vite :5173"
+	@echo "make stop            — mata puertos 8000/5173"
+	@echo "make allowlist EMAILS=a@x.com,b@y.com  — sustituye la lista (Fly)"
+	@echo "make allowlist-add EMAIL=a@x.com       — añade un email"
+	@echo "make allowlist-show                    — ver lista en Fly"
+	@echo "make allowlist-clear                   — nadie nuevo"
+	@echo "make account-off EMAIL=a@x.com         — corta esa cuenta (Fly)"
+	@echo "make account-on EMAIL=a@x.com          — la reactiva"

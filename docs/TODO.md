@@ -20,7 +20,7 @@ Spike: [`paid-pilot.md`](./spikes/paid-pilot.md)
 
 1. [x] **Allowlist** — solo emails invitados pueden crear cuenta.
 2. [x] **Landing** — “Pide acceso” en vez de registro abierto.
-3. [ ] **Flag en cuenta** — `allowed` / `paid_until` o sub Stripe para dejar entrar o cortar.
+3. [x] **Flag en cuenta** — `allowed` (y columna `paid_until` para Stripe). Login/sesión cortan si `allowed=0`. `make account-off/on`.
 4. [ ] **Gasto por home** — sumar `llm_spend` del SQLite de cada usuario.
 5. [ ] **Tope LLM** — cap €/mes; al llegar, cortar chat, misiones y dream.
 6. [ ] **Chip en Más** — “te queda X de Y este mes”.
