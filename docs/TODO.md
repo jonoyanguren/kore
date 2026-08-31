@@ -24,7 +24,7 @@ Spike: [`paid-pilot.md`](./spikes/paid-pilot.md)
 4. [x] **Gasto por home** — sumar `llm_spend` del mes (Madrid) por SQLite.
 5. [x] **Tope LLM** — `PILOT_LLM_CAP_USD` (default 0.5; 0 = sin corte). Corta chat, misiones, dream, Gmail draft.
 6. [x] **Chip en Más** — “te queda X de Y este mes”.
-7. [ ] **Stripe** — checkout + webhook.
+7. [x] **Stripe** — Checkout + webhook. Planes 5 / 10 / 20 €. Sin keys = sin paywall.
 8. [ ] **Página legal** — datos Gmail, quién eres, cómo borrar (export ya existe).
 
 ### No es del piloto

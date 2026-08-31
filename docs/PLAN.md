@@ -26,7 +26,7 @@
 - [x] Agenda + Google Calendar *(read + write bloque; D24/D25 cerrado 2026-08-27)*
 - [ ] Phase 5+ — PDF, media… *(candidatos)*
 - [ ] App móvil Kore — día a día (Expo; no es el IDE móvil)
-- [ ] **Cerrar el piloto** *(2026-08-30)* — allowlist + landing + flag + tope LLM; quedan Stripe, legal
+- [ ] **Cerrar el piloto** *(2026-08-30)* — allowlist + landing + flag + tope LLM + Stripe; queda legal
 
 ## Decisiones (cerradas)
 
@@ -99,6 +99,8 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-08-31 | Precios piloto: 5 / 10 / 20 € al mes (tabla landing + paywall). Pack suelto fuera |
+| 2026-08-31 | Stripe: Checkout + webhooks (fuente de verdad; firma + idempotencia). 20 € / 10 € |
 | 2026-08-31 | Tope LLM de prueba: `$0.50`/mes (antes $20) |
 | 2026-08-31 | Piloto: flag `allowed` en cuenta (login/sesión; `make account-off/on`) |
 | 2026-08-30 | Piloto: allowlist + landing «Pide acceso» |

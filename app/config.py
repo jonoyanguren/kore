@@ -64,7 +64,18 @@ class Settings(BaseSettings):
     # Optional mailto for “Pide acceso” on the landing.
     pilot_access_email: str = ""
     # Monthly LLM cap per home (USD, from llm_spend). 0 = no cut.
+    # Legacy / dogfood. Paying users get llm_cap_usd from Stripe webhooks.
     pilot_llm_cap_usd: float = 0.5
+
+    # Stripe (Checkout + webhooks). Empty key = billing off (no paywall).
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    # Monthly plans 5 / 10 / 20 €. Empty 5€ price = billing off (no paywall).
+    stripe_price_5: str = ""
+    stripe_price_10: str = ""
+    stripe_price_20: str = ""
+    # Public origin for Checkout success/cancel URLs.
+    public_origin: str = "https://kore.fly.dev"
 
     # Shared secret for web console (/api/*). Empty = console always 401.
     # Cookie kore_console or Authorization: Bearer <secret>.

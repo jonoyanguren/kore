@@ -93,6 +93,15 @@ export type VoiceProfile = {
   notes: string
 }
 
+export type BillingInfo = {
+  needed: boolean
+  status: string
+  plan?: string | null
+  enforced: boolean
+  has_customer: boolean
+  legacy: boolean
+}
+
 export type MeUser = {
   id: number
   email: string
@@ -102,4 +111,5 @@ export type MeUser = {
   voice?: VoiceProfile
   onboarded: boolean
   legacy: boolean
+  billing?: BillingInfo
 }

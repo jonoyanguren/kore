@@ -109,6 +109,7 @@ export type UsageInfo = {
   total_usd: number
   remaining_usd: number
   pct_used: number
+  remaining_pct?: number
   source: string
   unlimited?: boolean
   blocked?: boolean
@@ -123,12 +124,34 @@ export async function apiUsage(force = false): Promise<UsageInfo | null> {
   return r.data.usage
 }
 
+export async function apiBillingCheckout(
+  kind: '5' | '10' | '20' = '5',
+): Promise<{ ok: true; url: string } | { ok: false; status: number }> {
+  const r = await req<{ ok: boolean; url: string }>('/api/billing/checkout', {
+    method: 'POST',
+    body: JSON.stringify({ kind }),
+  })
+  if (!r.ok || !r.data.url) return { ok: false, status: r.ok ? 502 : r.status }
+  return { ok: true, url: r.data.url }
+}
+
+export async function apiBillingPortal(): Promise<
+  { ok: true; url: string } | { ok: false; status: number }
+> {
+  const r = await req<{ ok: boolean; url: string }>('/api/billing/portal', {
+    method: 'POST',
+  })
+  if (!r.ok || !r.data.url) return { ok: false, status: r.ok ? 409 : r.status }
+  return { ok: true, url: r.data.url }
+}
+
 export const LLM_CAP_COPY =
   'Has llegado al tope de LLM de este mes. Chat, misiones y dream vuelven el día 1.'
 
 export function isLlmCapError(err: unknown, status?: number): boolean {
-  if (status === 402) return true
   const s = String(err)
+  if (s.includes('billing_required')) return false
+  if (status === 402) return true
   return s.includes('llm_cap') || s.includes('chat 402') || s.includes('402')
 }
 

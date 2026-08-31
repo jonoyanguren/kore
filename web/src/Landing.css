@@ -58,7 +58,8 @@ html:has(.landing) {
 
 /* ——— Buttons ——— */
 
-button.lp-btn {
+button.lp-btn,
+a.lp-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -71,6 +72,7 @@ button.lp-btn {
   font-weight: 500;
   letter-spacing: -0.02em;
   cursor: pointer;
+  text-decoration: none;
   transition:
     background 0.18s ease,
     color 0.18s ease,
@@ -78,28 +80,33 @@ button.lp-btn {
     opacity 0.18s ease;
 }
 
-button.lp-btn--sm {
+button.lp-btn--sm,
+a.lp-btn--sm {
   height: 2.45rem;
   padding: 0 1.05rem;
   font-size: 0.92rem;
 }
 
-button.lp-btn--solid {
+button.lp-btn--solid,
+a.lp-btn--solid {
   background: var(--lp-paper);
   color: var(--lp-ink);
 }
 
-button.lp-btn--solid:hover {
+button.lp-btn--solid:hover,
+a.lp-btn--solid:hover {
   background: #fff;
 }
 
-button.lp-btn--ghost {
+button.lp-btn--ghost,
+a.lp-btn--ghost {
   background: transparent;
   color: var(--lp-paper);
   border-color: color-mix(in srgb, var(--lp-paper) 18%, transparent);
 }
 
-button.lp-btn--ghost:hover {
+button.lp-btn--ghost:hover,
+a.lp-btn--ghost:hover {
   border-color: color-mix(in srgb, var(--lp-paper) 42%, transparent);
   color: #fff;
 }
@@ -131,6 +138,24 @@ button.lp-btn--ghost:hover {
   font-weight: 300;
   line-height: 1.45;
   color: var(--lp-muted);
+}
+
+.lp-hero__price {
+  margin: 0.85rem 0 0;
+}
+
+.lp-hero__price a {
+  color: var(--lp-soft);
+  font-size: 1.02rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--lp-soft) 45%, transparent);
+}
+
+.lp-hero__price a:hover {
+  color: #fff;
+  border-bottom-color: #fff;
 }
 
 .lp-hero__cta {
@@ -493,6 +518,143 @@ button.lp-btn--ghost:hover {
 }
 
 /* ——— Close + footer ——— */
+
+/* ——— Precio ——— */
+
+.lp-price {
+  text-align: center;
+  padding: clamp(4rem, 10vh, 6.5rem) clamp(1.1rem, 4vw, 2rem) 2.5rem;
+  background: var(--lp-ink);
+  scroll-margin-top: 5rem;
+}
+
+.lp-price--paywall {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+}
+
+.lp-price h2 {
+  margin: 0.35rem auto 0;
+  font-size: clamp(2rem, 5.5vw, 3.4rem);
+  line-height: 1.02;
+  color: #f7f4ee;
+  max-width: 16ch;
+}
+
+.lp-price > p:not(.lp-kicker):not(.lp-price__err) {
+  margin: 1rem auto 0;
+  max-width: 32rem;
+  color: var(--lp-muted);
+  font-weight: 300;
+  font-size: 1.12rem;
+}
+
+.lp-price__err {
+  margin: 1.25rem auto 0;
+  color: #e8b4ae;
+}
+
+.lp-plans {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+  max-width: 52rem;
+  margin: 2.15rem auto 0;
+  text-align: left;
+}
+
+.lp-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: var(--lp-paper);
+  color: var(--lp-ink);
+  color-scheme: light;
+  border-radius: 20px;
+  padding: 1.3rem 1.35rem 1.4rem;
+}
+
+.lp-plan--featured {
+  outline: 2px solid var(--lp-accent);
+  outline-offset: 0;
+}
+
+.lp-plan__tag {
+  margin: 0 0 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--lp-accent);
+}
+
+.lp-plan__name {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.lp-plan__price {
+  margin: 0.15rem 0 0;
+  font-family: var(--lp-display);
+  font-size: clamp(2.1rem, 4vw, 2.55rem);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 1;
+  color: var(--lp-ink);
+}
+
+.lp-plan__price span {
+  font-size: 0.95rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--muted);
+}
+
+.lp-plan__blurb {
+  margin: 0.45rem 0 1rem;
+  font-size: 0.98rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.lp-plan .lp-btn {
+  width: 100%;
+  margin-top: auto;
+}
+
+.lp-plan .lp-btn--solid {
+  background: var(--lp-ink);
+  color: var(--lp-paper);
+}
+
+.lp-plan .lp-btn--solid:hover {
+  background: #0b0d10;
+  color: #fff;
+}
+
+.lp-plan .lp-btn--ghost {
+  color: var(--lp-ink);
+  border-color: color-mix(in srgb, var(--lp-ink) 16%, transparent);
+}
+
+.lp-plan .lp-btn--ghost:hover {
+  border-color: color-mix(in srgb, var(--lp-ink) 40%, transparent);
+  color: var(--lp-ink);
+}
+
+@media (max-width: 800px) {
+  .lp-plans {
+    grid-template-columns: 1fr;
+    max-width: 22rem;
+  }
+}
 
 .lp-close {
   text-align: center;

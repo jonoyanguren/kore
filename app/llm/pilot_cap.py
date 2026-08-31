@@ -7,6 +7,7 @@ from datetime import date, datetime
 
 from fastapi import HTTPException, status
 
+from app.accounts.context import current_profile
 from app.config import settings
 from app.storage.memory import MemoryStore
 from app.timeutil import MADRID, now_madrid
@@ -30,11 +31,13 @@ class CapStatus:
     day_to: str
 
     def as_usage_dict(self) -> dict[str, object]:
+        remaining_pct = 100.0 if self.unlimited else round(max(0.0, 100.0 - self.pct_used), 1)
         return {
             "usage_usd": round(self.used_usd, 4),
             "total_usd": round(self.cap_usd, 4),
             "remaining_usd": round(self.remaining_usd, 4),
             "pct_used": round(self.pct_used, 1),
+            "remaining_pct": remaining_pct,
             "source": "home",
             "unlimited": self.unlimited,
             "blocked": self.blocked,
@@ -60,6 +63,9 @@ def next_month_iso() -> str:
 
 
 def cap_usd() -> float:
+    profile = current_profile.get()
+    if profile is not None and profile.llm_cap_usd is not None:
+        return max(0.0, float(profile.llm_cap_usd))
     return max(0.0, float(settings.pilot_llm_cap_usd or 0.0))
 
 

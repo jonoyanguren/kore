@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
+  apiBillingPortal,
   apiGmailDisconnect,
   apiGmailStatus,
   apiMe,
@@ -226,6 +227,27 @@ export function MoreDrawer({
             </a>
           )}
         </section>
+
+        {me?.billing?.has_customer ? (
+          <section className="more-drawer__section">
+            <h3 className="more-drawer__h">Pago</h3>
+            <button
+              type="button"
+              className="more-drawer__btn"
+              onClick={() => {
+                void apiBillingPortal().then((r) => {
+                  if (!r.ok) {
+                    toast.err('No se pudo abrir facturación')
+                    return
+                  }
+                  window.location.href = r.url
+                })
+              }}
+            >
+              Gestionar pago
+            </button>
+          </section>
+        ) : null}
 
         <section className="more-drawer__section">
           <h3 className="more-drawer__h">Herramientas</h3>

@@ -85,7 +85,11 @@ from app.web.auth import (
 )
 from app.web.auth import _secrets_match
 
+from app.web.billing import billing_public, public_pricing
+from app.web.billing import router as billing_router
+
 router = APIRouter(prefix="/api", tags=["console"])
+router.include_router(billing_router)
 logger = logging.getLogger(__name__)
 
 TaskStatus = Literal["open", "in_progress", "done", "cancelled"]
@@ -217,6 +221,7 @@ async def public_pilot() -> dict[str, Any]:
     return {
         "invite_only": True,
         "access_email": (settings.pilot_access_email or "").strip(),
+        **public_pricing(),
     }
 
 
@@ -317,6 +322,7 @@ def _user_public(user) -> dict[str, Any]:
         "voice": voice.to_dict(),
         "onboarded": user.onboarded,
         "legacy": user.legacy_prompts,
+        "billing": billing_public(user),
     }
 
 

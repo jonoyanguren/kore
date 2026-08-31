@@ -25,6 +25,12 @@ CREATE TABLE IF NOT EXISTS users (
     onboarded INTEGER NOT NULL DEFAULT 0,
     allowed INTEGER NOT NULL DEFAULT 1,
     paid_until TEXT,
+    stripe_customer_id TEXT,
+    stripe_subscription_id TEXT,
+    billing_status TEXT NOT NULL DEFAULT 'none',
+    billing_plan TEXT,
+    llm_cap_usd REAL,
+    pack_credit_usd REAL NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -35,6 +41,12 @@ CREATE TABLE IF NOT EXISTS sessions (
     expires_at TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS stripe_events (
+    id TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    processed_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
@@ -70,6 +82,12 @@ class UserRow:
     onboarded: bool
     allowed: bool
     paid_until: str | None
+    stripe_customer_id: str | None
+    stripe_subscription_id: str | None
+    billing_status: str
+    billing_plan: str | None
+    llm_cap_usd: float | None
+    pack_credit_usd: float
 
     def profile(self) -> CompanionProfile:
         return CompanionProfile(
@@ -80,6 +98,7 @@ class UserRow:
             companion_tone=self.companion_tone,
             legacy_prompts=self.legacy_prompts,
             onboarded=self.onboarded,
+            llm_cap_usd=self.llm_cap_usd,
         )
 
 
@@ -103,9 +122,41 @@ class AccountStore:
             )
         if "paid_until" not in cols:
             await db.execute("ALTER TABLE users ADD COLUMN paid_until TEXT")
+        if "stripe_customer_id" not in cols:
+            await db.execute("ALTER TABLE users ADD COLUMN stripe_customer_id TEXT")
+        if "stripe_subscription_id" not in cols:
+            await db.execute(
+                "ALTER TABLE users ADD COLUMN stripe_subscription_id TEXT"
+            )
+        if "billing_status" not in cols:
+            await db.execute(
+                "ALTER TABLE users ADD COLUMN billing_status TEXT NOT NULL DEFAULT 'none'"
+            )
+        if "llm_cap_usd" not in cols:
+            await db.execute("ALTER TABLE users ADD COLUMN llm_cap_usd REAL")
+        if "pack_credit_usd" not in cols:
+            await db.execute(
+                "ALTER TABLE users ADD COLUMN pack_credit_usd REAL NOT NULL DEFAULT 0"
+            )
+        if "billing_plan" not in cols:
+            await db.execute("ALTER TABLE users ADD COLUMN billing_plan TEXT")
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS stripe_events (
+                id TEXT PRIMARY KEY,
+                type TEXT NOT NULL,
+                processed_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """
+        )
+        await db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_users_stripe_customer "
+            "ON users(stripe_customer_id)"
+        )
 
     def _row(self, row: tuple) -> UserRow:
-        paid = row[8]
+        cap = row[13]
+        pack = row[14]
         return UserRow(
             id=int(row[0]),
             email=row[1],
@@ -115,14 +166,22 @@ class AccountStore:
             legacy_prompts=bool(row[5]),
             onboarded=bool(row[6]),
             allowed=bool(row[7]),
-            paid_until=(paid or None),
+            paid_until=(row[8] or None),
+            stripe_customer_id=(row[9] or None),
+            stripe_subscription_id=(row[10] or None),
+            billing_status=(row[11] or "none"),
+            billing_plan=(row[12] or None),
+            llm_cap_usd=None if cap is None else float(cap),
+            pack_credit_usd=float(pack or 0),
         )
 
     _COLS = (
         "id, email, owner_name, companion_name, companion_tone, "
-        "legacy_prompts, onboarded, allowed, paid_until"
+        "legacy_prompts, onboarded, allowed, paid_until, "
+        "stripe_customer_id, stripe_subscription_id, billing_status, "
+        "billing_plan, llm_cap_usd, pack_credit_usd"
     )
-    _NCOLS = 9
+    _NCOLS = 15
 
     async def create_user(
         self,
@@ -279,6 +338,70 @@ class AccountStore:
                 )
             await db.commit()
         return await self.get_user(user.id)
+
+    async def get_by_stripe_customer_id(self, customer_id: str) -> UserRow | None:
+        cid = (customer_id or "").strip()
+        if not cid:
+            return None
+        async with aiosqlite.connect(self._db_path) as db:
+            cur = await db.execute(
+                f"SELECT {self._COLS} FROM users WHERE stripe_customer_id = ?",
+                (cid,),
+            )
+            row = await cur.fetchone()
+            return self._row(row) if row else None
+
+    async def apply_billing(self, user_id: int, **fields: object) -> UserRow | None:
+        allowed = {
+            "stripe_customer_id",
+            "stripe_subscription_id",
+            "billing_status",
+            "billing_plan",
+            "llm_cap_usd",
+            "pack_credit_usd",
+            "paid_until",
+        }
+        sets: list[str] = []
+        vals: list[object] = []
+        for key, value in fields.items():
+            if key not in allowed:
+                raise ValueError(f"unknown billing field: {key}")
+            sets.append(f"{key} = ?")
+            vals.append(value)
+        if not sets:
+            return await self.get_user(user_id)
+        vals.append(user_id)
+        async with aiosqlite.connect(self._db_path) as db:
+            await db.execute(
+                f"UPDATE users SET {', '.join(sets)}, updated_at = datetime('now') "
+                "WHERE id = ?",
+                vals,
+            )
+            await db.commit()
+        return await self.get_user(user_id)
+
+    async def claim_stripe_event(self, event_id: str, event_type: str) -> bool:
+        eid = (event_id or "").strip()
+        if not eid:
+            return False
+        async with aiosqlite.connect(self._db_path) as db:
+            try:
+                await db.execute(
+                    "INSERT INTO stripe_events (id, type) VALUES (?, ?)",
+                    (eid, (event_type or "")[:80]),
+                )
+                await db.commit()
+            except aiosqlite.IntegrityError:
+                return False
+        return True
+
+    async def release_stripe_event(self, event_id: str) -> None:
+        eid = (event_id or "").strip()
+        if not eid:
+            return
+        async with aiosqlite.connect(self._db_path) as db:
+            await db.execute("DELETE FROM stripe_events WHERE id = ?", (eid,))
+            await db.commit()
 
     async def create_session(self, user_id: int) -> str:
         token = secrets.token_urlsafe(32)

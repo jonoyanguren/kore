@@ -93,6 +93,21 @@ async def require_console_auth(
     user = await resolve_user(request, provided)
     if user is not None:
         await bind_home(request, user)
+        from app.billing.access import (
+            billing_enforced,
+            billing_ok,
+            path_skips_billing,
+        )
+
+        if (
+            billing_enforced()
+            and not billing_ok(user)
+            and not path_skips_billing(request.url.path)
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail="billing_required",
+            )
         return
     expected = console_secret_configured()
     if _secrets_match(provided or "", expected):

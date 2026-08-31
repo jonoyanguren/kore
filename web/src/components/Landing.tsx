@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from 'react'
 import type { MeUser } from '../types'
 import { Login } from './Login'
+import { PricingTable } from './PricingTable'
 import '../Landing.css'
 
 type Gate = 'login' | 'register' | 'access' | null
@@ -46,6 +47,9 @@ export function Landing({ onSuccess }: Props) {
           Kore
         </a>
         <div className="lp-nav__actions">
+          <a className="lp-btn lp-btn--ghost lp-btn--sm" href="#precio">
+            Precio
+          </a>
           <button
             type="button"
             className="lp-btn lp-btn--ghost lp-btn--sm"
@@ -73,6 +77,9 @@ export function Landing({ onSuccess }: Props) {
           <p className="lp-hero__sub">
             Briefing, correo, agenda y un companion con tu tono. Cada cuenta,
             su espacio.
+          </p>
+          <p className="lp-hero__price">
+            <a href="#precio">5, 10 o 20 € al mes</a>
           </p>
           <div className="lp-hero__cta">
             <button
@@ -132,6 +139,19 @@ export function Landing({ onSuccess }: Props) {
             </p>
           </div>
           <MissionsMock />
+        </section>
+
+        <section className="lp-price" id="precio">
+          <p className="lp-kicker">Precio</p>
+          <h2>5 € abre. 10 y 20 son más mes.</h2>
+          <p>
+            Mismo producto. El plan solo cambia cuánto te dura el mes. Piloto
+            por invitación.
+          </p>
+          <PricingTable
+            cta={() => 'Pide acceso'}
+            onPick={() => setGate('access')}
+          />
         </section>
 
         <section className="lp-close">

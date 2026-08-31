@@ -12,6 +12,7 @@ dependencies = [
     "mcp>=1.28.1",
     "aiosqlite>=0.22.1",
     "python-multipart>=0.0.32",
+    "stripe>=15.4.0",
 ]
 
 [dependency-groups]

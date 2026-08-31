@@ -1,12 +1,6 @@
 import { useEffect, useState } from 'react'
 import { apiUsage, type UsageInfo } from '../api'
 
-function formatUsd(n: number): string {
-  if (n >= 100) return `$${n.toFixed(0)}`
-  if (n >= 10) return `$${n.toFixed(1)}`
-  return `$${n.toFixed(2)}`
-}
-
 export function UsageChip({ variant = 'chip' }: { variant?: 'chip' | 'block' }) {
   const [usage, setUsage] = useState<UsageInfo | null>(null)
 
@@ -34,17 +28,22 @@ export function UsageChip({ variant = 'chip' }: { variant?: 'chip' | 'block' }) 
     ) : null
   }
 
-  const used = formatUsd(usage.usage_usd)
   const unlimited = Boolean(usage.unlimited)
-  const remaining = formatUsd(usage.remaining_usd)
-  const total = formatUsd(usage.total_usd)
+  const remainingPct = unlimited
+    ? 100
+    : Math.max(
+        0,
+        Math.round(
+          usage.remaining_pct ?? 100 - usage.pct_used,
+        ),
+      )
   const pct = unlimited ? 0 : Math.round(usage.pct_used)
   const label = unlimited
-    ? `${used} este mes · sin tope`
-    : `te queda ${remaining} de ${total}`
+    ? 'sin tope este mes'
+    : `te queda ${remainingPct}% este mes`
   const title = unlimited
-    ? `${used} este mes. Sin tope configurado.`
-    : `Este mes: ${used} de ${total} (${usage.pct_used.toFixed(1)}%). Te queda ${remaining}.`
+    ? 'Este mes sin tope configurado.'
+    : `Te queda ${remainingPct}% del mes.`
 
   const hot = !unlimited && (usage.blocked || usage.pct_used >= 85)
   const warm = !unlimited && usage.pct_used >= 60
