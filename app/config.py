@@ -59,10 +59,6 @@ class Settings(BaseSettings):
     # Morning cron Telegram ping. False = UI (vista Día) is the primary channel.
     dream_notify_telegram: bool = False
 
-    # Pilot: comma-separated emails that may register. Empty = nobody new.
-    pilot_allowlist: str = ""
-    # Optional mailto for “Pide acceso” on the landing.
-    pilot_access_email: str = ""
     # Monthly LLM cap per home (USD, from llm_spend). 0 = no cut.
     # Legacy / dogfood. Paying users get llm_cap_usd from Stripe webhooks.
     pilot_llm_cap_usd: float = 0.5

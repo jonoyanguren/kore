@@ -7,7 +7,7 @@
 |-------|--------|
 | Repo | `jonoyanguren/kore` |
 | Producto | **Kore** · hablado **Jone** (`ASSISTANT_NAME`) |
-| Fase actual | **Cerrar el piloto** — allowlist, tope LLM, Stripe, página legal |
+| Fase actual | **Cerrar el piloto** — Stripe, tope LLM, página legal |
 | Canal | Consola web = operar / día · Telegram = captura móvil opcional |
 | Deploy | Fly.io · `/data` |
 | LLM | OpenRouter · diario `deepseek/deepseek-v4-pro` · strong `claude-haiku-4.5` · misiones Normal=`deepseek-v4-flash` / Loco·Experto·Duro=`deepseek-v4-pro` · prompt cache en tool loops |
@@ -26,7 +26,7 @@
 - [x] Agenda + Google Calendar *(read + write bloque; D24/D25 cerrado 2026-08-27)*
 - [ ] Phase 5+ — PDF, media… *(candidatos)*
 - [ ] App móvil Kore — día a día (Expo; no es el IDE móvil)
-- [ ] **Cerrar el piloto** *(2026-08-30)* — allowlist + landing + flag + tope LLM + Stripe; queda legal
+- [ ] **Cerrar el piloto** *(2026-08-30)* — Stripe + tope LLM; queda legal
 
 ## Decisiones (cerradas)
 
@@ -83,7 +83,7 @@ Detalle shipped → [`milestones.md`](./milestones.md).
 - [x] Phase 3 Misiones usable
 - [x] Google Calendar read en Día / dream / chat (D24)
 - [x] Chat → crear bloque Calendar (D25) — cerrado 2026-08-27 (dogfood aparcado)
-- [x] Landing pública (logged-out) — hero + Día/Companion/Misiones; Entrar / Pide acceso (piloto)
+- [x] Landing pública (logged-out) — hero + Día/Companion/Misiones; Entrar / Crear cuenta + precios
 - [x] Consola visual = landing (canvas / papel / tipo / píldoras) — 2026-08-27
 - [ ] Rediseño UI layout (diseño externo → maquetar)
 - [ ] App móvil día a día (Kore)
@@ -99,6 +99,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-08-31 | Registro abierto: el pago es el gate. Allowlist / «Pide acceso» fuera |
 | 2026-08-31 | Precios piloto: 5 / 10 / 20 € al mes (tabla landing + paywall). Pack suelto fuera |
 | 2026-08-31 | Stripe: Checkout + webhooks (fuente de verdad; firma + idempotencia). 20 € / 10 € |
 | 2026-08-31 | Tope LLM de prueba: `$0.50`/mes (antes $20) |

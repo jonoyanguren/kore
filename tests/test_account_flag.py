@@ -64,14 +64,12 @@ async def _flag_gate() -> None:
         settings.console_secret,
         settings.storage_db_path,
         settings.vault_root,
-        settings.pilot_allowlist,
     )
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         settings.console_secret = "test-console-secret-32chars-xxxx"
         settings.storage_db_path = str(root / "kore.db")
         settings.vault_root = str(root / "vault")
-        settings.pilot_allowlist = "eve@example.com"
         try:
             accounts = AccountStore(str(root / "accounts.db"))
             await accounts.init()
@@ -118,7 +116,6 @@ async def _flag_gate() -> None:
                 settings.console_secret,
                 settings.storage_db_path,
                 settings.vault_root,
-                settings.pilot_allowlist,
             ) = old
 
 

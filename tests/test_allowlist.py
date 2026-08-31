@@ -1,4 +1,4 @@
-"""Pilot allowlist: only invited emails can register."""
+"""Registration is open; payment is the gate."""
 
 from __future__ import annotations
 
@@ -9,29 +9,20 @@ from pathlib import Path
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
-from app.accounts.allowlist import email_on_allowlist, parse_allowlist
 from app.accounts.homes import Homes
 from app.accounts.store import AccountStore
 from app.config import settings
 from app.web.api import router as console_api_router
 
 
-def test_parse_allowlist():
-    assert parse_allowlist("") == frozenset()
-    assert parse_allowlist("Ana@X.com, bob@y.com") == frozenset(
-        {"ana@x.com", "bob@y.com"}
-    )
-    assert email_on_allowlist("ana@x.com", "Ana@X.com") is True
-    assert email_on_allowlist("eve@x.com", "Ana@X.com") is False
-    assert email_on_allowlist("ana@x.com", "") is False
-
-
-async def _register_gate() -> None:
-    old = settings.pilot_allowlist
+async def _register_open() -> None:
+    old = (settings.console_secret, settings.storage_db_path, settings.vault_root)
     try:
-        settings.pilot_allowlist = ""
+        settings.console_secret = "test-console-secret-32chars-xxxx"
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
+            settings.storage_db_path = str(root / "kore.db")
+            settings.vault_root = str(root / "vault")
             accounts = AccountStore(str(root / "accounts.db"))
             await accounts.init()
             homes = Homes(accounts)
@@ -43,24 +34,18 @@ async def _register_gate() -> None:
             async with AsyncClient(transport=transport, base_url="http://test") as ac:
                 pub = await ac.get("/api/public/pilot")
                 assert pub.status_code == 200
-                assert pub.json()["invite_only"] is True
+                assert "invite_only" not in pub.json()
+                assert [p["id"] for p in pub.json()["plans"]] == ["5", "10", "20"]
 
-                blocked = await ac.post(
+                created = await ac.post(
                     "/api/register",
                     json={"email": "eve@example.com", "password": "password1"},
                 )
-                assert blocked.status_code == 403
-                assert blocked.json()["detail"] == "invite_required"
-
-                settings.pilot_allowlist = "eve@example.com"
-                ok = await ac.post(
-                    "/api/register",
-                    json={"email": "eve@example.com", "password": "password1"},
-                )
-                assert ok.status_code == 200, ok.text
+                assert created.status_code == 200, created.text
+                assert created.json()["user"]["email"] == "eve@example.com"
     finally:
-        settings.pilot_allowlist = old
+        settings.console_secret, settings.storage_db_path, settings.vault_root = old
 
 
-def test_register_requires_allowlist():
-    asyncio.run(_register_gate())
+def test_register_is_open():
+    asyncio.run(_register_open())

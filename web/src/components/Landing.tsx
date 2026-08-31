@@ -4,7 +4,7 @@ import { Login } from './Login'
 import { PricingTable } from './PricingTable'
 import '../Landing.css'
 
-type Gate = 'login' | 'register' | 'access' | null
+type Gate = 'login' | 'register' | null
 
 type Props = {
   onSuccess: (user: MeUser | null) => void
@@ -60,9 +60,9 @@ export function Landing({ onSuccess }: Props) {
           <button
             type="button"
             className="lp-btn lp-btn--solid lp-btn--sm"
-            onClick={() => setGate('access')}
+            onClick={() => setGate('register')}
           >
-            Pide acceso
+            Crear cuenta
           </button>
         </div>
       </header>
@@ -85,9 +85,9 @@ export function Landing({ onSuccess }: Props) {
             <button
               type="button"
               className="lp-btn lp-btn--solid"
-              onClick={() => setGate('access')}
+              onClick={() => setGate('register')}
             >
-              Pide acceso
+              Crear cuenta
             </button>
             <button
               type="button"
@@ -145,24 +145,23 @@ export function Landing({ onSuccess }: Props) {
           <p className="lp-kicker">Precio</p>
           <h2>5 € abre. 10 y 20 son más mes.</h2>
           <p>
-            Mismo producto. El plan solo cambia cuánto te dura el mes. Piloto
-            por invitación.
+            Mismo producto. El plan solo cambia cuánto te dura el mes.
           </p>
           <PricingTable
-            cta={() => 'Pide acceso'}
-            onPick={() => setGate('access')}
+            cta={() => 'Crear cuenta'}
+            onPick={() => setGate('register')}
           />
         </section>
 
         <section className="lp-close">
-          <h2>Piloto por invitación.</h2>
-          <p>Si te hemos escrito, entra con ese email. Si no, pide acceso.</p>
+          <h2>Empieza por 5 €.</h2>
+          <p>Crea la cuenta. Luego eliges plan.</p>
           <button
             type="button"
             className="lp-btn lp-btn--solid"
-            onClick={() => setGate('access')}
+            onClick={() => setGate('register')}
           >
-            Pide acceso
+            Crear cuenta
           </button>
         </section>
       </main>
@@ -187,11 +186,7 @@ export function Landing({ onSuccess }: Props) {
           >
             <div className="lp-gate__head">
               <h2 id={titleId} className="lp-gate__title">
-                {gate === 'access'
-                  ? 'Pide acceso'
-                  : gate === 'register'
-                    ? 'Invitación'
-                    : 'Entra'}
+                {gate === 'register' ? 'Crear cuenta' : 'Entra'}
               </h2>
               <button
                 type="button"
@@ -202,69 +197,15 @@ export function Landing({ onSuccess }: Props) {
                 ×
               </button>
             </div>
-            {gate === 'access' ? (
-              <AccessAsk
-                onLogin={() => setGate('login')}
-                onInvite={() => setGate('register')}
-              />
-            ) : (
-              <Login
-                onSuccess={onSuccess}
-                initialMode={gate}
-                onModeChange={setGate}
-                embedded
-              />
-            )}
+            <Login
+              onSuccess={onSuccess}
+              initialMode={gate}
+              onModeChange={setGate}
+              embedded
+            />
           </div>
         </div>
       ) : null}
-    </div>
-  )
-}
-
-function AccessAsk({
-  onLogin,
-  onInvite,
-}: {
-  onLogin: () => void
-  onInvite: () => void
-}) {
-  const [mail, setMail] = useState('')
-
-  useEffect(() => {
-    let cancelled = false
-    void fetch('/api/public/pilot')
-      .then((r) => r.json() as Promise<{ access_email?: string }>)
-      .then((d) => {
-        if (!cancelled && d.access_email) setMail(d.access_email)
-      })
-      .catch(() => {
-        /* keep empty */
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  return (
-    <div className="login">
-      <p>
-        El piloto está cerrado. Si te hemos invitado, entra o crea la cuenta
-        con ese email.
-      </p>
-      {mail ? (
-        <a className="lp-btn lp-btn--solid" href={`mailto:${mail}`}>
-          Escribir
-        </a>
-      ) : (
-        <p className="muted">Si quieres entrar, escríbenos.</p>
-      )}
-      <button type="button" className="ghost login__switch" onClick={onLogin}>
-        Ya tengo cuenta
-      </button>
-      <button type="button" className="ghost login__switch" onClick={onInvite}>
-        Tengo invitación
-      </button>
     </div>
   )
 }

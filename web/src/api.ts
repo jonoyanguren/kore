@@ -73,10 +73,7 @@ export async function apiRegister(
     let detail: string | undefined
     try {
       const body = (await res.json()) as { detail?: string }
-      detail =
-        body.detail === 'invite_required'
-          ? 'Este email no está invitado.'
-          : body.detail
+      detail = body.detail
     } catch {
       /* ignore */
     }

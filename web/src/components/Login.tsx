@@ -72,7 +72,7 @@ export function Login({
       {embedded ? null : <h1>Kore</h1>}
       <p>
         {isRegister
-          ? 'El piloto es por invitación. Usa el email al que te escribimos.'
+          ? 'Crea tu cuenta. Luego eliges plan.'
           : 'Entra a tu consola'}
       </p>
       <form onSubmit={onSubmit}>
@@ -128,7 +128,7 @@ export function Login({
           setError(null)
         }}
       >
-        {isRegister ? 'Ya tengo cuenta' : 'Tengo invitación'}
+        {isRegister ? 'Ya tengo cuenta' : 'Crear cuenta'}
       </button>
       {error ? <p className="error">{error}</p> : null}
     </div>

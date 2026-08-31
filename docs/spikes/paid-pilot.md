@@ -35,15 +35,14 @@ Notify misión, `/entrevista`, PDF, cola, móvil, logo, Telegram multi, misión�
 
 ## Lista de tareas (técnicas)
 
-Ver [`TODO.md`](../TODO.md). Hecho: allowlist + landing + flag `allowed` + tope LLM por home + Stripe (Checkout + webhooks). Queda: legal.
+Ver [`TODO.md`](../TODO.md). Hecho: flag `allowed` + tope LLM + Stripe (Checkout + webhooks) + registro abierto. Queda: legal.
 
-Env: `PILOT_ALLOWLIST=a@x.com,b@y.com` · opcional `PILOT_ACCESS_EMAIL` · `PILOT_LLM_CAP_USD=0.5`.
+Env: `PILOT_LLM_CAP_USD=0.5`.
 Stripe: `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` + `STRIPE_PRICE_5` / `_10` / `_20`. Vacío = sin paywall.
 Planes públicos: **5 / 10 / 20 € al mes**. 5 € abre; 10 y 20 son más mes. Webhook: `POST https://kore.fly.dev/api/stripe/webhook`.
 
-Fly: `make allowlist EMAILS=…` · `make allowlist-add EMAIL=…` · `make allowlist-show` · `make allowlist-clear`.
 Cortar cuenta: `make account-off EMAIL=…` · reactivar: `make account-on EMAIL=…`.
 
 ## Hecho del piloto (testable)
 
-Invite + Stripe + tope LLM + Gmail usable en una cuenta que no sea Jon.
+Registro + pago + tope LLM + Gmail usable en una cuenta que no sea Jon.

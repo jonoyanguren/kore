@@ -18,8 +18,8 @@ Cerrar ítem → quitarlo de aquí; hito gordo → línea en `milestones.md`.
 
 Spike: [`paid-pilot.md`](./spikes/paid-pilot.md)
 
-1. [x] **Allowlist** — solo emails invitados pueden crear cuenta.
-2. [x] **Landing** — “Pide acceso” en vez de registro abierto.
+1. [x] **Allowlist** — superseded: registro abierto; el pago es el gate.
+2. [x] **Landing** — Entrar / Crear cuenta + tabla 5/10/20.
 3. [x] **Flag en cuenta** — `allowed` (y columna `paid_until` para Stripe). Login/sesión cortan si `allowed=0`. `make account-off/on`.
 4. [x] **Gasto por home** — sumar `llm_spend` del mes (Madrid) por SQLite.
 5. [x] **Tope LLM** — `PILOT_LLM_CAP_USD` (default 0.5; 0 = sin corte). Corta chat, misiones, dream, Gmail draft.

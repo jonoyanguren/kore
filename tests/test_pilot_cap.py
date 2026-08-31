@@ -60,7 +60,6 @@ async def _http_cap() -> None:
         settings.console_secret,
         settings.storage_db_path,
         settings.vault_root,
-        settings.pilot_allowlist,
         settings.pilot_llm_cap_usd,
     )
     with tempfile.TemporaryDirectory() as tmp:
@@ -68,7 +67,6 @@ async def _http_cap() -> None:
         settings.console_secret = "test-console-secret-32chars-xxxx"
         settings.storage_db_path = str(root / "kore.db")
         settings.vault_root = str(root / "vault")
-        settings.pilot_allowlist = "eve@example.com"
         settings.pilot_llm_cap_usd = 0.05
         try:
             accounts = AccountStore(str(root / "accounts.db"))
@@ -117,7 +115,6 @@ async def _http_cap() -> None:
                 settings.console_secret,
                 settings.storage_db_path,
                 settings.vault_root,
-                settings.pilot_allowlist,
                 settings.pilot_llm_cap_usd,
             ) = old
 

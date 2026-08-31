@@ -210,11 +210,10 @@ def test_unknown_event_ignored():
     asyncio.run(_run())
 
 
-async def _http_app(tmp: Path, *, allow: str = "eve@example.com"):
+async def _http_app(tmp: Path):
     settings.console_secret = "test-console-secret-32chars-xxxx"
     settings.storage_db_path = str(tmp / "kore.db")
     settings.vault_root = str(tmp / "vault")
-    settings.pilot_allowlist = allow
     accounts = AccountStore(str(tmp / "accounts.db"))
     await accounts.init()
     homes = Homes(accounts)
@@ -231,7 +230,6 @@ def test_checkout_503_without_stripe():
             settings.console_secret,
             settings.storage_db_path,
             settings.vault_root,
-            settings.pilot_allowlist,
             settings.stripe_secret_key,
             settings.stripe_price_5,
         )
@@ -256,7 +254,6 @@ def test_checkout_503_without_stripe():
                     settings.console_secret,
                     settings.storage_db_path,
                     settings.vault_root,
-                    settings.pilot_allowlist,
                     settings.stripe_secret_key,
                     settings.stripe_price_5,
                 ) = old
@@ -270,7 +267,6 @@ def test_paywall_402_when_stripe_configured():
             settings.console_secret,
             settings.storage_db_path,
             settings.vault_root,
-            settings.pilot_allowlist,
             settings.stripe_secret_key,
             settings.stripe_price_5,
         )
@@ -299,7 +295,6 @@ def test_paywall_402_when_stripe_configured():
                     settings.console_secret,
                     settings.storage_db_path,
                     settings.vault_root,
-                    settings.pilot_allowlist,
                     settings.stripe_secret_key,
                     settings.stripe_price_5,
                 ) = old
@@ -313,7 +308,6 @@ def test_signed_webhook_http():
             settings.console_secret,
             settings.storage_db_path,
             settings.vault_root,
-            settings.pilot_allowlist,
             settings.stripe_secret_key,
             settings.stripe_webhook_secret,
             settings.stripe_price_5,
@@ -381,7 +375,6 @@ def test_signed_webhook_http():
                     settings.console_secret,
                     settings.storage_db_path,
                     settings.vault_root,
-                    settings.pilot_allowlist,
                     settings.stripe_secret_key,
                     settings.stripe_webhook_secret,
                     settings.stripe_price_5,
@@ -396,7 +389,6 @@ def test_public_pilot_lists_three_plans():
             settings.console_secret,
             settings.storage_db_path,
             settings.vault_root,
-            settings.pilot_allowlist,
         )
         with tempfile.TemporaryDirectory() as raw:
             tmp = Path(raw)
@@ -415,7 +407,6 @@ def test_public_pilot_lists_three_plans():
                     settings.console_secret,
                     settings.storage_db_path,
                     settings.vault_root,
-                    settings.pilot_allowlist,
                 ) = old
 
     asyncio.run(_run())
