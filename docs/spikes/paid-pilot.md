@@ -39,7 +39,7 @@ Ver [`TODO.md`](../TODO.md). Hecho: flag `allowed` + tope LLM + Stripe (Checkout
 
 Env: `PILOT_LLM_CAP_USD=0.5`.
 Stripe: `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` + `STRIPE_PRICE_5` / `_10` / `_20`. Vacío = sin paywall.
-Planes públicos: **5 / 10 / 20 € al mes**. 5 € abre; 10 y 20 son más mes. Webhook: `POST https://kore.fly.dev/api/stripe/webhook`.
+Planes públicos: **5 / 10 / 20 € al mes**. 5 € abre; 10 y 20 son más mes. Cada plan lleva un ejemplo de uso diario. Webhook: `POST https://kore.fly.dev/api/stripe/webhook`.
 
 Cortar cuenta: `make account-off EMAIL=…` · reactivar: `make account-on EMAIL=…`.
 

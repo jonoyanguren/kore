@@ -42,8 +42,9 @@ export function Paywall({ user }: Props) {
         <p className="lp-kicker">Precio</p>
         <h2>5 € abre. 10 y 20 son más mes.</h2>
         <p>
-          Hola {user.owner_name || 'tú'}. Elige plan. Stripe avisa a Kore; si
-          tardas un segundo en entrar, espera y recarga.
+          Hola {user.owner_name || 'tú'}. En los tres: Día, correo, chat y
+          misiones. Stripe avisa a Kore; si tardas un segundo en entrar,
+          espera y recarga.
         </p>
         <PricingTable
           cta={(plan) => `Pagar ${plan.eur} €`}

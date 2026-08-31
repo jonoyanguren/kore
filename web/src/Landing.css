@@ -562,7 +562,7 @@ a.lp-btn--ghost:hover {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.85rem;
-  max-width: 52rem;
+  max-width: 56rem;
   margin: 2.15rem auto 0;
   text-align: left;
 }
@@ -617,11 +617,19 @@ a.lp-btn--ghost:hover {
 }
 
 .lp-plan__blurb {
-  margin: 0.45rem 0 1rem;
+  margin: 0.45rem 0 0;
   font-size: 0.98rem;
   font-weight: 400;
   line-height: 1.4;
   color: var(--ink);
+}
+
+.lp-plan__use {
+  margin: 0.4rem 0 1rem;
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--muted);
 }
 
 .lp-plan .lp-btn {

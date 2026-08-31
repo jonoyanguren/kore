@@ -5,6 +5,7 @@ export type Plan = {
   eur: number
   name: string
   blurb: string
+  use: string
   featured: boolean
 }
 
@@ -13,21 +14,24 @@ export const PLANS: Plan[] = [
     id: '5',
     eur: 5,
     name: 'Entrar',
-    blurb: 'Día, correo y companion. El mes contenido.',
+    blurb: 'El mes contenido.',
+    use: 'Uso diario, para el Día, un par de correos y un chat. Una misión, si entra.',
     featured: false,
   },
   {
     id: '10',
     eur: 10,
     name: 'Más',
-    blurb: 'Lo mismo, con más mes por delante.',
+    blurb: 'Lo mismo, con más mes.',
+    use: 'Uso diario, para el Día, correo y chat cada día. Unas pocas misiones.',
     featured: true,
   },
   {
     id: '20',
     eur: 20,
     name: 'Holgado',
-    blurb: 'Por si este mes lanzas de verdad.',
+    blurb: 'Por si este mes aprietas.',
+    use: 'Uso diario, para el Día, correo, chat y varias misiones.',
     featured: false,
   },
 ]
@@ -55,6 +59,7 @@ export function PricingTable({ cta, onPick, busy = null, disabled }: Props) {
             {plan.eur} €<span> / mes</span>
           </p>
           <p className="lp-plan__blurb">{plan.blurb}</p>
+          <p className="lp-plan__use">{plan.use}</p>
           <button
             type="button"
             className={

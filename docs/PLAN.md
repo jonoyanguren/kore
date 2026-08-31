@@ -99,6 +99,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-08-31 | Precios: ejemplo de uso diario en cada plan |
 | 2026-08-31 | Registro abierto: el pago es el gate. Allowlist / «Pide acceso» fuera |
 | 2026-08-31 | Precios piloto: 5 / 10 / 20 € al mes (tabla landing + paywall). Pack suelto fuera |
 | 2026-08-31 | Stripe: Checkout + webhooks (fuente de verdad; firma + idempotencia). 20 € / 10 € |

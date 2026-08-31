@@ -16,7 +16,8 @@ _PLANS: dict[str, dict[str, Any]] = {
         "eur": 5,
         "credit_usd": 1.0,
         "name": "Entrar",
-        "blurb": "Día, correo y companion. El mes contenido.",
+        "blurb": "El mes contenido.",
+        "use": "Uso diario, para el Día, un par de correos y un chat. Una misión, si entra.",
         "featured": False,
     },
     "10": {
@@ -24,7 +25,8 @@ _PLANS: dict[str, dict[str, Any]] = {
         "eur": 10,
         "credit_usd": 2.0,
         "name": "Más",
-        "blurb": "Lo mismo, con más mes por delante.",
+        "blurb": "Lo mismo, con más mes.",
+        "use": "Uso diario, para el Día, correo y chat cada día. Unas pocas misiones.",
         "featured": True,
     },
     "20": {
@@ -32,7 +34,8 @@ _PLANS: dict[str, dict[str, Any]] = {
         "eur": 20,
         "credit_usd": 3.0,
         "name": "Holgado",
-        "blurb": "Por si este mes lanzas de verdad.",
+        "blurb": "Por si este mes aprietas.",
+        "use": "Uso diario, para el Día, correo, chat y varias misiones.",
         "featured": False,
     },
 }

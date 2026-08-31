@@ -145,7 +145,8 @@ export function Landing({ onSuccess }: Props) {
           <p className="lp-kicker">Precio</p>
           <h2>5 € abre. 10 y 20 son más mes.</h2>
           <p>
-            Mismo producto. El plan solo cambia cuánto te dura el mes.
+            En los tres: Día, correo, chat y misiones. El plan cambia
+            cuánto te dura el mes.
           </p>
           <PricingTable
             cta={() => 'Crear cuenta'}

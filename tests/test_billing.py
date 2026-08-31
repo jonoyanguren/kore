@@ -402,6 +402,7 @@ def test_public_pilot_lists_three_plans():
                     assert [p["id"] for p in plans] == ["5", "10", "20"]
                     assert [p["eur"] for p in plans] == [5, 10, 20]
                     assert "credit_usd" not in plans[0]
+                    assert plans[0]["use"].startswith("Uso diario,")
             finally:
                 (
                     settings.console_secret,
