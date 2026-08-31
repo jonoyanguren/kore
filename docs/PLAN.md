@@ -99,7 +99,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
-| 2026-08-31 | Piloto: tope LLM por home (`PILOT_LLM_CAP_USD`) + chip «te queda X de Y» |
+| 2026-08-31 | Tope LLM de prueba: `$0.50`/mes (antes $20) |
 | 2026-08-31 | Piloto: flag `allowed` en cuenta (login/sesión; `make account-off/on`) |
 | 2026-08-30 | Piloto: allowlist + landing «Pide acceso» |
 | 2026-08-30 | **D31** Fase: **cerrar el piloto** (8 tareas técnicas) |
