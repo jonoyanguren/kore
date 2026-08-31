@@ -391,9 +391,16 @@ async def spend_ledger(
 
 
 @router.get("/llm-routing", dependencies=[Depends(require_console_auth)])
-async def llm_routing_endpoint() -> dict[str, Any]:
-    """Daily/strong models + approx prices for the Más drawer."""
-    return {"ok": True, **llm_routing()}
+async def llm_routing_endpoint(request: Request) -> dict[str, Any]:
+    """Daily/strong models + approx prices for the Más drawer (this user's plan)."""
+    user = getattr(request.state, "user", None)
+    return {
+        "ok": True,
+        **llm_routing(
+            plan=None if user is None else user.billing_plan,
+            legacy=bool(user.legacy_prompts) if user is not None else False,
+        ),
+    }
 
 
 class MemoryBody(BaseModel):

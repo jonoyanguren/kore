@@ -152,11 +152,9 @@ def wants_invite_calendar(user_text: str) -> bool:
 
 
 def resolve_model(*, strong: bool = False) -> str:
-    primary = (settings.openrouter_model or "").strip() or "deepseek/deepseek-v4-pro"
-    heavy = (settings.openrouter_model_strong or "").strip()
-    if strong and heavy:
-        return heavy
-    return primary
+    from app.llm.plan_models import chat_model
+
+    return chat_model(strong=strong)
 
 
 def _user_content(

@@ -31,8 +31,6 @@ VALID_QUALITIES = VALID_MODES
 MODEL_NORMAL = "deepseek/deepseek-v4-flash"
 MODEL_PRO = "deepseek/deepseek-v4-pro"
 
-_PRO_MODES = frozenset({MODE_LOCO, MODE_EXPERTO, MODE_DURO})
-
 _TYPICAL_PROMPT_TOKENS = 90_000
 _TYPICAL_COMPLETION_TOKENS = 25_000
 
@@ -297,9 +295,9 @@ def mode_label(raw: str | None) -> str:
 
 
 def resolve_mission_model(quality: str | None) -> str:
-    if normalize_mode(quality) in _PRO_MODES:
-        return MODEL_PRO
-    return MODEL_NORMAL
+    from app.llm.plan_models import mission_model
+
+    return mission_model(quality)
 
 
 def approx_mission_usd(quality: str | None) -> float:

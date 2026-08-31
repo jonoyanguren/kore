@@ -99,6 +99,7 @@ class UserRow:
             legacy_prompts=self.legacy_prompts,
             onboarded=self.onboarded,
             llm_cap_usd=self.llm_cap_usd,
+            billing_plan=self.billing_plan,
         )
 
 

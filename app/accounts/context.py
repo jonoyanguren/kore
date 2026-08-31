@@ -22,6 +22,7 @@ class CompanionProfile:
     legacy_prompts: bool
     onboarded: bool
     llm_cap_usd: float | None = None
+    billing_plan: str | None = None
 
 
 current_memory: ContextVar["MemoryStore | None"] = ContextVar(
