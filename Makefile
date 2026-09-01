@@ -1,4 +1,4 @@
-.PHONY: start back front stop help account-on account-off account-cap account-cap-show
+.PHONY: start back front stop help account-on account-off account-cap account-cap-show openrouter-credits
 
 APP ?= kore
 
@@ -45,6 +45,10 @@ account-cap:
 account-cap-show:
 	fly ssh console -a $(APP) -C "python -m app.accounts.cap show"
 
+# Saldo de la API key OpenRouter (cuenta compartida).
+openrouter-credits:
+	fly ssh console -a $(APP) -C "python -m app.llm.openrouter_credits"
+
 help:
 	@echo "make start           — API + Vite juntos"
 	@echo "make back            — solo FastAPI :8000"
@@ -54,3 +58,4 @@ help:
 	@echo "make account-on EMAIL=a@x.com          — la reactiva"
 	@echo "make account-cap EMAIL=a@x.com USD=0  — tope LLM (0 = sin tope)"
 	@echo "make account-cap-show                 — lista topes en Fly"
+	@echo "make openrouter-credits               — saldo OpenRouter (Fly)"

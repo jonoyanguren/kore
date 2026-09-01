@@ -135,6 +135,7 @@ async def _http_cap() -> None:
                 body = usage.json()["usage"]
                 assert body["blocked"] is True
                 assert body["source"] == "home"
+                assert usage.json().get("provider") is None
 
                 chat = await ac.post("/api/chat", json={"text": "hola"})
                 assert chat.status_code == 402

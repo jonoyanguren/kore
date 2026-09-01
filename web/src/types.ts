@@ -112,5 +112,6 @@ export type MeUser = {
   voice?: VoiceProfile
   onboarded: boolean
   legacy: boolean
+  admin?: boolean
   billing?: BillingInfo
 }

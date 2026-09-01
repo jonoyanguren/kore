@@ -64,6 +64,8 @@ from app.llm.mission_quality import (
     normalize_mode,
     resolve_mission_model,
 )
+from app.accounts.admin import is_admin
+from app.llm.openrouter_credits import fetch_usage
 from app.llm.pilot_cap import require_under_cap, status_for
 from app.llm.llm_routing import llm_routing
 from app.llm.transcribe import MAX_AUDIO_BYTES, transcribe_audio
@@ -311,6 +313,7 @@ def _user_public(user) -> dict[str, Any]:
         "voice": voice.to_dict(),
         "onboarded": user.onboarded,
         "legacy": user.legacy_prompts,
+        "admin": is_admin(user),
         "billing": billing_public(user),
     }
 
@@ -354,10 +357,13 @@ async def update_companion(request: Request, body: CompanionBody) -> dict[str, A
 
 @router.get("/usage", dependencies=[Depends(require_console_auth)])
 async def usage(request: Request, force: bool = False) -> dict[str, Any]:
-    """This home's LLM spend this month vs the pilot cap."""
-    del force  # kept for the old OpenRouter chip querystring
+    """This home's monthly cap. Admin also gets the shared OpenRouter key balance."""
     snap = await status_for(_memory(request))
-    return {"ok": True, "usage": snap.as_usage_dict()}
+    provider = None
+    if is_admin(getattr(request.state, "user", None)):
+        or_snap = await fetch_usage(force=force)
+        provider = None if or_snap is None else or_snap.as_dict()
+    return {"ok": True, "usage": snap.as_usage_dict(), "provider": provider}
 
 
 @router.get("/spend", dependencies=[Depends(require_console_auth)])

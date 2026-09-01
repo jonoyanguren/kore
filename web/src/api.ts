@@ -104,7 +104,7 @@ export async function apiLogout(): Promise<void> {
 export type UsageInfo = {
   usage_usd: number
   total_usd: number
-  remaining_usd: number
+  remaining_usd: number | null
   pct_used: number
   remaining_pct?: number
   source: string
@@ -112,13 +112,25 @@ export type UsageInfo = {
   blocked?: boolean
   day_from?: string
   day_to?: string
+  usage_monthly_usd?: number
+  limit_reset?: string | null
 }
 
-export async function apiUsage(force = false): Promise<UsageInfo | null> {
+export async function apiUsage(force = false): Promise<{
+  usage: UsageInfo | null
+  provider: UsageInfo | null
+}> {
   const qs = force ? '?force=true' : ''
-  const r = await req<{ ok: boolean; usage: UsageInfo | null }>(`/api/usage${qs}`)
-  if (!r.ok || !r.data.ok || !r.data.usage) return null
-  return r.data.usage
+  const r = await req<{
+    ok: boolean
+    usage: UsageInfo | null
+    provider?: UsageInfo | null
+  }>(`/api/usage${qs}`)
+  if (!r.ok || !r.data.ok) return { usage: null, provider: null }
+  return {
+    usage: r.data.usage ?? null,
+    provider: r.data.provider ?? null,
+  }
 }
 
 export async function apiBillingCheckout(

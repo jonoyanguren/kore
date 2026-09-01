@@ -422,6 +422,12 @@ button.ghost:hover {
   min-width: 0;
 }
 
+.console__usage-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
 .console__usage-label {
   color: var(--muted);
   font-weight: 500;

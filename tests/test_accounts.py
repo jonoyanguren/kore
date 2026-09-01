@@ -174,6 +174,7 @@ async def _bootstrap_legacy():
                 )
                 assert login.status_code == 200
                 assert login.json()["user"]["legacy"] is True
+                assert login.json()["user"]["admin"] is True
                 tasks = await ac.get("/api/tasks", params={"status": "open"})
                 titles = [t["title"] for t in tasks.json()["tasks"]]
                 assert "tarea legacy" in titles
