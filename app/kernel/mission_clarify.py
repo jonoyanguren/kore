@@ -52,8 +52,9 @@ Preguntas:
 - Huecos típicos: para qué / decisión; presupuesto o rango; zona o ámbito;
   plazo; qué ya investigó; fuentes que fía o evita; formato (tabla, comparativa,
   veredicto); criterio de éxito; qué NO hacer.
-- Si hay 2–6 respuestas típicas (sí/no, rangos, formatos, prioridad, zona genérica),
-  PON "choices" cortas (≤6 palabras, máx. 6). allow_other=true salvo sí/no estricto.
+- Si hay 2–6 respuestas típicas (sí/no, rangos, formatos, países, prioridad),
+  PON "choices" cortas (≤6 palabras, máx. 6). El usuario puede marcar VARIAS
+  (multi), salvo sí/no estricto. allow_other=true salvo sí/no.
 - Pregunta abierta (nombre, historia, URL, “explica”) → "choices": [].
 """
 

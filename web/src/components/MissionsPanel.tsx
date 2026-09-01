@@ -90,11 +90,18 @@ function formatMissionCost(cost: MissionCostInfo): string {
   return cost.estimated ? `~${text}` : text
 }
 
-function composeAnswer(choice: string, extra: string): string {
-  const c = choice.trim()
+function composeAnswer(choices: string[], extra: string): string {
+  const tags = choices.map((c) => c.trim()).filter(Boolean)
   const e = extra.trim()
-  if (c && e) return `${c}. ${e}`
-  return c || e
+  if (tags.length && e) return `${tags.join(', ')}. ${e}`
+  if (tags.length) return tags.join(', ')
+  return e
+}
+
+function isExclusiveChoices(choices: string[]): boolean {
+  if (choices.length !== 2) return false
+  const n = new Set(choices.map((c) => c.trim().toLowerCase()))
+  return (n.has('sí') || n.has('si')) && n.has('no')
 }
 
 function missionListCost(m: Mission): string | null {
@@ -159,7 +166,7 @@ export function MissionsPanel({ active = true }: Props) {
   const [phase, setPhase] = useState<FormPhase>('draft')
   const [questions, setQuestions] = useState<ClarifyQuestion[]>([])
   const [answers, setAnswers] = useState<string[]>([])
-  const [picked, setPicked] = useState<string[]>([])
+  const [picked, setPicked] = useState<string[][]>([])
   const [history, setHistory] = useState<ClarifyHistoryItem[]>([])
   const [round, setRound] = useState(1)
   const [refinedBrief, setRefinedBrief] = useState('')
@@ -303,7 +310,7 @@ export function MissionsPanel({ active = true }: Props) {
     setPhase('questions')
     setQuestions(result.questions)
     setAnswers(result.questions.map(() => ''))
-    setPicked(result.questions.map(() => ''))
+    setPicked(result.questions.map(() => []))
   }
 
   async function onContinue(e: FormEvent) {
@@ -326,7 +333,7 @@ export function MissionsPanel({ active = true }: Props) {
     try {
       const turns: ClarifyHistoryItem[] = questions.map((q, i) => ({
         question: q.prompt,
-        answer: composeAnswer(picked[i] || '', answers[i] || ''),
+        answer: composeAnswer(picked[i] || [], answers[i] || ''),
       }))
       const nextHistory = [...history, ...turns]
       setHistory(nextHistory)
@@ -575,7 +582,7 @@ export function MissionsPanel({ active = true }: Props) {
                   {questions.length === 1 ? '' : 's'} para afinar el encargo
                 </h3>
                 <p className="muted missions__form-hint">
-                  Clic o escribe. Vacío = no aplica.
+                  Puedes marcar varias. Vacío = no aplica.
                 </p>
                 {modeField('pills')}
                 {history.length > 0 ? (
@@ -604,7 +611,9 @@ export function MissionsPanel({ active = true }: Props) {
                           aria-label={q.prompt}
                         >
                           {q.choices.map((c) => {
-                            const on = (picked[i] || '') === c
+                            const row = picked[i] || []
+                            const exclusive = isExclusiveChoices(q.choices)
+                            const on = row.includes(c)
                             return (
                               <button
                                 key={c}
@@ -616,8 +625,16 @@ export function MissionsPanel({ active = true }: Props) {
                                 aria-pressed={on}
                                 onClick={() => {
                                   setPicked((prev) => {
-                                    const next = [...prev]
-                                    next[i] = on ? '' : c
+                                    const next = prev.map((r) => [...r])
+                                    while (next.length <= i) next.push([])
+                                    const cur = next[i] || []
+                                    if (exclusive) {
+                                      next[i] = on ? [] : [c]
+                                    } else if (on) {
+                                      next[i] = cur.filter((x) => x !== c)
+                                    } else {
+                                      next[i] = [...cur, c]
+                                    }
                                     return next
                                   })
                                 }}
