@@ -101,7 +101,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
-| 2026-09-01 | **D33** Misiones: Rápido / A fondo (el picker de 4 modos no se entendía; Resultado más denso) |
+| 2026-09-01 | Intake de misión: el brief lanza con todas las respuestas; preguntas con clic + texto |
 | 2026-08-31 | Precios: ejemplo de uso diario en cada plan |
 | 2026-08-31 | Registro abierto: el pago es el gate. Allowlist / «Pide acceso» fuera |
 | 2026-08-31 | Precios piloto: 5 / 10 / 20 € al mes (tabla landing + paywall). Pack suelto fuera |

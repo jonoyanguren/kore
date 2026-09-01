@@ -3352,6 +3352,36 @@ a.more-drawer__btn {
 
 .missions__q {
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.missions__q-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.missions__q-choice {
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.32rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink, #15202b);
+  cursor: pointer;
+}
+
+.missions__q-choice:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--ink) 28%, var(--line));
+}
+
+.missions__q-choice.is-on {
+  border-color: color-mix(in srgb, var(--ink) 40%, var(--line));
+  background: rgba(21, 32, 43, 0.08);
+  font-weight: 600;
 }
 
 .missions__q label {
@@ -3398,6 +3428,10 @@ a.more-drawer__btn {
 .missions__form textarea {
   min-height: 4.5rem;
   resize: vertical;
+}
+
+.missions__q textarea {
+  min-height: 2.8rem;
 }
 
 .missions__form-hint {

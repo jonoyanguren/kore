@@ -661,7 +661,7 @@ async def delete_task(request: Request, task_id: int) -> dict[str, Any]:
 
 class CreateMissionBody(BaseModel):
     title: str = Field(min_length=1, max_length=200)
-    brief: str = Field(default="", max_length=8000)
+    brief: str = Field(default="", max_length=50_000)
     launch: bool = True
     tick_seconds: int = Field(default=10, ge=5, le=3600)
     quality: str = Field(default="normal", max_length=20)
@@ -673,14 +673,14 @@ class CreateMissionBody(BaseModel):
 
 class ClarifyHistoryItem(BaseModel):
     question: str = Field(default="", max_length=500)
-    answer: str = Field(default="", max_length=2000)
+    answer: str = Field(default="", max_length=8000)
 
 
 class ClarifyMissionBody(BaseModel):
     title: str = Field(min_length=1, max_length=200)
-    brief: str = Field(default="", max_length=8000)
+    brief: str = Field(default="", max_length=50_000)
     history: list[ClarifyHistoryItem] = Field(default_factory=list)
-    round: int = Field(default=1, ge=1, le=2)
+    round: int = Field(default=1, ge=1, le=3)
     quality: str = Field(default="normal", max_length=20)
     mode: str | None = Field(default=None, max_length=20)
 
@@ -833,7 +833,7 @@ async def clarify_mission_endpoint(
     return {
         "ok": True,
         "ready": result.ready,
-        "questions": result.questions,
+        "questions": [q.to_dict() for q in result.questions],
         "refined_brief": result.refined_brief,
         "round": result.round,
         "rounds_left": result.rounds_left,

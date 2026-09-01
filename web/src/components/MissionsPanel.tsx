@@ -11,6 +11,7 @@ import {
   isLlmCapError,
   LLM_CAP_COPY,
   type ClarifyHistoryItem,
+  type ClarifyQuestion,
 } from '../api'
 import { cleanCopiedText, copyToClipboard } from '../lib/clipboard'
 import { renderMissionMarkdown } from '../lib/missionMarkdown'
@@ -88,6 +89,13 @@ function formatMissionCost(cost: MissionCostInfo): string {
   return cost.estimated ? `~${text}` : text
 }
 
+function composeAnswer(choice: string, extra: string): string {
+  const c = choice.trim()
+  const e = extra.trim()
+  if (c && e) return `${c}. ${e}`
+  return c || e
+}
+
 function missionListCost(m: Mission): string | null {
   const cost = m.plan?.cost
   if (!cost || cost.usd <= 0) return null
@@ -148,8 +156,9 @@ export function MissionsPanel({ active = true }: Props) {
   const [title, setTitle] = useState('')
   const [brief, setBrief] = useState('')
   const [phase, setPhase] = useState<FormPhase>('draft')
-  const [questions, setQuestions] = useState<string[]>([])
+  const [questions, setQuestions] = useState<ClarifyQuestion[]>([])
   const [answers, setAnswers] = useState<string[]>([])
+  const [picked, setPicked] = useState<string[]>([])
   const [history, setHistory] = useState<ClarifyHistoryItem[]>([])
   const [round, setRound] = useState(1)
   const [refinedBrief, setRefinedBrief] = useState('')
@@ -176,6 +185,7 @@ export function MissionsPanel({ active = true }: Props) {
     setPhase('draft')
     setQuestions([])
     setAnswers([])
+    setPicked([])
     setHistory([])
     setRound(1)
     setRefinedBrief('')
@@ -279,11 +289,13 @@ export function MissionsPanel({ active = true }: Props) {
       setPhase('ready')
       setQuestions([])
       setAnswers([])
+      setPicked([])
       return
     }
     setPhase('questions')
     setQuestions(result.questions)
     setAnswers(result.questions.map(() => ''))
+    setPicked(result.questions.map(() => ''))
   }
 
   async function onContinue(e: FormEvent) {
@@ -305,8 +317,8 @@ export function MissionsPanel({ active = true }: Props) {
     setBusy(true)
     try {
       const turns: ClarifyHistoryItem[] = questions.map((q, i) => ({
-        question: q,
-        answer: (answers[i] || '').trim(),
+        question: q.prompt,
+        answer: composeAnswer(picked[i] || '', answers[i] || ''),
       }))
       const nextHistory = [...history, ...turns]
       setHistory(nextHistory)
@@ -555,7 +567,7 @@ export function MissionsPanel({ active = true }: Props) {
                   {questions.length === 1 ? '' : 's'} para afinar el encargo
                 </h3>
                 <p className="muted missions__form-hint">
-                  Vacío = no aplica. Cuanto más concreto, mejor el resultado.
+                  Clic o escribe. Vacío = no aplica.
                 </p>
                 {modeField('pills')}
                 {history.length > 0 ? (
@@ -575,19 +587,56 @@ export function MissionsPanel({ active = true }: Props) {
                         <span className="missions__q-n">
                           {String(i + 1).padStart(2, '0')}
                         </span>
-                        <span className="missions__q-text">{q}</span>
-                        <textarea
-                          value={answers[i] ?? ''}
-                          onChange={(e) => {
-                            const next = [...answers]
-                            next[i] = e.target.value
-                            setAnswers(next)
-                          }}
-                          rows={3}
-                          disabled={busy}
-                          placeholder="Tu respuesta"
-                        />
+                        <span className="missions__q-text">{q.prompt}</span>
                       </label>
+                      {q.choices.length > 0 ? (
+                        <div
+                          className="missions__q-choices"
+                          role="group"
+                          aria-label={q.prompt}
+                        >
+                          {q.choices.map((c) => {
+                            const on = (picked[i] || '') === c
+                            return (
+                              <button
+                                key={c}
+                                type="button"
+                                className={
+                                  'missions__q-choice' + (on ? ' is-on' : '')
+                                }
+                                disabled={busy}
+                                aria-pressed={on}
+                                onClick={() => {
+                                  setPicked((prev) => {
+                                    const next = [...prev]
+                                    next[i] = on ? '' : c
+                                    return next
+                                  })
+                                }}
+                              >
+                                {c}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      ) : null}
+                      <textarea
+                        value={answers[i] ?? ''}
+                        onChange={(e) => {
+                          const next = [...answers]
+                          next[i] = e.target.value
+                          setAnswers(next)
+                        }}
+                        rows={q.choices.length > 0 ? 2 : 3}
+                        disabled={busy}
+                        placeholder={
+                          q.choices.length > 0
+                            ? q.allow_other
+                              ? 'Detalle u otra respuesta'
+                              : 'Detalle (opcional)'
+                            : 'Tu respuesta'
+                        }
+                      />
                     </li>
                   ))}
                 </ol>
@@ -611,8 +660,11 @@ export function MissionsPanel({ active = true }: Props) {
               <form onSubmit={(e) => void onLaunch(e)}>
                 <p className="missions__clarify-kicker">Brief</p>
                 <h3 className="missions__clarify-lede">
-                  Listo para lanzar. Edita si hace falta.
+                  Listo para lanzar. Revisa que esté todo.
                 </h3>
+                <p className="muted missions__form-hint">
+                  El encargo incluye todas las respuestas. Recorta solo si sobra.
+                </p>
                 <label>
                   Título
                   <input value={title} disabled readOnly />
@@ -622,7 +674,7 @@ export function MissionsPanel({ active = true }: Props) {
                   <textarea
                     value={refinedBrief}
                     onChange={(e) => setRefinedBrief(e.target.value)}
-                    rows={6}
+                    rows={16}
                     disabled={busy}
                   />
                 </label>
@@ -642,6 +694,7 @@ export function MissionsPanel({ active = true }: Props) {
                       setPhase('draft')
                       setQuestions([])
                       setAnswers([])
+                      setPicked([])
                       setHistory([])
                       setRound(1)
                     }}

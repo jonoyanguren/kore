@@ -704,12 +704,52 @@ export async function apiCreateMission(input: {
 
 export type ClarifyHistoryItem = { question: string; answer: string }
 
+export type ClarifyQuestion = {
+  prompt: string
+  choices: string[]
+  allow_other: boolean
+}
+
 export type ClarifyResult = {
   ready: boolean
-  questions: string[]
+  questions: ClarifyQuestion[]
   refined_brief: string
   round: number
   rounds_left: number
+}
+
+export function asClarifyQuestion(raw: unknown): ClarifyQuestion | null {
+  if (typeof raw === 'string') {
+    const prompt = raw.trim()
+    return prompt ? { prompt, choices: [], allow_other: true } : null
+  }
+  if (!raw || typeof raw !== 'object') return null
+  const o = raw as {
+    prompt?: unknown
+    question?: unknown
+    text?: unknown
+    choices?: unknown
+    options?: unknown
+    allow_other?: unknown
+  }
+  const prompt = String(o.prompt ?? o.question ?? o.text ?? '').trim()
+  if (!prompt) return null
+  const rawChoices = Array.isArray(o.choices)
+    ? o.choices
+    : Array.isArray(o.options)
+      ? o.options
+      : []
+  const choices: string[] = []
+  for (const item of rawChoices) {
+    const t = String(item).trim()
+    if (t && !choices.includes(t)) choices.push(t)
+    if (choices.length >= 6) break
+  }
+  return {
+    prompt,
+    choices,
+    allow_other: o.allow_other === undefined ? true : Boolean(o.allow_other),
+  }
 }
 
 export async function apiClarifyMission(input: {
@@ -723,7 +763,7 @@ export async function apiClarifyMission(input: {
   const r = await req<{
     ok: boolean
     ready: boolean
-    questions: string[]
+    questions: unknown[]
     refined_brief: string
     round: number
     rounds_left: number
@@ -737,7 +777,9 @@ export async function apiClarifyMission(input: {
   }
   return {
     ready: !!r.data.ready,
-    questions: r.data.questions ?? [],
+    questions: (r.data.questions ?? [])
+      .map(asClarifyQuestion)
+      .filter((q): q is ClarifyQuestion => q != null),
     refined_brief: r.data.refined_brief ?? '',
     round: r.data.round,
     rounds_left: r.data.rounds_left,
