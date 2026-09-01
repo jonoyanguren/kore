@@ -101,6 +101,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-09-01 | Tope LLM: owner (`legacy_prompts`) sin corte; `make account-cap EMAIL=… USD=0` |
 | 2026-09-01 | Skill companion **champion-pool** (`/pool`): marco Pochi/iTero para armar la pool |
 | 2026-08-31 | Precios: ejemplo de uso diario en cada plan |
 | 2026-08-31 | Registro abierto: el pago es el gate. Allowlist / «Pide acceso» fuera |

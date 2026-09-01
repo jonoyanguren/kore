@@ -136,6 +136,87 @@ def test_plan_20_and_renewal_keeps_that_cap():
     asyncio.run(_run())
 
 
+def test_operator_zero_cap_survives_renewal():
+    async def _run() -> None:
+        accounts, user, tmp = await _store()
+        try:
+            await accounts.set_llm_cap(user.email, 0.0)
+            await apply_event(
+                accounts,
+                _evt(
+                    "evt_keep_zero",
+                    "checkout.session.completed",
+                    {
+                        "mode": "subscription",
+                        "customer": "cus_z",
+                        "subscription": "sub_z",
+                        "metadata": {"user_id": str(user.id), "plan": "20"},
+                    },
+                ),
+            )
+            got = await accounts.get_user(user.id)
+            assert got is not None
+            assert got.llm_cap_usd == 0.0
+            assert got.billing_plan == "20"
+            assert got.billing_status == "active"
+
+            await apply_event(
+                accounts,
+                _evt(
+                    "evt_keep_zero_inv",
+                    "invoice.paid",
+                    {
+                        "customer": "cus_z",
+                        "subscription": "sub_z",
+                        "billing_reason": "subscription_cycle",
+                        "period_end": 1893456000,
+                    },
+                ),
+            )
+            renewed = await accounts.get_user(user.id)
+            assert renewed is not None
+            assert renewed.llm_cap_usd == 0.0
+        finally:
+            tmp.cleanup()
+
+    asyncio.run(_run())
+
+
+def test_legacy_user_checkout_stays_unlimited():
+    async def _run() -> None:
+        tmp = tempfile.TemporaryDirectory()
+        try:
+            accounts = AccountStore(str(Path(tmp.name) / "accounts.db"))
+            await accounts.init()
+            user = await accounts.create_user(
+                email="jon@kore.local",
+                password="password1",
+                owner_name="Jon",
+                legacy_prompts=True,
+            )
+            await apply_event(
+                accounts,
+                _evt(
+                    "evt_legacy_sub",
+                    "checkout.session.completed",
+                    {
+                        "mode": "subscription",
+                        "customer": "cus_l",
+                        "subscription": "sub_l",
+                        "metadata": {"user_id": str(user.id), "plan": "10"},
+                    },
+                ),
+            )
+            got = await accounts.get_user(user.id)
+            assert got is not None
+            assert got.llm_cap_usd == 0.0
+            assert got.billing_plan == "10"
+        finally:
+            tmp.cleanup()
+
+    asyncio.run(_run())
+
+
 def test_payment_failed_keeps_access_until_deleted():
     async def _run() -> None:
         old = (settings.stripe_secret_key, settings.stripe_price_5)

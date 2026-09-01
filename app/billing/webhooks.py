@@ -78,6 +78,15 @@ def _period_end_iso(obj: dict[str, Any]) -> str | None:
         return None
 
 
+def _llm_cap_for(user: UserRow, plan_id: str) -> float:
+    """Keep operator-set unlimited (0) and owner accounts; else plan credit."""
+    if user.legacy_prompts:
+        return 0.0
+    if user.llm_cap_usd is not None and float(user.llm_cap_usd) <= 0:
+        return 0.0
+    return credit_usd(plan_id)
+
+
 def _map_sub_status(status: str) -> str:
     s = (status or "").strip().lower()
     if s in ("active", "trialing"):
@@ -135,7 +144,7 @@ async def _activate_sub(
         stripe_subscription_id=subscription_id or user.stripe_subscription_id,
         billing_status="active",
         billing_plan=plan_id,
-        llm_cap_usd=credit_usd(plan_id),
+        llm_cap_usd=_llm_cap_for(user, plan_id),
         paid_until=paid_until or user.paid_until,
     )
 
@@ -206,7 +215,7 @@ async def _on_invoice_paid(accounts: AccountStore, obj: dict[str, Any]) -> str:
             stripe_subscription_id=sub_id or user.stripe_subscription_id,
             billing_status="active",
             billing_plan=plan_id,
-            llm_cap_usd=credit_usd(plan_id),
+            llm_cap_usd=_llm_cap_for(user, plan_id),
             paid_until=paid_until,
         )
         return "ok"

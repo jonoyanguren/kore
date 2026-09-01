@@ -9,6 +9,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
+from app.accounts.context import CompanionProfile, current_profile
 from app.accounts.homes import Homes
 from app.accounts.store import AccountStore
 from app.config import settings
@@ -53,6 +54,44 @@ def test_status_unlimited_and_blocked():
 
     asyncio.run(_run())
     assert cap_usd() >= 0
+
+
+def test_legacy_profile_is_unlimited_even_with_plan_cap():
+    token = current_profile.set(
+        CompanionProfile(
+            user_id=1,
+            email="jon@kore.local",
+            owner_name="Jon",
+            companion_name="Jone",
+            companion_tone="",
+            legacy_prompts=True,
+            onboarded=True,
+            llm_cap_usd=3.0,
+        )
+    )
+    try:
+        assert cap_usd() == 0.0
+    finally:
+        current_profile.reset(token)
+
+
+def test_per_user_zero_is_unlimited():
+    token = current_profile.set(
+        CompanionProfile(
+            user_id=2,
+            email="ana@example.com",
+            owner_name="Ana",
+            companion_name="Jone",
+            companion_tone="",
+            legacy_prompts=False,
+            onboarded=True,
+            llm_cap_usd=0.0,
+        )
+    )
+    try:
+        assert cap_usd() == 0.0
+    finally:
+        current_profile.reset(token)
 
 
 async def _http_cap() -> None:

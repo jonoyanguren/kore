@@ -63,7 +63,13 @@ def next_month_iso() -> str:
 
 
 def cap_usd() -> float:
+    """Monthly USD cap. 0 = unlimited.
+
+    Order: owner (legacy_prompts) → per-user llm_cap_usd → PILOT_LLM_CAP_USD.
+    """
     profile = current_profile.get()
+    if profile is not None and profile.legacy_prompts:
+        return 0.0
     if profile is not None and profile.llm_cap_usd is not None:
         return max(0.0, float(profile.llm_cap_usd))
     return max(0.0, float(settings.pilot_llm_cap_usd or 0.0))

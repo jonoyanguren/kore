@@ -1,4 +1,4 @@
-.PHONY: start back front stop help account-on account-off
+.PHONY: start back front stop help account-on account-off account-cap account-cap-show
 
 APP ?= kore
 
@@ -34,6 +34,17 @@ account-on:
 	@test -n "$(EMAIL)" || { echo "uso: make account-on EMAIL=a@x.com" >&2; exit 1; }
 	fly ssh console -a $(APP) -C "python -m app.accounts.flag on $(EMAIL)"
 
+# Tope LLM/mes (USD). 0 = sin tope. Stripe no lo pisa.
+#   make account-cap EMAIL=jon@x.com USD=0
+#   make account-cap-show
+account-cap:
+	@test -n "$(EMAIL)" || { echo "uso: make account-cap EMAIL=a@x.com USD=0" >&2; exit 1; }
+	@test -n "$(USD)" || { echo "uso: make account-cap EMAIL=a@x.com USD=0" >&2; exit 1; }
+	fly ssh console -a $(APP) -C "python -m app.accounts.cap set $(EMAIL) $(USD)"
+
+account-cap-show:
+	fly ssh console -a $(APP) -C "python -m app.accounts.cap show"
+
 help:
 	@echo "make start           — API + Vite juntos"
 	@echo "make back            — solo FastAPI :8000"
@@ -41,3 +52,5 @@ help:
 	@echo "make stop            — mata puertos 8000/5173"
 	@echo "make account-off EMAIL=a@x.com         — corta esa cuenta (Fly)"
 	@echo "make account-on EMAIL=a@x.com          — la reactiva"
+	@echo "make account-cap EMAIL=a@x.com USD=0  — tope LLM (0 = sin tope)"
+	@echo "make account-cap-show                 — lista topes en Fly"

@@ -340,6 +340,19 @@ class AccountStore:
             await db.commit()
         return await self.get_user(user.id)
 
+    async def set_llm_cap(self, email: str, cap_usd: float) -> UserRow | None:
+        """0 = unlimited. Survives Stripe renewals."""
+        user = await self.get_by_email(email)
+        if user is None:
+            return None
+        return await self.apply_billing(user.id, llm_cap_usd=float(cap_usd))
+
+    async def list_users(self) -> list[UserRow]:
+        async with aiosqlite.connect(self._db_path) as db:
+            cur = await db.execute(f"SELECT {self._COLS} FROM users ORDER BY id")
+            rows = await cur.fetchall()
+            return [self._row(r) for r in rows]
+
     async def get_by_stripe_customer_id(self, customer_id: str) -> UserRow | None:
         cid = (customer_id or "").strip()
         if not cid:
