@@ -21,6 +21,7 @@ def test_skills_load_and_catalog():
     assert names == {
         "brainstorm",
         "capture",
+        "champion-pool",
         "dream",
         "entrevista",
         "execute",
@@ -55,6 +56,9 @@ def test_command_router_builtins_and_skills():
     assert router.match("/interview presupuesto").args == "presupuesto"
     assert router.match("/tono").skill.name == "tono"
     assert router.match("/voice").skill.name == "tono"
+    assert router.match("/pool").skill.name == "champion-pool"
+    assert router.match("/championpool jungle").skill.name == "champion-pool"
+    assert router.match("/championpool jungle").args == "jungle"
     from app.kernel.command_router import skill_ask_text
 
     tono = router.match("/tono")
