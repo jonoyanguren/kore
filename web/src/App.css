@@ -1380,6 +1380,17 @@ a.day-cal__ev-title--link:hover {
   background: rgba(255, 255, 255, 0.35);
 }
 
+.chat__count {
+  grid-column: 1 / -1;
+  margin: -0.15rem 0 0;
+  font-size: 0.75rem;
+  color: var(--muted, rgba(21, 32, 43, 0.55));
+}
+
+.chat__count.is-over {
+  color: #c53030;
+}
+
 .chat__form--rec {
   background: rgba(197, 48, 48, 0.06);
   border-top-color: rgba(197, 48, 48, 0.25);

@@ -946,8 +946,12 @@ async def ask_mission_endpoint(
     return {"ok": True, "reply": reply, "asks": asks}
 
 
+# Paste a long document into chat. Keep web/src/api.ts CHAT_TEXT_MAX in sync.
+CHAT_TEXT_MAX = 100_000
+
+
 class ChatBody(BaseModel):
-    text: str = Field(min_length=1, max_length=8000)
+    text: str = Field(min_length=1, max_length=CHAT_TEXT_MAX)
 
 
 @router.get("/day", dependencies=[Depends(require_console_auth)])

@@ -152,6 +152,21 @@ export function isLlmCapError(err: unknown, status?: number): boolean {
   return s.includes('llm_cap') || s.includes('chat 402') || s.includes('402')
 }
 
+/** Keep in sync with app/web/api.py CHAT_TEXT_MAX */
+export const CHAT_TEXT_MAX = 100_000
+
+export const TEXT_TOO_LONG_COPY = `Este texto es demasiado largo para el chat (máx. ${CHAT_TEXT_MAX.toLocaleString('es-ES')} caracteres).`
+
+export function isTextTooLongError(err: unknown, status?: number): boolean {
+  if (status === 422) return true
+  const s = String(err)
+  return (
+    s.includes('text_too_long') ||
+    s.includes('chat 422') ||
+    s.includes('string_too_long')
+  )
+}
+
 export type SpendEvent = {
   id: number
   day: string
@@ -882,6 +897,7 @@ export async function apiChat(text: string): Promise<ChatResult> {
     })
     if (!r.ok) {
       if (r.status === 402) throw new Error('llm_cap')
+      if (r.status === 422) throw new Error('text_too_long')
       throw new Error(`chat ${r.status}`)
     }
     return {
@@ -917,6 +933,8 @@ export async function apiChatLive(
       signal: controller.signal,
     })
     if (!res.ok || !res.body) {
+      if (res.status === 402) throw new Error('llm_cap')
+      if (res.status === 422) throw new Error('text_too_long')
       return apiChat(text)
     }
     const reader = res.body.getReader()

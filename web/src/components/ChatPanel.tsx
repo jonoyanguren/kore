@@ -13,8 +13,11 @@ import {
   apiListMessages,
   apiPatchTask,
   apiTranscribe,
+  CHAT_TEXT_MAX,
   isLlmCapError,
+  isTextTooLongError,
   LLM_CAP_COPY,
+  TEXT_TOO_LONG_COPY,
   type ChatMessage,
 } from '../api'
 import { formatRelativeEs } from '../relativeTime'
@@ -287,6 +290,11 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   async function sendText(raw: string) {
     const t = raw.trim()
     if (!t || busyRef.current) return
+    if (t.length > CHAT_TEXT_MAX) {
+      setError(TEXT_TOO_LONG_COPY)
+      toast.err(TEXT_TOO_LONG_COPY)
+      return
+    }
     setText('')
     setBusy(true)
     stickBottomRef.current = true
@@ -362,16 +370,30 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       })
     } catch (err) {
       setThinking(null)
+      const tooLong = isTextTooLongError(err)
       const msg = isLlmCapError(err)
         ? LLM_CAP_COPY
-        : String(err)
+        : tooLong
+          ? TEXT_TOO_LONG_COPY
+          : String(err)
+      if (tooLong) setText(t)
       setError(msg)
-      toast.err(msg.includes('abort') ? 'El modelo tardó demasiado' : msg)
+      toast.err(
+        msg.includes('abort')
+          ? 'El modelo tardó demasiado'
+          : tooLong
+            ? TEXT_TOO_LONG_COPY
+            : msg,
+      )
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content: isLlmCapError(err) ? LLM_CAP_COPY : '(error al responder)',
+          content: isLlmCapError(err)
+            ? LLM_CAP_COPY
+            : tooLong
+              ? TEXT_TOO_LONG_COPY
+              : '(error al responder)',
           tasks: [],
         },
       ])
@@ -617,6 +639,14 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
             }}
           />
         )}
+        {text.length > 4000 ? (
+          <p
+            className={`chat__count${text.length > CHAT_TEXT_MAX ? ' is-over' : ''}`}
+          >
+            {text.length.toLocaleString('es-ES')} /{' '}
+            {CHAT_TEXT_MAX.toLocaleString('es-ES')}
+          </p>
+        ) : null}
         <div className="chat__actions">
           <button
             type="button"
@@ -634,7 +664,15 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           >
             {mic === 'recording' ? 'Stop' : mic === 'transcribing' ? '…' : 'Mic'}
           </button>
-          <button type="submit" disabled={busy || mic !== 'idle' || !text.trim()}>
+          <button
+            type="submit"
+            disabled={
+              busy ||
+              mic !== 'idle' ||
+              !text.trim() ||
+              text.length > CHAT_TEXT_MAX
+            }
+          >
             Enviar
           </button>
         </div>
