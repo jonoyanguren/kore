@@ -37,21 +37,14 @@ Responde SOLO con JSON válido (sin markdown):
   "refined_brief": "…"
 }
 
-refined_brief: siempre. NO es un resumen de una línea.
-Es el encargo de trabajo COMPLETO. Incluye cada dato concreto de título,
-encargo original y respuestas (nombres, cifras, sitios, no-gos, formato).
-Estructura en markdown con secciones: Objetivo · Restricciones · Alcance ·
-Formato · Datos. Prohibido comprimir media hora de intake a un párrafo.
-Si hay 8 respuestas, las 8 tienen que estar. No inventes.
+Ronda 1: ready=false SIEMPRE. 5–8 preguntas. refined_brief = "".
+No des por listo un título o un párrafo vago.
 
-ready=true SOLO si el brief ya cubre, de forma usable:
-- qué decisión o entregable se espera
-- restricciones (dinero, sitio, plazo, must / must-not)
-- alcance (qué entra y qué no)
-- formato / profundidad
-- qué ya sabe o no quiere repetir
-
-Si falta más de uno de esos, ready=false.
+Ronda 2: ready=true si ya se puede investigar. Si faltan huecos críticos, 1–4
+preguntas y ready=false. refined_brief completo SOLO si ready=true:
+encargo de trabajo con cada dato (nombres, cifras, sitios, no-gos, formato).
+Markdown: Objetivo · Restricciones · Alcance · Formato · Datos.
+Si hay respuestas de intake, las todas. No inventes. No comprimas a un párrafo.
 
 Preguntas:
 - Una idea por pregunta. Cortas, en español, concretas.
@@ -62,8 +55,6 @@ Preguntas:
 - Si hay 2–6 respuestas típicas (sí/no, rangos, formatos, prioridad, zona genérica),
   PON "choices" cortas (≤6 palabras, máx. 6). allow_other=true salvo sí/no estricto.
 - Pregunta abierta (nombre, historia, URL, “explica”) → "choices": [].
-- Ronda 1: 5–8 preguntas. No marques ready=true con un encargo vago.
-- Ronda 2: 0–4 preguntas solo de huecos críticos. Si ya se puede trabajar, ready=true.
 """
 
 
@@ -79,6 +70,50 @@ class ClarifyQuestion:
             "choices": list(self.choices),
             "allow_other": self.allow_other,
         }
+
+
+FALLBACK_ROUND_1: tuple[ClarifyQuestion, ...] = (
+    ClarifyQuestion(
+        "¿Qué decisión o entregable esperas al terminar?",
+        ["un veredicto", "comparar opciones", "un plan de acción"],
+        True,
+    ),
+    ClarifyQuestion(
+        "¿Hay presupuesto, plazo o límites duros?",
+        ["sí, te los cuento", "sin tope claro", "lo importante es acertar"],
+        True,
+    ),
+    ClarifyQuestion(
+        "¿Qué entra en el alcance y qué no?",
+        ["te lo concreto", "amplio, tú filtras"],
+        True,
+    ),
+    ClarifyQuestion(
+        "¿En qué formato lo quieres?",
+        ["tabla", "veredicto corto", "informe denso"],
+        True,
+    ),
+    ClarifyQuestion(
+        "¿Qué ya investigaste o no quieres que te repita?",
+        ["nada aún", "te lo cuento"],
+        True,
+    ),
+)
+
+
+def _ensure_round1_questions(
+    questions: list[ClarifyQuestion],
+) -> list[ClarifyQuestion]:
+    seen = {q.prompt.casefold() for q in questions}
+    out = list(questions)
+    for fb in FALLBACK_ROUND_1:
+        if len(out) >= MIN_QUESTIONS_ROUND_1:
+            break
+        if fb.prompt.casefold() in seen:
+            continue
+        out.append(fb)
+        seen.add(fb.prompt.casefold())
+    return out[:MAX_QUESTIONS]
 
 
 @dataclass
@@ -139,7 +174,7 @@ def build_clarify_user_payload(
         parts.append("Respuestas previas:\n" + "\n".join(lines))
     if round_n <= 1:
         parts.append(
-            f"PRIMERA RONDA: ready=false salvo brief ya completo. "
+            f"RONDA 1: ready=false. refined_brief=\"\". "
             f"Haz {MIN_QUESTIONS_ROUND_1}–{MAX_QUESTIONS} preguntas."
         )
     elif round_n > MAX_CLARIFY_ROUNDS:
@@ -222,6 +257,8 @@ def parse_clarify_response(
     data = _extract_json(text) or {}
     force_ready = round_n > MAX_CLARIFY_ROUNDS
     ready = bool(data.get("ready")) or force_ready
+    if round_n <= 1 and not force_ready:
+        ready = False
     cap = 4 if round_n > 1 else MAX_QUESTIONS
     questions: list[ClarifyQuestion] = []
     if not ready:
@@ -234,8 +271,9 @@ def parse_clarify_response(
                 questions.append(parsed)
                 if len(questions) >= cap:
                     break
-        if not questions:
-            # Model said not ready but gave no Qs — treat as ready.
+        if round_n <= 1:
+            questions = _ensure_round1_questions(questions)
+        elif not questions:
             ready = True
     refined = str(data.get("refined_brief") or "").strip()
     if ready:
@@ -299,6 +337,15 @@ async def clarify_mission(
         text = (response.choices[0].message.content or "").strip()
     except Exception:
         logger.exception("Mission clarify LLM failed")
+        if round_n <= 1:
+            qs = list(FALLBACK_ROUND_1)
+            return ClarifyResult(
+                ready=False,
+                questions=qs,
+                refined_brief=compose_working_brief(title, brief, hist, ""),
+                round=round_n,
+                rounds_left=max(0, MAX_CLARIFY_ROUNDS - round_n),
+            )
         return ClarifyResult(
             ready=True,
             questions=[],

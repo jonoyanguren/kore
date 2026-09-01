@@ -125,9 +125,8 @@ Organiza. Tablas > prosa. Cifras y nombres. 30–50 líneas si el material da.
 Cero relleno, cero “en conclusión”. Sin inventar datos ni URLs.
 {_IMAGE_RULE}""",
         clarify_addon=(
-            "Modo Rápido: 5–8 preguntas en ronda 1 "
-            "(decisión, restricciones, alcance, formato, qué evitar). "
-            "No des por listo un título vago."
+            "Modo Rápido: ronda 1 siempre 5–8 preguntas (ready=false). "
+            "Decisión, restricciones, alcance, formato, qué evitar."
         ),
     ),
     MODE_EXPERTO: MissionModeSpec(
@@ -184,7 +183,7 @@ Cero pedagogía de Wikipedia. Cero relleno. Sin inventar datos ni URLs.
         clarify_addon=(
             "Modo A fondo: decisión concreta, constraints, fuentes que fía, "
             "qué ya descartó, tolerancia a incertidumbre. "
-            "Ronda 1: 5–8 huecos. Solo ready=true si el brief ya es usable."
+            "Ronda 1: siempre 5–8 preguntas (ready=false). Brief completo solo si ready."
         ),
     ),
     MODE_LOCO: MissionModeSpec(

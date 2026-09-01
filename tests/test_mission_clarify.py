@@ -7,6 +7,7 @@ import json
 from app.kernel.mission_clarify import (
     MAX_CLARIFY_ROUNDS,
     MAX_QUESTIONS,
+    MIN_QUESTIONS_ROUND_1,
     build_clarify_user_payload,
     compose_working_brief,
     parse_clarify_response,
@@ -14,17 +15,29 @@ from app.kernel.mission_clarify import (
 )
 
 
-def test_parse_ready():
+def test_parse_ready_on_round_2():
     r = parse_clarify_response(
         '{"ready": true, "questions": [], "refined_brief": "Buscar barcos 8-12m usados en Mediterráneo"}',
         title="Barcos",
         brief="precios",
         history=[],
-        round_n=1,
+        round_n=2,
     )
     assert r.ready
     assert r.questions == []
     assert "barcos" in r.refined_brief.lower()
+
+
+def test_round_1_never_skips_questions():
+    r = parse_clarify_response(
+        '{"ready": true, "questions": [], "refined_brief": "Ya está."}',
+        title="Barcos",
+        brief="quiero un barco",
+        history=[],
+        round_n=1,
+    )
+    assert not r.ready
+    assert len(r.questions) >= MIN_QUESTIONS_ROUND_1
 
 
 def test_parse_questions():
@@ -36,8 +49,9 @@ def test_parse_questions():
         round_n=1,
     )
     assert not r.ready
-    assert len(r.questions) == 2
+    assert len(r.questions) >= MIN_QUESTIONS_ROUND_1
     assert r.questions[0].prompt == "¿Presupuesto?"
+    assert r.questions[1].prompt == "¿Nuevo o usado?"
     assert r.rounds_left == MAX_CLARIFY_ROUNDS - 1
 
 
@@ -81,7 +95,7 @@ def test_force_ready_after_max_rounds():
     assert r.questions == []
 
 
-def test_fallback_brief_when_empty_json():
+def test_fallback_questions_when_empty_json_round_1():
     r = parse_clarify_response(
         "no json here",
         title="Casas",
@@ -89,9 +103,22 @@ def test_fallback_brief_when_empty_json():
         history=[{"question": "¿Presupuesto?", "answer": "300k"}],
         round_n=1,
     )
-    assert r.ready  # no questions → ready
+    assert not r.ready
+    assert len(r.questions) >= MIN_QUESTIONS_ROUND_1
     assert "Casas" in r.refined_brief
     assert "300k" in r.refined_brief
+
+
+def test_round_2_empty_json_is_ready():
+    r = parse_clarify_response(
+        "no json here",
+        title="Casas",
+        brief="Cantabria",
+        history=[{"question": "¿Presupuesto?", "answer": "300k"}],
+        round_n=2,
+    )
+    assert r.ready
+    assert r.questions == []
 
 
 def test_clarify_payload_includes_memory_excerpt():

@@ -101,7 +101,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
-| 2026-09-01 | Al tope LLM: CTA **Más mes** (sube de plan en Stripe); webhook actualiza el tope |
+| 2026-09-01 | Intake misiones: ronda 1 siempre pregunta (no saltar si el JSON falla) |
 | 2026-09-01 | Admin (Jon/legacy) ve el saldo OpenRouter en Más; `make openrouter-credits` |
 | 2026-09-01 | Tope LLM: owner (`legacy_prompts`) sin corte; `make account-cap EMAIL=… USD=0` |
 | 2026-09-01 | Skill companion **champion-pool** (`/pool`): marco Pochi/iTero para armar la pool |
