@@ -11,6 +11,7 @@ import { MemoryDrawer } from './MemoryDrawer'
 import { MissionsPanel } from './MissionsPanel'
 import { MoreDrawer } from './MoreDrawer'
 import { SpendDrawer } from './SpendDrawer'
+import { LlmCapCta } from './LlmCapCta'
 import { TaskBoard, type TaskBoardHandle } from './TaskBoard'
 import type { MeUser, Task } from '../types'
 
@@ -207,6 +208,7 @@ export function Console({
           </button>
         </div>
       </header>
+      <LlmCapCta variant="banner" />
 
       {layout === 'day' ? (
         <DayStrip

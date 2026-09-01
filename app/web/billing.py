@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from app.billing.access import billing_enforced, needs_paywall
 from app.billing.checkout import configured as stripe_configured
 from app.billing.checkout import create_checkout_session, create_portal_session
-from app.billing.plans import public_plans
+from app.billing.plans import public_plans, upgrade_offer
 from app.config import settings
 from app.web.auth import accounts_of, require_console_auth
 
@@ -41,6 +41,7 @@ def billing_public(user) -> dict[str, Any]:
         "plans": public_plans(),
         "has_customer": bool(user.stripe_customer_id),
         "legacy": bool(user.legacy_prompts),
+        "upgrade": upgrade_offer(user.billing_plan),
     }
 
 
@@ -77,8 +78,15 @@ async def billing_portal(request: Request) -> dict[str, Any]:
         raise HTTPException(
             status.HTTP_409_CONFLICT, detail="no_stripe_customer"
         )
+    upgrade = False
     try:
-        url = await create_portal_session(user, request)
+        raw = await request.json()
+        if isinstance(raw, dict):
+            upgrade = bool(raw.get("upgrade"))
+    except Exception:
+        upgrade = False
+    try:
+        url = await create_portal_session(user, request, upgrade=upgrade)
     except Exception:
         logger.exception("stripe portal error")
         raise HTTPException(

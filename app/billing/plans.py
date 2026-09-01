@@ -63,3 +63,31 @@ def public_plans() -> list[dict[str, Any]]:
 def stripe_price_id(plan_id: str | None) -> str:
     pid = normalize_plan(plan_id)
     return (getattr(settings, f"stripe_price_{pid}", "") or "").strip()
+
+
+def next_plan(plan_id: str | None) -> str | None:
+    """Next public plan, or None if already on 20 €."""
+    p = (plan_id or "").strip()
+    if p == "20":
+        return None
+    if p == "10":
+        return "20"
+    return "10"
+
+
+def upgrade_offer(plan_id: str | None) -> dict[str, Any] | None:
+    nxt = next_plan(plan_id)
+    if nxt is None:
+        return None
+    row = _PLANS[nxt]
+    return {"plan": nxt, "eur": row["eur"], "name": row["name"]}
+
+
+def plan_from_price_id(price_id: str) -> str | None:
+    raw = (price_id or "").strip()
+    if not raw:
+        return None
+    for pid in PLAN_IDS:
+        if stripe_price_id(pid) == raw:
+            return pid
+    return None

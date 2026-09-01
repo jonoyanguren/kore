@@ -14,7 +14,7 @@ from app.timeutil import MADRID, now_madrid
 
 USER_MSG = (
     "Has llegado al tope de LLM de este mes. "
-    "Chat, misiones y dream vuelven el día 1."
+    "En la consola: Más mes (sube de plan). Si no, vuelve el día 1."
 )
 DETAIL = "llm_cap"
 

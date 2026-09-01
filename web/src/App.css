@@ -371,6 +371,44 @@ button.ghost:hover {
   justify-self: end;
 }
 
+.cap-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.85rem;
+}
+
+.cap-cta--banner {
+  padding: 0.55rem 1.15rem 0.65rem;
+  border-bottom: 1px solid var(--line);
+  background: rgba(180, 72, 48, 0.08);
+}
+
+.cap-cta__text {
+  margin: 0;
+  flex: 1 1 12rem;
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.cap-cta__btn {
+  height: 2rem;
+  padding: 0 0.95rem;
+  border-radius: 999px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper, #f3efe8);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.cap-cta__btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 .console__more-btn {
   display: inline-flex;
   align-items: center;

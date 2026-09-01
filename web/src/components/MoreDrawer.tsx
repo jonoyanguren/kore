@@ -9,6 +9,7 @@ import {
 } from '../api'
 import type { MeUser } from '../types'
 import { LlmRoutingTable } from './LlmRoutingTable'
+import { LlmCapCta } from './LlmCapCta'
 import { SpendLedgerPanel } from './SpendLedgerPanel'
 import { UsageChip } from './UsageChip'
 import { DEFAULT_VOICE, VoiceForm } from './VoiceForm'
@@ -83,6 +84,7 @@ export function MoreDrawer({
         <section className="more-drawer__section">
           <h3 className="more-drawer__h">Gasto LLM</h3>
           <UsageChip variant="block" />
+          <LlmCapCta />
           <SpendLedgerPanel
             variant="summary"
             onOpenDetail={() => {

@@ -7,6 +7,8 @@ import {
   apiGmailToTask,
   apiCalendarEventToTask,
   apiCalendarEventPrep,
+  isLlmCapError,
+  llmCapCopy,
   type DaySnapshot,
   type GmailReplyDraft,
 } from '../api'
@@ -101,6 +103,8 @@ export function DayStrip({
   const [replyBusy, setReplyBusy] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const toast = useToast()
+  const fail = (e: unknown) =>
+    toast.err(isLlmCapError(e) ? llmCapCopy() : String(e))
 
   useEffect(() => {
     let cancelled = false
@@ -211,7 +215,7 @@ export function DayStrip({
         })
       }
     } catch (e) {
-      toast.err(String(e))
+      fail(e)
     } finally {
       setBusyId(null)
       setBusyKind(null)
@@ -227,7 +231,7 @@ export function DayStrip({
       const { task } = await apiCalendarEventToTask(ev)
       toast.ok(`Tarea: ${task.title}`)
     } catch (e) {
-      toast.err(String(e))
+      fail(e)
     } finally {
       setCalBusyId(null)
       setCalBusyKind(null)
@@ -248,7 +252,7 @@ export function DayStrip({
         text: prep,
       })
     } catch (e) {
-      toast.err(String(e))
+      fail(e)
     } finally {
       setCalBusyId(null)
       setCalBusyKind(null)
@@ -270,7 +274,7 @@ export function DayStrip({
       setReply(draft)
       setReplyBody(draft.body)
     } catch (e) {
-      toast.err(String(e))
+      fail(e)
     } finally {
       setBusyId(null)
       setBusyKind(null)
@@ -315,7 +319,7 @@ export function DayStrip({
       setReply(null)
       setReplyBody('')
     } catch (e) {
-      toast.err(String(e))
+      fail(e)
     } finally {
       setReplyBusy(false)
     }

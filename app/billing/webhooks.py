@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.accounts.store import AccountStore, UserRow
-from app.billing.plans import credit_usd, normalize_plan
+from app.billing.plans import credit_usd, normalize_plan, plan_from_price_id
 
 logger = logging.getLogger(__name__)
 
@@ -238,6 +238,19 @@ async def _on_invoice_failed(accounts: AccountStore, obj: dict[str, Any]) -> str
     return "ok"
 
 
+def _plan_from_sub(obj: dict[str, Any]) -> str | None:
+    items = _as_dict(obj.get("items")).get("data") or []
+    if items:
+        price = _as_dict(_as_dict(items[0]).get("price"))
+        found = plan_from_price_id(str(price.get("id") or ""))
+        if found:
+            return found
+    raw = str(_meta(obj).get("plan") or "").strip()
+    if raw in ("5", "10", "20"):
+        return raw
+    return None
+
+
 async def _on_sub_updated(accounts: AccountStore, obj: dict[str, Any]) -> str:
     user = await _user_from_customer(accounts, obj)
     if user is None:
@@ -251,6 +264,10 @@ async def _on_sub_updated(accounts: AccountStore, obj: dict[str, Any]) -> str:
         "stripe_subscription_id": str(obj.get("id") or "") or user.stripe_subscription_id,
         "paid_until": _period_end_iso(obj) or user.paid_until,
     }
+    plan = _plan_from_sub(obj)
+    if plan:
+        fields["billing_plan"] = plan
+        fields["llm_cap_usd"] = _llm_cap_for(user, plan)
     await accounts.apply_billing(user.id, **fields)
     return "ok"
 

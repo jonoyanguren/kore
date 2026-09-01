@@ -16,10 +16,11 @@ import {
   CHAT_TEXT_MAX,
   isLlmCapError,
   isTextTooLongError,
-  LLM_CAP_COPY,
+  llmCapCopy,
   TEXT_TOO_LONG_COPY,
   type ChatMessage,
 } from '../api'
+import { LlmCapCta } from './LlmCapCta'
 import { formatRelativeEs } from '../relativeTime'
 import type { Task } from '../types'
 import { ChatTaskCard } from './ChatTaskCard'
@@ -370,14 +371,15 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       })
     } catch (err) {
       setThinking(null)
+      const cap = isLlmCapError(err)
       const tooLong = isTextTooLongError(err)
-      const msg = isLlmCapError(err)
-        ? LLM_CAP_COPY
+      const msg = cap
+        ? llmCapCopy()
         : tooLong
           ? TEXT_TOO_LONG_COPY
           : String(err)
       if (tooLong) setText(t)
-      setError(msg)
+      if (!cap) setError(msg)
       toast.err(
         msg.includes('abort')
           ? 'El modelo tardó demasiado'
@@ -389,11 +391,12 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         ...prev,
         {
           role: 'assistant',
-          content: isLlmCapError(err)
-            ? LLM_CAP_COPY
+          content: cap
+            ? llmCapCopy()
             : tooLong
               ? TEXT_TOO_LONG_COPY
               : '(error al responder)',
+          cap,
           tasks: [],
         },
       ])
@@ -562,7 +565,11 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
                 </time>
               ) : null}
             </div>
-            <div className="chat__text">{m.content}</div>
+            {m.cap ? (
+              <LlmCapCta force />
+            ) : (
+              <div className="chat__text">{m.content}</div>
+            )}
             {m.tasks && m.tasks.length > 0 ? (
               <div className="chat__tasks">
                 {m.tasks.map((task) => (

@@ -136,6 +136,51 @@ def test_plan_20_and_renewal_keeps_that_cap():
     asyncio.run(_run())
 
 
+def test_subscription_updated_moves_plan_and_cap():
+    async def _run() -> None:
+        old = (settings.stripe_price_5, settings.stripe_price_10)
+        settings.stripe_price_5 = "price_5"
+        settings.stripe_price_10 = "price_10"
+        accounts, user, tmp = await _store()
+        try:
+            await apply_event(
+                accounts,
+                _evt(
+                    "evt_up_sub",
+                    "checkout.session.completed",
+                    {
+                        "mode": "subscription",
+                        "customer": "cus_1",
+                        "subscription": "sub_1",
+                        "metadata": {"user_id": str(user.id), "plan": "5"},
+                    },
+                ),
+            )
+            await apply_event(
+                accounts,
+                _evt(
+                    "evt_up_change",
+                    "customer.subscription.updated",
+                    {
+                        "id": "sub_1",
+                        "customer": "cus_1",
+                        "status": "active",
+                        "items": {"data": [{"price": {"id": "price_10"}}]},
+                        "current_period_end": 1893456000,
+                    },
+                ),
+            )
+            got = await accounts.get_user(user.id)
+            assert got is not None
+            assert got.billing_plan == "10"
+            assert got.llm_cap_usd == 2.0
+        finally:
+            settings.stripe_price_5, settings.stripe_price_10 = old
+            tmp.cleanup()
+
+    asyncio.run(_run())
+
+
 def test_operator_zero_cap_survives_renewal():
     async def _run() -> None:
         accounts, user, tmp = await _store()

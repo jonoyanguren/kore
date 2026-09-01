@@ -78,16 +78,31 @@ async def create_checkout_session(
     return str(url)
 
 
-async def create_portal_session(user: UserRow, request: Request) -> str:
+async def create_portal_session(
+    user: UserRow, request: Request, *, upgrade: bool = False
+) -> str:
     if not user.stripe_customer_id:
         raise RuntimeError("no stripe customer")
     client = _client()
-    session = await client.v1.billing_portal.sessions.create_async(
-        {
-            "customer": user.stripe_customer_id,
-            "return_url": origin_from(request) + "/",
+    origin = origin_from(request)
+    params: dict = {
+        "customer": user.stripe_customer_id,
+        "return_url": origin + "/",
+    }
+    sub = (user.stripe_subscription_id or "").strip()
+    if upgrade and sub:
+        params["flow_data"] = {
+            "type": "subscription_update",
+            "subscription_update": {"subscription": sub},
         }
-    )
+    try:
+        session = await client.v1.billing_portal.sessions.create_async(params)
+    except Exception:
+        if "flow_data" not in params:
+            raise
+        logger.warning("stripe portal upgrade flow failed; opening portal home")
+        params.pop("flow_data", None)
+        session = await client.v1.billing_portal.sessions.create_async(params)
     url = getattr(session, "url", None)
     if not url:
         raise RuntimeError("portal session missing url")

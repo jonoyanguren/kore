@@ -101,6 +101,7 @@ export type BillingInfo = {
   enforced: boolean
   has_customer: boolean
   legacy: boolean
+  upgrade?: { plan: '10' | '20'; eur: number; name: string } | null
 }
 
 export type MeUser = {

@@ -1,4 +1,11 @@
-import type { MeUser, Mission, MissionMode, Task, TaskStatus } from './types'
+import type {
+  BillingInfo,
+  MeUser,
+  Mission,
+  MissionMode,
+  Task,
+  TaskStatus,
+} from './types'
 
 async function req<T>(
   path: string,
@@ -144,11 +151,12 @@ export async function apiBillingCheckout(
   return { ok: true, url: r.data.url }
 }
 
-export async function apiBillingPortal(): Promise<
-  { ok: true; url: string } | { ok: false; status: number }
-> {
+export async function apiBillingPortal(opts?: {
+  upgrade?: boolean
+}): Promise<{ ok: true; url: string } | { ok: false; status: number }> {
   const r = await req<{ ok: boolean; url: string }>('/api/billing/portal', {
     method: 'POST',
+    body: JSON.stringify({ upgrade: Boolean(opts?.upgrade) }),
   })
   if (!r.ok || !r.data.url) return { ok: false, status: r.ok ? 409 : r.status }
   return { ok: true, url: r.data.url }
@@ -157,11 +165,53 @@ export async function apiBillingPortal(): Promise<
 export const LLM_CAP_COPY =
   'Has llegado al tope de LLM de este mes. Chat, misiones y dream vuelven el día 1.'
 
+export const LLM_CAP_EVENT = 'kore:llm-cap'
+
+export function announceLlmCap(): void {
+  window.dispatchEvent(new Event(LLM_CAP_EVENT))
+}
+
+export function llmCapCopy(billing?: BillingInfo | null): string {
+  const next = billing?.upgrade
+  if (next) {
+    return `Has llegado al tope de este mes. Pasa a ${next.eur} € para más mes.`
+  }
+  return LLM_CAP_COPY
+}
+
+export async function openMoreMes(
+  billing?: BillingInfo | null,
+): Promise<{ ok: true } | { ok: false; status?: number; none?: boolean }> {
+  if (billing?.has_customer) {
+    const r = await apiBillingPortal({ upgrade: true })
+    if (r.ok) {
+      window.location.href = r.url
+      return { ok: true }
+    }
+    return { ok: false, status: r.status }
+  }
+  const plan = billing?.upgrade?.plan
+  if (plan) {
+    const r = await apiBillingCheckout(plan)
+    if (r.ok) {
+      window.location.href = r.url
+      return { ok: true }
+    }
+    return { ok: false, status: r.status }
+  }
+  return { ok: false, none: true }
+}
+
 export function isLlmCapError(err: unknown, status?: number): boolean {
   const s = String(err)
   if (s.includes('billing_required')) return false
-  if (status === 402) return true
-  return s.includes('llm_cap') || s.includes('chat 402') || s.includes('402')
+  const hit =
+    status === 402 ||
+    s.includes('llm_cap') ||
+    s.includes('chat 402') ||
+    s.includes('402')
+  if (hit) announceLlmCap()
+  return hit
 }
 
 /** Keep in sync with app/web/api.py CHAT_TEXT_MAX */
@@ -848,6 +898,7 @@ export type GmailReplyDraft = {
 }
 
 async function gmailReplyError(res: Response, fallback: string): Promise<Error> {
+  if (res.status === 402) return new Error('llm_cap')
   try {
     const j = (await res.json()) as {
       detail?: string | { code?: string; message?: string }
@@ -910,6 +961,7 @@ export type ChatMessage = {
   created_at?: string
   relative?: string
   tasks?: Task[]
+  cap?: boolean
 }
 
 export type MessagesPage = {

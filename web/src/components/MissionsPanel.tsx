@@ -9,7 +9,7 @@ import {
   apiMissionModeOptions,
   apiRelaunchMission,
   isLlmCapError,
-  LLM_CAP_COPY,
+  llmCapCopy,
   type ClarifyHistoryItem,
   type ClarifyQuestion,
 } from '../api'
@@ -21,6 +21,7 @@ import {
   splitMissionMarkdown,
 } from '../lib/missionReport'
 import type { Mission, MissionCostInfo, MissionMode, MissionModeOption } from '../types'
+import { LlmCapCta } from './LlmCapCta'
 import { useToast } from './Toasts'
 
 type Props = {
@@ -167,11 +168,18 @@ export function MissionsPanel({ active = true }: Props) {
     useState<MissionModeOption[]>(FALLBACK_MODES)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [capHit, setCapHit] = useState(false)
   const [askText, setAskText] = useState('')
   const [askBusy, setAskBusy] = useState(false)
   const toast = useToast()
-  const capErr = (err: unknown) =>
-    toast.err(isLlmCapError(err) ? LLM_CAP_COPY : String(err))
+  const capErr = (err: unknown) => {
+    if (isLlmCapError(err)) {
+      setCapHit(true)
+      toast.err(llmCapCopy())
+      return
+    }
+    toast.err(String(err))
+  }
   const resultRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLElement>(null)
 
@@ -707,7 +715,7 @@ export function MissionsPanel({ active = true }: Props) {
           </div>
         ) : null}
 
-        {error ? <p className="muted">{error}</p> : null}
+        {capHit ? <LlmCapCta force /> : error ? <p className="muted">{error}</p> : null}
 
         <ul className="missions__list">
           {visible.length === 0 ? (
