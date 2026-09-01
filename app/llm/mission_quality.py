@@ -1,6 +1,6 @@
 """Per-mission mode → model, prompts, UI legend, cost estimates.
 
-Replaces the old Normal/Pro quality slider. Legacy `pro` maps to Experto.
+Picker is two jobs (Rápido / A fondo). Legacy loco/duro/pro still load.
 """
 
 from __future__ import annotations
@@ -22,6 +22,7 @@ VALID_MODES: tuple[MissionMode, ...] = (
     MODE_EXPERTO,
     MODE_DURO,
 )
+PICKER_MODES: tuple[MissionMode, ...] = (MODE_NORMAL, MODE_EXPERTO)
 
 # Back-compat aliases used in older tests / UI.
 QUALITY_NORMAL = MODE_NORMAL
@@ -54,6 +55,11 @@ Reglas:
 - Español. No inventes datos del encargo.
 - Si hay MEMORIA adjunta, úsala: no planifiques re-descubrir lo que el usuario ya tiene guardado."""
 
+_IMAGE_RULE = (
+    "Si pones una imagen, copia una URL https que ya salga en los hallazgos "
+    "(og:image); si no hay, no inventes markdown de imagen."
+)
+
 
 @dataclass(frozen=True)
 class MissionModeSpec:
@@ -61,6 +67,7 @@ class MissionModeSpec:
     label: str
     when: str
     legend: str
+    outcome: str
     blurb: str
     plan_addon: str
     task_addon: str
@@ -75,49 +82,109 @@ class MissionModeSpec:
 MODE_SPECS: dict[MissionMode, MissionModeSpec] = {
     MODE_NORMAL: MissionModeSpec(
         id=MODE_NORMAL,
-        label="Normal",
-        when="Mira esto y dime qué harías",
-        legend="Investiga y decide. Default.",
-        blurb="Flash — barato y rápido; bueno para la mayoría",
+        label="Rápido",
+        when="Salir del bloqueo con una recomendación",
+        legend="Te dejo una decisión y un siguiente paso.",
+        outcome="Salida: decisión · por qué · opciones · siguiente paso · fuentes",
+        blurb="Para desatascar. Flash.",
         min_tasks=2,
-        max_tasks=6,
+        max_tasks=4,
         plan_temperature=0.2,
         summary_temperature=0.3,
         plan_addon=(
-            "- Entre 2 y 6 tareas, orden lógico (explorar → profundizar → comparar).\n"
-            "- Tareas accionables (\"Comparar 5 modelos en rango de precio X\")."
+            "- Entre 2 y 4 tareas, orden lógico (explorar → comparar → decidir).\n"
+            "- Cada tarea deja datos que alimenten UNA decisión, no un ensayo."
         ),
         task_addon=(
-            "Modo Normal: claro, accionable, sin relleno. "
-            "Cumple SOLO el objetivo de esta tarea."
+            "Modo Rápido: hallazgos concretos, organizados, sin relleno. "
+            "Tabla corta si comparas. Cumple SOLO el objetivo de esta tarea."
         ),
-        summary_system="""Eres Jone. Cierras una misión de investigación para Jon.
+        summary_system=f"""Eres Jone. Cierras una misión RÁPIDA: el usuario tiene que poder actuar.
 
-Con el encargo y los hallazgos de las tareas, escribes el RESULTADO final.
+Con el encargo y los hallazgos, escribe un Resultado organizado (no un párrafo flojo).
 Responde SOLO markdown en español empezando por:
 
 ## Resultado
 
 ### Decisión
-(1–3 frases claras)
+(1–3 frases claras: qué harías y por qué en una línea)
 
 ### Por qué
-(2–5 bullets)
+(3–6 bullets con datos, no opiniones sueltas)
 
 ### Opciones
-(tabla corta o bullets: opción — pros/contras — link)
+(tabla: opción | pros | contras | link. 3–5 filas si hay material)
 
 ### Siguiente paso
-(una acción concreta)
+(una acción concreta, hoy)
 
 ### Fuentes
-(3–8 links)
+(3–8 links con título, no URLs sueltas)
 
-Máx. ~25 líneas. Sin repetir la investigación cruda. Sin inventar datos ni URLs.""",
+Organiza. Tablas > prosa. Cifras y nombres. 30–50 líneas si el material da.
+Cero relleno, cero “en conclusión”. Sin inventar datos ni URLs.
+{_IMAGE_RULE}""",
         clarify_addon=(
-            "Modo Normal: intake completo. 5–8 preguntas en ronda 1 "
+            "Modo Rápido: 5–8 preguntas en ronda 1 "
             "(decisión, restricciones, alcance, formato, qué evitar). "
             "No des por listo un título vago."
+        ),
+    ),
+    MODE_EXPERTO: MissionModeSpec(
+        id=MODE_EXPERTO,
+        label="A fondo",
+        when="Cuando importa acertar",
+        legend="Informe denso: opciones comparadas, evidencia y fuentes.",
+        outcome="Salida: juicio · evidencia · contraste · qué no está claro · siguiente paso · fuentes",
+        blurb="Informe para decidir en serio. Pro.",
+        min_tasks=3,
+        max_tasks=6,
+        plan_temperature=0.1,
+        summary_temperature=0.2,
+        plan_addon=(
+            "- Entre 3 y 6 tareas. Profundiza: fuentes primarias, contraste, números.\n"
+            "- Cada tarea deja material reutilizable en el informe (tabla, cifras, cita)."
+        ),
+        task_addon=(
+            "Modo A fondo: denso y organizado. Tablas, cifras, nombres, desacuerdos. "
+            "Contrasta fuentes. No resumas en tres bullets flojos. "
+            "Cumple SOLO el objetivo de esta tarea."
+        ),
+        summary_system=f"""Eres Jone. Cierras una misión A FONDO: un informe que se puede usar.
+
+El usuario espera organización de verdad, no un resumen corto.
+Responde SOLO markdown en español empezando por:
+
+## Resultado
+
+### Juicio
+(1–4 frases; preciso)
+
+### Evidencia
+(hallazgos no triviales; qué fuente los sostiene; cifras)
+
+### Opciones
+(tabla: opción | qué implica | riesgo | fuente)
+
+### Contraste
+(posición A vs B vs C, o “lo que dice X vs Y”)
+
+### Incertidumbre
+(qué no está claro, sesgos, agujeros)
+
+### Siguiente paso
+(una acción concreta, no “seguir investigando”)
+
+### Fuentes
+(5–12 links con título y tipo: primario / review / prensa)
+
+Sé denso: 50–90 líneas si el material da. Tablas cuando compares.
+Cero pedagogía de Wikipedia. Cero relleno. Sin inventar datos ni URLs.
+{_IMAGE_RULE}""",
+        clarify_addon=(
+            "Modo A fondo: decisión concreta, constraints, fuentes que fía, "
+            "qué ya descartó, tolerancia a incertidumbre. "
+            "Ronda 1: 5–8 huecos. Solo ready=true si el brief ya es usable."
         ),
     ),
     MODE_LOCO: MissionModeSpec(
@@ -125,6 +192,7 @@ Máx. ~25 líneas. Sin repetir la investigación cruda. Sin inventar datos ni UR
         label="Loco",
         when="Quieres volumen y rareza, no la opción sensata",
         legend="Volumen y rareza; mapa, no una decisión.",
+        outcome="Salida: mapa de opciones (también raras) · una locura · fuentes",
         blurb="Pro — divergente; incluye lo absurdo",
         min_tasks=4,
         max_tasks=6,
@@ -141,7 +209,7 @@ Máx. ~25 líneas. Sin repetir la investigación cruda. Sin inventar datos ni UR
         ),
         summary_system="""Eres Jone en modo LOCO. Cierras un mapa de posibilidades, NO una decisión sensata.
 
-PROHIBIDO: \"seamos realistas\", recomendar solo lo obvio, una única Decisión.
+PROHIBIDO: "seamos realistas", recomendar solo lo obvio, una única Decisión.
 
 Responde SOLO markdown en español empezando por:
 
@@ -159,7 +227,7 @@ Responde SOLO markdown en español empezando por:
 ### Fuentes
 (3–8 links)
 
-Máx. ~35 líneas. Sin inventar datos ni URLs. Si una idea es especulativa, dilo.""",
+Organiza. Sin inventar datos ni URLs. Si una idea es especulativa, dilo.""",
         clarify_addon=(
             "Modo Loco: no preguntes por presupuesto realista ni por "
             "\"qué es razonable\". Sí pregunta amplitud del mapa, tabúes, "
@@ -167,63 +235,12 @@ Máx. ~35 líneas. Sin inventar datos ni URLs. Si una idea es especulativa, dilo
             "Ronda 1: 5–8 preguntas que abran, no que cierren."
         ),
     ),
-    MODE_EXPERTO: MissionModeSpec(
-        id=MODE_EXPERTO,
-        label="Experto",
-        when="Ya sabes el básico; quieres rigor",
-        legend="Rigor; asume que ya sabes el básico.",
-        blurb="Pro — profundo; contraste e incertidumbre",
-        min_tasks=3,
-        max_tasks=6,
-        plan_temperature=0.1,
-        summary_temperature=0.2,
-        plan_addon=(
-            "- Entre 3 y 6 tareas. Jon YA conoce lo básico: no planes \"qué es X\".\n"
-            "- Cada tarea contrasta fuentes, marca incertidumbre o baja a detalle de dominio.\n"
-            "- Prioriza papers, datos primarios, docs oficiales frente a listicles."
-        ),
-        task_addon=(
-            "Modo Experto: asume que Jon ya sabe el básico. No resumas Wikipedia. "
-            "Contrasta fuentes, cita con precisión, marca incertidumbre y desacuerdos. "
-            "Prefiere datos primarios."
-        ),
-        summary_system="""Eres Jone en modo EXPERTO. Jon ya conoce el básico; no se lo expliques.
-
-Responde SOLO markdown en español empezando por:
-
-## Resultado
-
-### Juicio
-(1–3 frases; preciso, sin pedagogía)
-
-### Evidencia
-(hallazgos no triviales; qué fuente los sostiene)
-
-### Incertidumbre
-(qué no está claro, desacuerdos, sesgos de las fuentes)
-
-### Contraste
-(tabla o bullets: posición A vs B vs C)
-
-### Siguiente paso
-(una acción concreta de experto, no \"seguir investigando\")
-
-### Fuentes
-(3–8 links; indica de pasada la calidad: primario / review / prensa)
-
-Máx. ~30 líneas. Sin inventar datos ni URLs. Cero relleno introductorio.""",
-        clarify_addon=(
-            "Modo Experto: no preguntes definiciones ni el 101. "
-            "Sí: decisión concreta, constraint técnico, fuentes que fía, "
-            "qué ya descartó, tolerancia a incertidumbre. "
-            "Ronda 1: 5–8 huecos de dominio. Solo ready=true si el brief ya es de experto."
-        ),
-    ),
     MODE_DURO: MissionModeSpec(
         id=MODE_DURO,
         label="Duro",
         when="Quieres que te tumben la idea",
         legend="Te tumba la idea; peor caso, cero ánimo.",
+        outcome="Salida: veredicto · por qué falla · peor caso · fuentes",
         blurb="Pro — red team; por qué falla",
         min_tasks=3,
         max_tasks=6,
@@ -257,12 +274,12 @@ Responde SOLO markdown en español empezando por:
 (escenario creíble, no caricatura)
 
 ### Si aún así
-(una condición mínima para no suicidarse con esto — o \"no lo hagas\")
+(una condición mínima para no suicidarse con esto — o "no lo hagas")
 
 ### Fuentes
 (3–8 links)
 
-Máx. ~25 líneas. Sin inventar datos ni URLs. No endulces el cierre.""",
+Sin inventar datos ni URLs. No endulces el cierre.""",
         clarify_addon=(
             "Modo Duro: si no hay tesis, pregunta cuál. Pregunta también "
             "qué se juega, qué no quiere oír, y qué le haría cambiar de idea. "
@@ -274,8 +291,10 @@ Máx. ~25 líneas. Sin inventar datos ni URLs. No endulces el cierre.""",
 
 def normalize_mode(raw: str | None) -> MissionMode:
     q = (raw or "").strip().lower()
-    if q in ("pro", "high", "calidad"):
+    if q in ("pro", "high", "calidad", "a fondo", "afondo"):
         return MODE_EXPERTO
+    if q in ("rapido", "rápido", "fast"):
+        return MODE_NORMAL
     if q in VALID_MODES:
         return q  # type: ignore[return-value]
     return MODE_NORMAL
@@ -362,25 +381,25 @@ def summary_temperature_for(quality: str | None) -> float:
     return mode_spec(quality).summary_temperature
 
 
+def _option_row(mode_id: MissionMode) -> dict:
+    spec = MODE_SPECS[mode_id]
+    approx = approx_mission_usd(mode_id)
+    return {
+        "id": spec.id,
+        "label": spec.label,
+        "when": spec.when,
+        "legend": spec.legend,
+        "outcome": spec.outcome,
+        "blurb": spec.blurb,
+        "model": resolve_mission_model(mode_id),
+        "approx_usd": approx,
+        "approx_label": format_approx_range(approx),
+    }
+
+
 def mission_mode_options() -> list[dict]:
-    """Options for Nueva (label, legend, model, approx price)."""
-    rows: list[dict] = []
-    for mode_id in VALID_MODES:
-        spec = MODE_SPECS[mode_id]
-        approx = approx_mission_usd(mode_id)
-        rows.append(
-            {
-                "id": spec.id,
-                "label": spec.label,
-                "when": spec.when,
-                "legend": spec.legend,
-                "blurb": spec.blurb,
-                "model": resolve_mission_model(mode_id),
-                "approx_usd": approx,
-                "approx_label": format_approx_range(approx),
-            }
-        )
-    return rows
+    """Picker options: Rápido / A fondo."""
+    return [_option_row(mode_id) for mode_id in PICKER_MODES]
 
 
 def mission_quality_options() -> list[dict]:

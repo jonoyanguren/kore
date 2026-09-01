@@ -6,7 +6,7 @@ def test_llm_routing_rows():
     assert data["tier"] == "hybrid"
     assert len(data["rows"]) == 4
     roles = {r["role"] for r in data["rows"]}
-    assert roles == {"Daily", "Strong", "Misión Normal", "Misión Pro"}
+    assert roles == {"Daily", "Strong", "Misión Rápido", "Misión A fondo"}
     for row in data["rows"]:
         assert row["model"]
         assert "price_in" in row and "price_out" in row

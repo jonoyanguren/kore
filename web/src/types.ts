@@ -75,6 +75,7 @@ export type MissionModeOption = {
   label: string
   when: string
   legend: string
+  outcome?: string
   blurb: string
   model: string
   approx_usd: number

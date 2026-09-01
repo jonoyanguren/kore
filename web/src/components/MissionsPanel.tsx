@@ -97,40 +97,22 @@ function missionListCost(m: Mission): string | null {
 const FALLBACK_MODES: MissionModeOption[] = [
   {
     id: 'normal',
-    label: 'Normal',
-    when: 'Mira esto y dime qué harías',
-    legend: 'Investiga y decide. Default.',
-    blurb: 'Flash — barato y rápido',
+    label: 'Rápido',
+    when: 'Salir del bloqueo con una recomendación',
+    legend: 'Te dejo una decisión y un siguiente paso.',
+    outcome: 'Salida: decisión · por qué · opciones · siguiente paso · fuentes',
+    blurb: 'Para desatascar',
     model: '',
     approx_usd: 0.04,
     approx_label: '~$0.02–0.06',
   },
   {
-    id: 'loco',
-    label: 'Loco',
-    when: 'Quieres volumen y rareza, no la opción sensata',
-    legend: 'Volumen y rareza; mapa, no una decisión.',
-    blurb: 'Pro — divergente',
-    model: '',
-    approx_usd: 0.2,
-    approx_label: '~$0.10–0.30',
-  },
-  {
     id: 'experto',
-    label: 'Experto',
-    when: 'Ya sabes el básico; quieres rigor',
-    legend: 'Rigor; asume que ya sabes el básico.',
-    blurb: 'Pro — profundo',
-    model: '',
-    approx_usd: 0.2,
-    approx_label: '~$0.10–0.30',
-  },
-  {
-    id: 'duro',
-    label: 'Duro',
-    when: 'Quieres que te tumben la idea',
-    legend: 'Te tumba la idea; peor caso, cero ánimo.',
-    blurb: 'Pro — red team',
+    label: 'A fondo',
+    when: 'Cuando importa acertar',
+    legend: 'Informe denso: opciones comparadas, evidencia y fuentes.',
+    outcome: 'Salida: juicio · evidencia · contraste · siguiente paso · fuentes',
+    blurb: 'Informe para decidir en serio',
     model: '',
     approx_usd: 0.2,
     approx_label: '~$0.10–0.30',
@@ -146,7 +128,8 @@ function missionModeLabel(m: Mission, options: MissionModeOption[]): string {
   const id = missionModeId(m)
   const hit = options.find((o) => o.id === id)
   if (hit) return hit.label
-  if (id === 'pro') return 'Experto'
+  if (id === 'pro' || id === 'experto') return 'A fondo'
+  if (id === 'normal') return 'Rápido'
   return id.charAt(0).toUpperCase() + id.slice(1)
 }
 
@@ -372,7 +355,7 @@ export function MissionsPanel({ active = true }: Props) {
     return (
       <div className="missions__mode">
         <span className="missions__mode-label" id="missions-mode-label">
-          Modo
+          Qué te entrego
         </span>
         <div
           className={
@@ -409,7 +392,7 @@ export function MissionsPanel({ active = true }: Props) {
           })}
         </div>
         <p className="muted missions__mode-hint">
-          {variant === 'cards' ? selectedMode.when : selectedMode.legend}
+          {selectedMode.outcome || selectedMode.when}
           {' · '}
           {approx} / misión
         </p>

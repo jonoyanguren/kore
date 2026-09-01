@@ -30,6 +30,8 @@ logger = logging.getLogger(__name__)
 MAX_TASKS = 6
 MIN_TASKS = 2
 MAX_HANDOFF_CHARS = 1200
+TASK_OUTPUT_FOR_SUMMARY_CHARS = 6000
+SUMMARY_MAX_TOKENS = 4500
 
 PLAN_SYSTEM = """Eres Jone, planner de investigación de Jon.
 
@@ -59,33 +61,6 @@ Responde SOLO texto plano en español, 80–180 palabras:
 - Qué quedó resuelto / datos clave / links útiles
 - Qué debe hacer la siguiente tarea con eso
 - Sin markdown, sin JSON, sin secciones numeradas largas"""
-
-
-SUMMARY_SYSTEM = """Eres Jone. Cierras una misión de investigación para Jon.
-
-Con el encargo y los hallazgos de las tareas, escribes el RESULTADO final.
-Responde SOLO markdown en español empezando por:
-
-## Resultado
-
-### Decisión
-(1–3 frases claras)
-
-### Por qué
-(2–5 bullets)
-
-### Opciones
-(tabla corta o bullets: opción — pros/contras — link)
-
-### Siguiente paso
-(una acción concreta)
-
-### Fuentes
-(3–8 links)
-
-Máx. ~25 líneas. Sin repetir la investigación cruda. Sin inventar datos ni URLs.
-Si pones una imagen, copia una URL https que ya salga en los hallazgos (og:image);
-si no hay, no inventes markdown de imagen."""
 
 
 @dataclass
@@ -533,13 +508,13 @@ async def generate_mission_summary(
     spend_store: MemoryStore | None = None,
     memory_excerpt: str = "",
 ) -> str:
-    """Final pass: one short Resultado from all task outputs."""
+    """Final pass: Resultado from all task outputs."""
     model = resolve_mission_model(quality)
     chunks: list[str] = []
     for i, task in enumerate(plan.tasks, start=1):
         out = (task.output or "").strip()
-        if len(out) > 1800:
-            out = out[:1790] + "…"
+        if len(out) > TASK_OUTPUT_FOR_SUMMARY_CHARS:
+            out = out[: TASK_OUTPUT_FOR_SUMMARY_CHARS - 1] + "…"
         chunks.append(f"### Tarea {i}: {task.title}\n{out or '(sin texto)'}")
     body = "\n\n".join(chunks) if chunks else "(sin hallazgos)"
     excerpt = (memory_excerpt or "").strip()
@@ -564,7 +539,7 @@ async def generate_mission_summary(
     kwargs: dict[str, Any] = {
         "model": model,
         "messages": messages,
-        "max_tokens": 2800,
+        "max_tokens": SUMMARY_MAX_TOKENS,
         "temperature": summary_temperature_for(quality),
     }
     session_id = f"mission-{mission_id}-summary"

@@ -33,10 +33,10 @@ export type Mission = {
 export function missionModeLabel(m: Mission): string {
   if (m.mode_label) return m.mode_label
   const id = (m.mode || m.quality || 'normal').toLowerCase()
+  if (id === 'experto' || id === 'pro') return 'A fondo'
   if (id === 'loco') return 'Loco'
-  if (id === 'experto' || id === 'pro') return 'Experto'
   if (id === 'duro') return 'Duro'
-  return 'Normal'
+  return 'Rápido'
 }
 
 export type DaySnapshot = {

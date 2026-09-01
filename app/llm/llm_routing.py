@@ -62,26 +62,26 @@ def llm_routing(*, plan: Any = _UNSET, legacy: Any = _UNSET) -> dict:
         rows = [
             _row("Daily", daily, "Chat normal"),
             _row("Strong", strong, "Dream · Gmail · chat gordo"),
-            _row("Misión Normal", mission_n, "Misiones modo Normal"),
-            _row("Misión Pro", mission_p, "Misiones Loco / Experto / Duro"),
+            _row("Misión Rápido", mission_n, "Misiones Rápido"),
+            _row("Misión A fondo", mission_p, "Misiones A fondo"),
         ]
         notes = [
             "Plan Más: chat en Flash; Gmail y dream en Haiku.",
             "Precios ~$/1M tokens (lista OpenRouter).",
-            "Modo de misión se elige al crear (Nueva): Normal, Loco, Experto, Duro.",
+            "Misión: Rápido (Flash) o A fondo (Pro).",
         ]
     else:
         rows = [
             _row("Daily", daily, "Chat normal"),
             _row("Strong", strong, "Dream · Gmail · chat gordo"),
-            _row("Misión Normal", mission_n, "Misiones modo Normal"),
-            _row("Misión Pro", mission_p, "Misiones Loco / Experto / Duro"),
+            _row("Misión Rápido", mission_n, "Misiones Rápido"),
+            _row("Misión A fondo", mission_p, "Misiones A fondo"),
         ]
         notes = [
             "Híbrido: chat en Pro; Gmail y dream en Haiku.",
             "Precios ~$/1M tokens (lista OpenRouter).",
             "Prompt cache en tool loops (session sticky).",
-            "Modo de misión se elige al crear (Nueva): Normal, Loco, Experto, Duro.",
+            "Misión: Rápido (Flash) o A fondo (Pro).",
         ]
 
     return {"tier": tier, "rows": rows, "notes": notes}

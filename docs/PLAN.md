@@ -10,7 +10,7 @@
 | Fase actual | **Cerrar el piloto** — Stripe, tope LLM, página legal |
 | Canal | Consola web = operar / día · Telegram = captura móvil opcional |
 | Deploy | Fly.io · `/data` |
-| LLM | OpenRouter · modelos según plan: 5=Flash · 10=Flash+Haiku · 20/Jon=híbrido Pro+Haiku · misiones Normal=Flash / Pro=v4-pro (en 5, todo Flash) |
+| LLM | OpenRouter · modelos según plan: 5=Flash · 10=Flash+Haiku · 20/Jon=híbrido Pro+Haiku · misiones Rápido=Flash / A fondo=v4-pro (en 5, todo Flash) |
 | Diseño largo | `companion-plan.md` · Consola 1.5: `web-console-plan.md` |
 | Backlog | `TODO.md` · **Producto** vs **Plataforma** |
 
@@ -60,6 +60,7 @@
 | D30 | **Tono del usuario** (2026-08-30): chips (trato/largo/calidez/humor/firma); onboarding + Más; `/tono` infiere del chat; Gmail reply usa ese perfil (no “como Jon”) |
 | D31 | **Cerrar el piloto** (2026-08-30): fase = las 8 tareas técnicas (allowlist, landing, flags, gasto/tope, Stripe, legal). Registro abierto (D14) queda superseded para el piloto |
 | D32 | **Modelos según plan** (2026-08-31): Entrar (5) = siempre Flash. Más (10) = Flash diario + Haiku strong. Holgado (20) / Jon / local = híbrido env (Pro diario + Haiku). Mismo producto; el plan cambia modelo y cuánto mes |
+| D33 | **Misiones: dos modos** (2026-09-01): **Rápido** (Flash → decisión + siguiente paso) / **A fondo** (Pro → informe denso). Loco/Duro solo en misiones viejas. D26 (4 modos) superseded |
 
 ## Roadmap (lean)
 
@@ -100,7 +101,7 @@ No hinchar este archivo: cerrar → `milestones.md` + TODO corto.
 
 | Fecha | Cambio |
 |-------|--------|
-| 2026-08-31 | **D32** Modelos según plan: 5=Flash · 10=Flash+Haiku · 20=híbrido |
+| 2026-09-01 | **D33** Misiones: Rápido / A fondo (el picker de 4 modos no se entendía; Resultado más denso) |
 | 2026-08-31 | Precios: ejemplo de uso diario en cada plan |
 | 2026-08-31 | Registro abierto: el pago es el gate. Allowlist / «Pide acceso» fuera |
 | 2026-08-31 | Precios piloto: 5 / 10 / 20 € al mes (tabla landing + paywall). Pack suelto fuera |

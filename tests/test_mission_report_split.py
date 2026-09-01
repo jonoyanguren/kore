@@ -150,9 +150,12 @@ def test_render_puts_summary_first():
 
 
 def test_mission_token_budgets():
+    from app.kernel.mission_plan import SUMMARY_MAX_TOKENS, TASK_OUTPUT_FOR_SUMMARY_CHARS
     from app.kernel.mission_runner import MID_TASK_MAX_TOKENS
 
-    assert MID_TASK_MAX_TOKENS <= 1500
+    assert MID_TASK_MAX_TOKENS >= 2500
+    assert SUMMARY_MAX_TOKENS >= 4000
+    assert TASK_OUTPUT_FOR_SUMMARY_CHARS >= 4000
 
 
 def test_plan_summary_roundtrip():

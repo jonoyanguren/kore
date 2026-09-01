@@ -49,8 +49,8 @@ Reglas:
   o img src https que hayas visto en ese fetch. jpg/png/webp/gif. Si fetch no
   devolvió imágenes, no pongas ninguna: no inventes Wikimedia, Unsplash ni placeholders.
 - Cumple SOLO el objetivo de esta tarea; no adelantes otras.
-- Sé breve: bullets > párrafos. Sin volcar HTML crudo ni dumps de búsqueda.
-- Tono: claro, accionable, sin relleno.
+- Organiza: tablas cortas y bullets con cifras. Sin volcar HTML crudo ni dumps de búsqueda.
+- Tono: claro, accionable, denso. Cero relleno.
 - La respuesta final = markdown empezando por el ## que te indiquen.
 - No digas que eres una IA ni menciones ticks internos."""
 
@@ -61,8 +61,7 @@ MISSION_TASK_SYNTH_NUDGE = (
     "reales si aportan. Sin tool_calls, sin DSML, sin inventar."
 )
 
-MID_TASK_MAX_TOKENS = 1200
-SUMMARY_MAX_TOKENS = 2800  # mirrored in generate_mission_summary
+MID_TASK_MAX_TOKENS = 2800
 
 
 def _iso(dt) -> str:
@@ -154,9 +153,9 @@ async def _execute_task(
     shape = (
         f"Respuesta = SOLO markdown empezando por:\n"
         f"## {task.title}\n"
-        "Sé muy breve: máx. ~8–12 líneas. 3–5 bullets + links. "
-        "0–1 imagen. Cero relleno, cero tablas largas. "
-        "No escribas el informe final (habrá una pasada Resultado aparte)."
+        "Hallazgos densos y organizados: 15–35 líneas. "
+        "Tablas cortas sí. Cifras, nombres, links. 0–2 imágenes reales. "
+        "Cero relleno. No escribas el informe final (habrá Resultado)."
     )
 
     excerpt = await format_memory_excerpt(store)

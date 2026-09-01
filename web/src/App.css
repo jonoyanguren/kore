@@ -3446,10 +3446,10 @@ a.more-drawer__btn {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.2rem;
-  padding: 0.55rem 0.65rem 0.6rem;
+  gap: 0.25rem;
+  padding: 0.65rem 0.75rem 0.7rem;
   border-radius: 0.5rem;
-  min-height: 4.4rem;
+  min-height: 5rem;
 }
 
 .missions__mode-pill {
@@ -3481,10 +3481,10 @@ a.more-drawer__btn {
 }
 
 .missions__mode-copy {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 400;
   color: var(--muted, #6b7785);
-  line-height: 1.35;
+  line-height: 1.4;
 }
 
 .missions__mode-card.is-active .missions__mode-copy {
